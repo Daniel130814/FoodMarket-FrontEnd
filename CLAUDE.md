@@ -43,6 +43,7 @@ appetitos.css, GUIA-REACT.md).
 - [x] 5. DishCard (map)
 - [x] 6. Header, Footer y rutas
 - [x] 7. Home y Catálogo con datos de ejemplo (map y key)
+- [x] 8. Detalle del plato (useParams y useState)
 
 ## Referencia de diseño
 
@@ -50,3 +51,15 @@ Los HTML de `referencia-visual/` son solo referencia visual y de estructura:
 NO son parte de la app y NO se importan. Para armar una vista, leé el HTML
 correspondiente (por ejemplo `detalle.html`) y convertilo a componentes JSX.
 Ignorar `referencia-visual/assets/app.js` (usa DOM, está prohibido en React).
+
+## Comentarios en el código
+
+- Dejá comentarios en español dentro del código para que yo entienda qué hace.
+- Encabezá cada archivo con un comentario de 1-2 líneas: qué es y dónde se usa.
+- Comentá cada función/componente, cada prop y cada concepto nuevo
+  (useState, useParams, map, etc.) la primera vez que aparece.
+- Comentá el "para qué" de las líneas no obvias, no repitas lo que ya dice el código.
+- En JSX usá {/_ comentario _/}; en JavaScript, //.
+
+Agregá comentarios explicativos (según las reglas de CLAUDE.md) a los
+archivos que ya existen en src/, sin cambiar la lógica ni el aspecto.

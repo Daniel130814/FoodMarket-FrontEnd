@@ -5,12 +5,76 @@ const PLATOS_EJEMPLO = [
     title: 'Ravioli de hongos silvestres y noisette',
     description: 'Pasta de sémola rellena de ricotta de granja, setas de temporada y salvia crujiente.',
     images: [
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuANhvv19i3bO8CZOGjtiv3eGepjcPg20Cxpm7L-atqFfTNCG76iLDbt8QwIEjAQv9EnTFr3FB65DzsJbm18gpLKJumkzw1Q0vw-gY7YtCDrV9_c79Fi339vRxkoEPksZlx9nURqHS14P1r20LceaBdYx8VBLO2-1ieJ9xH6NNPOUpQGUsZwm5LnyBOLAJKE7QzxP4VBS8cVmRw1kzaTHo5ftnWBSkOdm5ysZesa8HjUQhnhBWWMQC36'
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuANhvv19i3bO8CZOGjtiv3eGepjcPg20Cxpm7L-atqFfTNCG76iLDbt8QwIEjAQv9EnTFr3FB65DzsJbm18gpLKJumkzw1Q0vw-gY7YtCDrV9_c79Fi339vRxkoEPksZlx9nURqHS14P1r20LceaBdYx8VBLO2-1ieJ9xH6NNPOUpQGUsZwm5LnyBOLAJKE7QzxP4VBS8cVmRw1kzaTHo5ftnWBSkOdm5ysZesa8HjUQhnhBWWMQC36',
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuAUkCuw4QzCperkB29Zq9Vi5_HRf6tXvi1gT9o-fz4medk95dHCdOBffBpza-l7IyhvoIha__yY13TUmEinHTCB89Y5wMD8RNvSYUGMJeRmOmiwRZ8wedv1ueR2Zg4_H10KwE4r0Tzyh_4LiQN8_dFmMcy4JxtQzwjVpryiFX2RXcM1IhOrzd_kNsZdRMiNjt32YldmRh0-yoAKofg4X3fsyDXDyKBf7nf1a-6lJ9zoI7-suuC5d01Y',
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuDAKV0u6sqS2NStkjOjn4n6MDm0QIXEMyb_zMByzKRa3VzC9p_CPaop8JbcnhFKB_yTkS7vDVnN8q_2-ayPsdspSzRr99OZZ6ClK1XIAbBel1LHT9siTW6bKlLqKBZje-zAwHN9sxbz_dWgq_S9Qhcqg-E0M-xfNDjmkyWP89r3QhhjWH188vzrziPF204s3BgH1uD3hkLqZSHCOR2aNfU_unXSbm9XB2Wew4O3ubuIVyU5M-gxQYpz',
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuAYR0N8UuugNGc5Db1gjgU75MDOmsEyo9JMoOftK6c1NeacJu4T6Z0EkYjtG5UT4LeXNkVxedgr5uFehy5vsARgBAC5XNenh7hrC3aqroi6PNTIltH6BNV64xo30NzMC43wSqh5acrc5sg-FC4R0a0hmEpIXLa-jaPvduBEnnnIG_SApqSvrwYl9hUPWw6GQKJuwOhj3QsJYFJweeOTPn545fVpiGjrBKMfR9rjPKrisii84dcchoOe',
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuD4n62yANwj1J9qvrYikO12D1MY5qtnEmlCOOpey-s9F-SVyYFSiRYV593MrB-rd9iqeWBaCtVExDAjR85c0MhyePvpwikY06jwjo-2IFhCTDZouz8W6Jy7qJW7g7i4eTCeUGOm39nqzEZutlEHfqsDKtBoKvDPsNsGLp35oKexgCYKgvcAsxumoDqQ6iWV6CkdhBZjeCrgPHJ6TNzuDWjoDV7Z_rXQQ15MgP7oHHejt0dfDGjX4WHb'
     ],
     category: 'Pastas',
     price: 18400,
     discountPercent: 0,
     stock: 4,
+    portions: [
+      { id: 'individual', name: 'Individual', description: 'Una porción generosa', price: 18400 },
+      { id: 'compartir', name: 'Para compartir', description: 'Ideal para 2 personas', price: 35000 },
+    ],
+    ingredients: [
+      {
+        id: 1,
+        icon: 'grain',
+        name: 'Harina orgánica de molino de piedra',
+        origin: 'Molino Harinero Mayaco, Tres Arroyos. Trigo candeal molido despacio para conservar el germen.',
+        distance: '420 km',
+      },
+      {
+        id: 2,
+        icon: 'egg',
+        name: 'Ricotta fresca de oveja',
+        origin: 'Cabaña San Isidro, Sierras de Tandil. Cuajada natural de leche cruda, 24 horas antes del amasado.',
+        distance: '340 km',
+      },
+      {
+        id: 3,
+        icon: 'forest',
+        name: 'Hongos silvestres recolectados',
+        origin: 'Gírgolas y boletus de pinar, recolectados a mano en bosques serranos.',
+        distance: 'Cosecha de la mañana',
+      },
+      {
+        id: 4,
+        icon: 'spa',
+        name: 'Manteca de pastoreo y salvia',
+        origin: 'Manteca de vacas en pastoreo libre y salvia del huerto orgánico del taller.',
+        distance: 'Huerto propio',
+      },
+    ],
+    reviews: [
+      {
+        id: 1,
+        author: 'Martina Rossi',
+        verified: true,
+        when: 'hace 2 días',
+        rating: 5,
+        comment: 'La textura de la masa es increíble: sedosa pero firme. La manteca noisette con la salvia le da una profundidad que no encontrás ni en trattorias caras.',
+      },
+      {
+        id: 2,
+        author: 'Santiago Beltrán',
+        verified: true,
+        when: 'hace 5 días',
+        rating: 5,
+        comment: 'Llegó impecable, tibio y con las indicaciones exactas para la sartén. En 2 minutos teníamos una cena de aniversario. Los hongos se sentían frescos.',
+      },
+      {
+        id: 3,
+        author: 'Valeria Gómez',
+        verified: true,
+        when: 'hace 1 semana',
+        rating: 5,
+        comment: 'La ricotta de Tandil marca la diferencia: es cremosa y dulce, nada industrial. Clara es una artista de la pasta.',
+      },
+    ],
     seller: {
       id: 1,
       name: 'Matteo Rossi',
@@ -32,6 +96,10 @@ const PLATOS_EJEMPLO = [
     price: 14200,
     discountPercent: 0,
     stock: 12,
+    portions: [
+      { id: 'individual', name: 'Individual', description: 'Una porción generosa', price: 14200 },
+      { id: 'compartir', name: 'Para compartir', description: 'Ideal para 2 personas', price: 27000 },
+    ],
     seller: {
       id: 2,
       name: 'Kenji Takahashi',
@@ -53,6 +121,10 @@ const PLATOS_EJEMPLO = [
     price: 19800,
     discountPercent: 0,
     stock: 8,
+    portions: [
+      { id: 'individual', name: 'Individual', description: 'Una porción generosa', price: 19800 },
+      { id: 'compartir', name: 'Para compartir', description: 'Ideal para 2 personas', price: 37600 },
+    ],
     seller: {
       id: 3,
       name: 'Clara Méndez',
@@ -74,6 +146,10 @@ const PLATOS_EJEMPLO = [
     price: 8160,
     discountPercent: 15,
     stock: 15,
+    portions: [
+      { id: 'individual', name: 'Individual', description: 'Una porción generosa', price: 8160 },
+      { id: 'compartir', name: 'Para compartir', description: 'Ideal para 2 personas', price: 15500 },
+    ],
     seller: {
       id: 4,
       name: 'Elena y Tomás',
@@ -95,6 +171,10 @@ const PLATOS_EJEMPLO = [
     price: 15500,
     discountPercent: 0,
     stock: 9,
+    portions: [
+      { id: 'individual', name: 'Individual', description: 'Una porción generosa', price: 15500 },
+      { id: 'compartir', name: 'Para compartir', description: 'Ideal para 2 personas', price: 29500 },
+    ],
     seller: {
       id: 3,
       name: 'Clara Méndez',
@@ -116,6 +196,10 @@ const PLATOS_EJEMPLO = [
     price: 22000,
     discountPercent: 0,
     stock: 3,
+    portions: [
+      { id: 'individual', name: 'Individual', description: 'Una porción generosa', price: 22000 },
+      { id: 'compartir', name: 'Para compartir', description: 'Ideal para 2 personas', price: 41800 },
+    ],
     seller: {
       id: 2,
       name: 'Kenji Takahashi',
@@ -137,6 +221,10 @@ const PLATOS_EJEMPLO = [
     price: 15500,
     discountPercent: 0,
     stock: 0,
+    portions: [
+      { id: 'individual', name: 'Individual', description: 'Una porción generosa', price: 15500 },
+      { id: 'compartir', name: 'Para compartir', description: 'Ideal para 2 personas', price: 29500 },
+    ],
     seller: {
       id: 1,
       name: 'Matteo Rossi',
@@ -158,6 +246,10 @@ const PLATOS_EJEMPLO = [
     price: 11800,
     discountPercent: 0,
     stock: 10,
+    portions: [
+      { id: 'individual', name: 'Individual', description: 'Una porción generosa', price: 11800 },
+      { id: 'compartir', name: 'Para compartir', description: 'Ideal para 2 personas', price: 22400 },
+    ],
     seller: {
       id: 5,
       name: 'Elena Rostand',
@@ -179,6 +271,10 @@ const PLATOS_EJEMPLO = [
     price: 18900,
     discountPercent: 0,
     stock: 7,
+    portions: [
+      { id: 'individual', name: 'Individual', description: 'Una porción generosa', price: 18900 },
+      { id: 'compartir', name: 'Para compartir', description: 'Ideal para 2 personas', price: 35900 },
+    ],
     seller: {
       id: 6,
       name: 'Camila Valenzuela',

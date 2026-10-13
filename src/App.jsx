@@ -3,6 +3,7 @@ import Header from './components/Header'
 import Footer from './components/Footer'
 import Inicio from './views/Inicio'
 import Catalogo from './views/Catalogo'
+import DetallePlato from './views/DetallePlato'
 
 function App() {
   return (
@@ -13,6 +14,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Inicio />} />
           <Route path="/catalogo" element={<Catalogo />} />
+          {/* ":id" es un parámetro: /plato/1, /plato/2... todas muestran DetallePlato */}
+          <Route path="/plato/:id" element={<DetallePlato />} />
         </Routes>
       </main>
       <Footer />
