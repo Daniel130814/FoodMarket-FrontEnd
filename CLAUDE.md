@@ -42,3 +42,11 @@ appetitos.css, GUIA-REACT.md).
 - [x] 4. Logo y Button (props)
 - [x] 5. DishCard (map)
 - [x] 6. Header, Footer y rutas
+- [x] 7. Home y Catálogo con datos de ejemplo (map y key)
+
+## Referencia de diseño
+
+Los HTML de `referencia-visual/` son solo referencia visual y de estructura:
+NO son parte de la app y NO se importan. Para armar una vista, leé el HTML
+correspondiente (por ejemplo `detalle.html`) y convertilo a componentes JSX.
+Ignorar `referencia-visual/assets/app.js` (usa DOM, está prohibido en React).
