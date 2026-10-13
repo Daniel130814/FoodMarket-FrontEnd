@@ -1,8 +1,12 @@
 import { Link } from 'react-router-dom'
 import Button from './Button'
+import { useCart } from '../context/CartContext'
 
 function PlatoCard({ dish }) {
   const { id, title, description, images, price, discountPercent, stock, seller, rating, reviewsCount } = dish
+
+  // agregar viene del contexto del carrito; desde la tarjeta siempre suma 1 unidad
+  const { agregar } = useCart()
 
   const state = stock === 0 ? 'soldout' : stock <= 5 ? 'low' : 'available'
   const oldPrice = discountPercent > 0 ? Math.round(price / (1 - discountPercent / 100)) : null
@@ -47,7 +51,7 @@ function PlatoCard({ dish }) {
             {state === 'low' && <p className="text-label-sm">Quedan {stock} hoy</p>}
             {state === 'soldout' && <p className="text-label-sm">Agotado hoy</p>}
           </div>
-          <Button disabled={state === 'soldout'}>Agregar</Button>
+          <Button disabled={state === 'soldout'} onClick={() => agregar(dish, 1)}>Agregar</Button>
         </div>
       </div>
     </article>

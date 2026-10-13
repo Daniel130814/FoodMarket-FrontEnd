@@ -7,6 +7,7 @@ import QuantityStepper from '../components/QuantityStepper'
 import PortionPicker from '../components/PortionPicker'
 import IngredientTrace from '../components/IngredientTrace'
 import ReviewList from '../components/ReviewList'
+import { useCart } from '../context/CartContext'
 import PLATOS_EJEMPLO from '../data/platosEjemplo'
 
 function DetallePlato() {
@@ -24,6 +25,9 @@ function DetallePlato() {
   // Los hooks siempre se llaman ANTES de cualquier return: React exige que se
   // ejecuten en el mismo orden en cada render.
   const [cantidad, setCantidad] = useState(1)
+
+  // agregar viene del contexto del carrito (compartido con el Header y la vista Carrito)
+  const { agregar } = useCart()
 
   // Estado: id de la porción elegida. Guardamos SOLO el id; el precio no se guarda
   // aparte, se calcula más abajo a partir de este id.
@@ -60,7 +64,8 @@ function DetallePlato() {
   const porcion = plato.portions.find((p) => p.id === porcionId)
   const precioAnterior =
     plato.discountPercent > 0 ? Math.round(porcion.price / (1 - plato.discountPercent / 100)) : null
-  const total = porcion.price * cantidad
+  // Total del botón: usa el precio Individual (plato.price) porque así lo cuenta el carrito.
+  const total = plato.price * cantidad
   const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
 
   // No todos los platos de ejemplo traen ingredientes o reseñas: solo mostramos
@@ -107,14 +112,14 @@ function DetallePlato() {
           </div>
         )}
 
-        {/* Sin stock el botón queda deshabilitado. Todavía no guarda nada en la
-            cesta (eso es el paso 9): por ahora solo muestra el plato y la cantidad en consola. */}
+        {/* Sin stock el botón queda deshabilitado. Al tocarlo, agregar() del contexto suma el plato
+            al carrito. El carrito no guarda la porción: siempre cuenta el precio Individual. */}
         <div className="mt-6">
           <Button
             disabled={agotado}
-            onClick={() => console.log('Agregar a la cesta:', plato.title, porcion.name, 'x', cantidad)}
+            onClick={() => agregar(plato, cantidad)}
           >
-            Agregar a la cesta · {formatear(total)}
+            Agregar al carrito · {formatear(total)}
           </Button>
         </div>
       </div>

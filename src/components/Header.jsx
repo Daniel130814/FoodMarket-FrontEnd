@@ -1,14 +1,19 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import Logo from './Logo'
+import { useCart } from '../context/CartContext'
 
 const ENLACES = [
   { texto: 'Inicio', ruta: '/' },
   { texto: 'Platos', ruta: '/catalogo' },
 ]
 
-function Header({ cartCount = 0 }) {
+function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
+
+  // useCart() lee el carrito compartido. Renombramos cantidadTotal a cartCount para
+  // no cambiar el resto del componente. Cuando alguien agrega algo, el Header se redibuja solo.
+  const { cantidadTotal: cartCount } = useCart()
 
   return (
     <header className="sticky top-0 z-40 border-b border-hairline bg-surface/90 backdrop-blur-md">
@@ -37,10 +42,10 @@ function Header({ cartCount = 0 }) {
         </nav>
 
         <div className="ml-auto flex items-center gap-1.5">
-          <a href="#" className="icon-link" aria-label={`Cesta, ${cartCount} platos`}>
+          <Link to="/carrito" className="icon-link" aria-label={`Carrito, ${cartCount} platos`}>
             <span className="material-symbols-outlined">shopping_bag</span>
             <span className="count" aria-hidden="true">{cartCount}</span>
-          </a>
+          </Link>
         </div>
       </div>
 
