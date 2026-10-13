@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crear cuenta · Appetitos</title>
+<meta name="description" content="Creá tu cuenta de comprador o vendedor en Appetitos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400&family=Sora:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<script src="assets/tailwind-config.js"></script>
+<link rel="stylesheet" href="assets/appetitos.css">
+</head>
+<body class="bg-surface font-sans text-on-surface antialiased ">
+<a class="skip-link" href="#contenido">Ir al contenido</a>
+<div class="min-h-screen lg:grid lg:grid-cols-2">
+  <main id="contenido" class="flex min-h-screen flex-col px-5 py-6 sm:px-10 lg:px-16 lg:py-8">
+    <div class="flex items-center justify-between gap-4"><a href="index.html" class="logo " aria-label="Appetitos, ir al inicio"><span aria-hidden="true">Appetit</span><svg viewBox="0 0 16 17.6" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M8 0C3.6 0 0 4 0 8.8C0 13.6 3.6 17.6 8 17.6C12.4 17.6 16 13.6 16 8.8C16 7.1 15.5 5.5 14.6 4.2C14.1 4.8 13.3 5.2 12.4 5.1C11.8 5 11.3 4.5 11 3.9C10.7 3.1 10.9 2.3 11.5 1.7C11.1 1.4 10.6 1.2 10.1 1.2C9.5 1.1 9 1.3 8.5 1.6C8.8 1 8.8 0.5 8.5 0.1C8.3 0.1 8.1 0 8 0ZM8 4.6C8.7 4.6 9.3 4.8 9.8 5.1C9.5 5.7 9.6 6.5 10.1 7C10.6 7.6 11.5 7.8 12.2 7.4C12.4 8 12.5 8.7 12.5 9.4C12.5 11.9 10.5 13.8 8 13.8C5.5 13.8 3.5 11.9 3.5 9.4C3.5 6.9 5.5 4.6 8 4.6Z"/><circle cx="15.2" cy="1.6" r=".8" fill="#c4572e"/><circle cx="13.8" cy="-.6" r=".5" fill="#c8b27a"/></svg><span aria-hidden="true">s</span></a><a href="index.html" class="link text-label-md">Volver al inicio</a></div>
+    <div class="mx-auto flex w-full max-w-[460px] flex-1 flex-col py-10 sm:justify-center lg:py-12">
+    <h1 class="font-display text-[40px] leading-[44px] tracking-[-0.02em] text-primary">Creá tu cuenta</h1>
+    <p class="mt-3 text-body-lg text-on-surface-variant">Lleva un minuto. Podés cambiar de rol después.</p>
+
+    <form class="mt-8 space-y-5" novalidate data-validate data-auth="register" data-redirect="index.html">
+      <fieldset>
+        <legend class="label">¿Para qué usás Appetitos?</legend>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="option"><input type="radio" name="rol" value="comprador" class="radio mt-0.5" checked><span class="min-w-0 flex-1"><span class="flex items-center gap-2 text-label-lg text-primary"><span class="material-symbols-outlined text-[20px] text-surface-tint" aria-hidden="true">shopping_bag</span>Quiero comprar</span><span class="mt-0.5 block text-body-sm text-on-surface-variant">Pedís platos de chefs de tu barrio.</span></span></label>
+          <label class="option"><input type="radio" name="rol" value="vendedor" class="radio mt-0.5" ><span class="min-w-0 flex-1"><span class="flex items-center gap-2 text-label-lg text-primary"><span class="material-symbols-outlined text-[20px] text-surface-tint" aria-hidden="true">soup_kitchen</span>Quiero vender</span><span class="mt-0.5 block text-body-sm text-on-surface-variant">Publicás tus platos y manejás tu stock.</span></span></label>
+        </div>
+      </fieldset>
+
+      <div class="grid gap-5 sm:grid-cols-2">
+        <div><label class="label" for="nombre">Nombre</label><input id="nombre" name="nombre" class="field" autocomplete="given-name" required data-msg="Escribí tu nombre."><p class="hint hint--error" data-err-for="nombre" hidden><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span><span data-err-text></span></p></div>
+        <div><label class="label" for="apellido">Apellido</label><input id="apellido" name="apellido" class="field" autocomplete="family-name" required data-msg="Escribí tu apellido."><p class="hint hint--error" data-err-for="apellido" hidden><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span><span data-err-text></span></p></div>
+      </div>
+      <div>
+        <label class="label" for="usuario">Nombre de usuario</label>
+        <input id="usuario" name="usuario" class="field" autocomplete="username" required pattern="[A-Za-z0-9._]{4,20}" data-msg="Usá entre 4 y 20 letras, números, puntos o guiones bajos." placeholder="clara.mendez">
+        <p class="hint" data-hint-for="usuario">Es el nombre que ven los demás. Entre 4 y 20 caracteres.</p>
+        <p class="hint hint--error" data-err-for="usuario" hidden><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span><span data-err-text></span></p>
+      </div>
+      <div>
+        <label class="label" for="correo">Correo electrónico</label>
+        <input id="correo" name="correo" type="email" class="field" autocomplete="email" required data-msg="Escribí un correo válido, por ejemplo nombre@correo.com." placeholder="nombre@correo.com">
+        <p class="hint hint--error" data-err-for="correo" hidden><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span><span data-err-text></span></p>
+      </div>
+      <div>
+        <label class="label" for="clave">Contraseña</label>
+        <div class="relative">
+          <input id="clave" name="clave" type="password" class="field pr-24" autocomplete="new-password" required minlength="8" data-msg="Usá al menos 8 caracteres.">
+          <button type="button" class="btn btn-quiet btn-sm absolute right-1.5 top-1/2 -translate-y-1/2" data-toggle-password="clave" aria-controls="clave">Mostrar</button>
+        </div>
+        <p class="hint" data-hint-for="clave">Mínimo 8 caracteres.</p>
+        <p class="hint hint--error" data-err-for="clave" hidden><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span><span data-err-text></span></p>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block !min-h-[54px]">Crear cuenta</button>
+    </form>
+
+    <p class="mt-8 text-center text-body-md text-on-surface-variant">¿Ya tenés cuenta? <a href="ingreso.html" class="link">Ingresar</a></p></div>
+  </main>
+  <aside class="on-dark relative hidden overflow-hidden bg-primary-container lg:flex lg:items-center lg:justify-center lg:p-14" aria-hidden="true"><div class="max-w-[420px]">
+      <h2 class="font-display text-[34px] leading-[40px] tracking-[-0.02em] text-inverse-on-surface">Comida con nombre y apellido</h2>
+      <ul class="mt-8 space-y-6">
+        <li class="flex gap-4"><span class="grid h-11 w-11 flex-none place-items-center rounded-full bg-white/10 text-primary-fixed"><span class="material-symbols-outlined" aria-hidden="true">storefront</span></span><div><p class="text-label-lg text-inverse-on-surface">Si cocinás</p><p class="mt-0.5 text-body-md text-primary-fixed-dim">Publicá tus platos con fotos, precio y stock. Mirá tus pedidos y tu stock en un solo lugar.</p></div></li><li class="flex gap-4"><span class="grid h-11 w-11 flex-none place-items-center rounded-full bg-white/10 text-primary-fixed"><span class="material-symbols-outlined" aria-hidden="true">shopping_bag</span></span><div><p class="text-label-lg text-inverse-on-surface">Si comprás</p><p class="mt-0.5 text-body-md text-primary-fixed-dim">Pedí a talleres de tu barrio y mirá de dónde viene cada ingrediente.</p></div></li><li class="flex gap-4"><span class="grid h-11 w-11 flex-none place-items-center rounded-full bg-white/10 text-primary-fixed"><span class="material-symbols-outlined" aria-hidden="true">verified_user</span></span><div><p class="text-label-lg text-inverse-on-surface">Para todos</p><p class="mt-0.5 text-body-md text-primary-fixed-dim">Verificamos cada cocina antes de que publique.</p></div></li>
+      </ul></div></aside>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"><span class="material-symbols-outlined fill text-[20px] text-primary-fixed-dim">check_circle</span><span data-toast-text></span><a href="cesta.html" hidden>Ver cesta</a></div>
+<script src="assets/app.js"></script>
+</body>
+</html>

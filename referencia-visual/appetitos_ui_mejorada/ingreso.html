@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ingresar · Appetitos</title>
+<meta name="description" content="Ingresá a tu cuenta de Appetitos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400&family=Sora:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<script src="assets/tailwind-config.js"></script>
+<link rel="stylesheet" href="assets/appetitos.css">
+</head>
+<body class="bg-surface font-sans text-on-surface antialiased ">
+<a class="skip-link" href="#contenido">Ir al contenido</a>
+<div class="min-h-screen lg:grid lg:grid-cols-2">
+  <main id="contenido" class="flex min-h-screen flex-col px-5 py-6 sm:px-10 lg:px-16 lg:py-8">
+    <div class="flex items-center justify-between gap-4"><a href="index.html" class="logo " aria-label="Appetitos, ir al inicio"><span aria-hidden="true">Appetit</span><svg viewBox="0 0 16 17.6" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M8 0C3.6 0 0 4 0 8.8C0 13.6 3.6 17.6 8 17.6C12.4 17.6 16 13.6 16 8.8C16 7.1 15.5 5.5 14.6 4.2C14.1 4.8 13.3 5.2 12.4 5.1C11.8 5 11.3 4.5 11 3.9C10.7 3.1 10.9 2.3 11.5 1.7C11.1 1.4 10.6 1.2 10.1 1.2C9.5 1.1 9 1.3 8.5 1.6C8.8 1 8.8 0.5 8.5 0.1C8.3 0.1 8.1 0 8 0ZM8 4.6C8.7 4.6 9.3 4.8 9.8 5.1C9.5 5.7 9.6 6.5 10.1 7C10.6 7.6 11.5 7.8 12.2 7.4C12.4 8 12.5 8.7 12.5 9.4C12.5 11.9 10.5 13.8 8 13.8C5.5 13.8 3.5 11.9 3.5 9.4C3.5 6.9 5.5 4.6 8 4.6Z"/><circle cx="15.2" cy="1.6" r=".8" fill="#c4572e"/><circle cx="13.8" cy="-.6" r=".5" fill="#c8b27a"/></svg><span aria-hidden="true">s</span></a><a href="index.html" class="link text-label-md">Volver al inicio</a></div>
+    <div class="mx-auto flex w-full max-w-[460px] flex-1 flex-col py-10 sm:justify-center lg:py-12">
+    <h1 class="font-display text-[40px] leading-[44px] tracking-[-0.02em] text-primary">Ingresá a tu cuenta</h1>
+    <p class="mt-3 text-body-lg text-on-surface-variant">Pedí tus platos o gestioná los que vendés.</p>
+
+    <div id="form-error" role="alert" hidden class="mt-6 flex gap-3 rounded-lg border border-error/30 bg-error-container p-4 text-on-error-container">
+      <span class="material-symbols-outlined fill" aria-hidden="true">error</span>
+      <div><p class="text-label-lg">No pudimos ingresar</p><p class="text-body-sm">El usuario o la contraseña no coinciden. Revisalos e intentá de nuevo.</p></div>
+    </div>
+
+    <form class="mt-8 space-y-5" novalidate data-validate data-auth="login" data-redirect="index.html">
+      <div>
+        <label class="label" for="usuario">Usuario o correo</label>
+        <input id="usuario" name="usuario" class="field" autocomplete="username" required data-msg="Escribí tu usuario o tu correo." placeholder="clara.mendez">
+        <p class="hint hint--error" data-err-for="usuario" hidden><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span><span data-err-text></span></p>
+      </div>
+      <div>
+        <div class="flex items-baseline justify-between"><label class="label" for="clave">Contraseña</label><a href="#" class="link text-label-md">Olvidé mi contraseña</a></div>
+        <div class="relative">
+          <input id="clave" name="clave" type="password" class="field pr-24" autocomplete="current-password" required minlength="8" data-msg="Escribí tu contraseña de al menos 8 caracteres.">
+          <button type="button" class="btn btn-quiet btn-sm absolute right-1.5 top-1/2 -translate-y-1/2" data-toggle-password="clave" aria-controls="clave">Mostrar</button>
+        </div>
+        <p class="hint hint--error" data-err-for="clave" hidden><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span><span data-err-text></span></p>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block !min-h-[54px]">Ingresar</button>
+    </form>
+
+    <p class="mt-8 text-center text-body-md text-on-surface-variant">¿Todavía no tenés cuenta? <a href="registro.html" class="link">Crear cuenta</a></p></div>
+  </main>
+  <aside class="on-dark relative hidden overflow-hidden bg-primary-container lg:flex lg:items-center lg:justify-center lg:p-14" aria-hidden="true">
+  <div class="flex max-w-[420px] flex-col items-center text-center">
+    <div class="aspect-[4/5] w-[300px] overflow-hidden rounded-t-full rounded-b-xl bg-primary shadow-lift"><img src="https://lh3.googleusercontent.com/aida-public/AB6AXuANhvv19i3bO8CZOGjtiv3eGepjcPg20Cxpm7L-atqFfTNCG76iLDbt8QwIEjAQv9EnTFr3FB65DzsJbm18gpLKJumkzw1Q0vw-gY7YtCDrV9_c79Fi339vRxkoEPksZlx9nURqHS14P1r20LceaBdYx8VBLO2-1ieJ9xH6NNPOUpQGUsZwm5LnyBOLAJKE7QzxP4VBS8cVmRw1kzaTHo5ftnWBSkOdm5ysZesa8HjUQhnhBWWMQC36" alt="" class="h-full w-full object-cover"></div>
+    <blockquote class="mt-8 font-display text-[24px] italic leading-8 text-inverse-on-surface">“Cada plato sale de mi cocina con mi nombre. Por eso lo cocino como si fuera para mi casa.”</blockquote>
+    <p class="mt-3 text-body-sm text-primary-fixed-dim">Clara Méndez · Pastificio en Palermo</p>
+  </div></aside>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"><span class="material-symbols-outlined fill text-[20px] text-primary-fixed-dim">check_circle</span><span data-toast-text></span><a href="cesta.html" hidden>Ver cesta</a></div>
+<script src="assets/app.js"></script>
+</body>
+</html>

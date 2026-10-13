@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Componentes · Appetitos</title>
+<meta name="description" content="Referencia de componentes y tokens de Appetitos para el desarrollo en React.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400&family=Sora:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<script src="assets/tailwind-config.js"></script>
+<link rel="stylesheet" href="assets/appetitos.css">
+</head>
+<body class="bg-surface font-sans text-on-surface antialiased ">
+<a class="skip-link" href="#contenido">Ir al contenido</a>
+<header class="sticky top-0 z-40 border-b border-hairline bg-surface/90 backdrop-blur-md">
+  <div class="mx-auto flex h-[68px] max-w-shell items-center gap-2 px-4 sm:px-5 lg:h-[76px] lg:gap-8 lg:px-12">
+    <button type="button" class="btn btn-quiet btn-icon -ml-2 lg:hidden" data-menu-toggle aria-expanded="false" aria-controls="menu-movil" aria-label="Abrir menú"><span class="material-symbols-outlined">menu</span></button>
+    <a href="index.html" class="logo " aria-label="Appetitos, ir al inicio"><span aria-hidden="true">Appetit</span><svg viewBox="0 0 16 17.6" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M8 0C3.6 0 0 4 0 8.8C0 13.6 3.6 17.6 8 17.6C12.4 17.6 16 13.6 16 8.8C16 7.1 15.5 5.5 14.6 4.2C14.1 4.8 13.3 5.2 12.4 5.1C11.8 5 11.3 4.5 11 3.9C10.7 3.1 10.9 2.3 11.5 1.7C11.1 1.4 10.6 1.2 10.1 1.2C9.5 1.1 9 1.3 8.5 1.6C8.8 1 8.8 0.5 8.5 0.1C8.3 0.1 8.1 0 8 0ZM8 4.6C8.7 4.6 9.3 4.8 9.8 5.1C9.5 5.7 9.6 6.5 10.1 7C10.6 7.6 11.5 7.8 12.2 7.4C12.4 8 12.5 8.7 12.5 9.4C12.5 11.9 10.5 13.8 8 13.8C5.5 13.8 3.5 11.9 3.5 9.4C3.5 6.9 5.5 4.6 8 4.6Z"/><circle cx="15.2" cy="1.6" r=".8" fill="#c4572e"/><circle cx="13.8" cy="-.6" r=".5" fill="#c8b27a"/></svg><span aria-hidden="true">s</span></a>
+    <nav class="hidden items-center gap-1 lg:flex" aria-label="Principal"><a class="nav-link" href="catalogo.html">Platos</a><a class="nav-link" href="#">Chefs</a><a class="nav-link" href="#">Historias</a><a class="nav-link" href="#">Valores</a></nav>
+    <div class="ml-auto flex items-center gap-0.5 sm:gap-1.5">
+      <form role="search" class="hidden md:block" onsubmit="return false">
+        <label class="relative block">
+          <span class="sr-only">Buscar platos o chefs</span>
+          <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant">search</span>
+          <input type="search" class="field !min-h-[44px] w-[210px] border-transparent bg-surface-container pl-10 hover:border-transparent focus:bg-white xl:w-[300px]" placeholder="Buscar platos o chefs">
+        </label>
+      </form>
+      <a href="#" class="icon-link md:hidden" aria-label="Buscar"><span class="material-symbols-outlined">search</span></a>
+      <a href="pedidos.html" class="icon-link" aria-label="Mis pedidos, 2 en curso"><span class="material-symbols-outlined">receipt_long</span><span class="count count--sand" aria-hidden="true">2</span></a>
+      <a href="cesta.html" class="icon-link" aria-label="Cesta"><span class="material-symbols-outlined">shopping_bag</span><span class="count" data-cart-count>3</span></a>
+      <details class="relative ml-1.5 hidden sm:block" data-account>
+        <summary class="cursor-pointer rounded-full" aria-label="Mi cuenta"><img src="https://lh3.googleusercontent.com/aida/AEtjO1UA-dYoobD3JbNgJWBcEdi7XPIacgEf3d-luAliCzoDi-PUmyVTYxQlS0SOjej3iFexXeh3aKn-CMw8y3aiyaVqwu4GdGo4BfO0svFrrX4S6lJXiTtNIJYE4k9j91-XSpCsb_GOtds_7225wVN5zS6v4TU19i72J338Pfkl1RKFiSFS-R2PsgxBvzOf_depxUGCknXMKfavlVgDwshe3SuDgcxra892NXtBkOMIfgIwPM0ttlrWdmNM2AE" alt="" class="h-10 w-10 rounded-full object-cover ring-1 ring-hairline"></summary>
+        <div class="absolute right-0 top-[calc(100%+10px)] z-50 w-64 rounded-lg border border-hairline bg-surface-container-lowest p-2 shadow-lift">
+          <div class="border-b border-hairline px-3 pb-3 pt-2"><p class="text-label-lg text-primary">Sofía Benítez</p><p class="text-body-sm text-on-surface-variant">Compra y vende</p></div>
+          <nav class="mt-2 flex flex-col" aria-label="Cuenta">
+            <a class="menu-item" href="pedidos.html"><span class="material-symbols-outlined text-[20px]" aria-hidden="true">receipt_long</span>Mis pedidos</a>
+            <a class="menu-item" href="publicaciones.html"><span class="material-symbols-outlined text-[20px]" aria-hidden="true">storefront</span>Mis publicaciones</a>
+            <a class="menu-item" href="publicar.html"><span class="material-symbols-outlined text-[20px]" aria-hidden="true">add_circle</span>Publicar un plato</a>
+            <a class="menu-item" href="ingreso.html"><span class="material-symbols-outlined text-[20px]" aria-hidden="true">logout</span>Salir</a>
+          </nav>
+        </div>
+      </details>
+    </div>
+  </div>
+  <div id="menu-movil" hidden class="border-t border-hairline bg-surface px-4 pb-4 pt-2 lg:hidden">
+    <nav aria-label="Principal móvil" class="flex flex-col"><a class="nav-link block !py-3" href="catalogo.html">Platos</a><a class="nav-link block !py-3" href="#">Chefs</a><a class="nav-link block !py-3" href="#">Historias</a><a class="nav-link block !py-3" href="#">Valores</a></nav>
+    <form role="search" class="mt-2" onsubmit="return false"><label class="block"><span class="sr-only">Buscar platos o chefs</span><input type="search" class="field" placeholder="Buscar platos o chefs"></label></form>
+    <nav aria-label="Cuenta" class="mt-3 flex flex-col border-t border-hairline pt-3"><a class="nav-link block !py-3" href="pedidos.html">Mis pedidos</a><a class="nav-link block !py-3" href="publicaciones.html">Mis publicaciones</a><a class="nav-link block !py-3" href="publicar.html">Publicar un plato</a><a class="nav-link block !py-3" href="ingreso.html">Salir</a></nav>
+  </div>
+</header>
+<main id="contenido" class="mx-auto max-w-shell px-5 pb-8 pt-10 lg:px-12 lg:pt-14">
+  <h1 class="font-display text-display-lg-mobile text-primary lg:text-[52px] lg:leading-[56px] lg:tracking-[-0.025em]">Componentes de Appetitos</h1>
+  <p class="mt-3 max-w-2xl text-body-lg text-on-surface-variant">Referencia para pasar las pantallas a React. Cada bloque es un componente o un conjunto de clases; los nombres coinciden con <code>assets/appetitos.css</code> y <code>tailwind.config.js</code>.</p>
+  <div class="mt-10">
+    <section id="marca" aria-labelledby="h-marca" class="border-t border-hairline py-12 first:border-t-0">
+  <div class="grid gap-8 lg:grid-cols-[260px_1fr] lg:gap-12">
+    <div><h2 id="h-marca" class="font-display text-headline-md text-primary">Marca</h2><p class="mt-2 text-body-sm text-on-surface-variant">Un solo logo en toda la app. Antes había dos superpuestos en la barra.</p></div>
+    <div><div class="flex flex-wrap items-end gap-10">
+    <div><a href="index.html" class="logo logo--lg" aria-label="Appetitos, ir al inicio"><span aria-hidden="true">Appetit</span><svg viewBox="0 0 16 17.6" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M8 0C3.6 0 0 4 0 8.8C0 13.6 3.6 17.6 8 17.6C12.4 17.6 16 13.6 16 8.8C16 7.1 15.5 5.5 14.6 4.2C14.1 4.8 13.3 5.2 12.4 5.1C11.8 5 11.3 4.5 11 3.9C10.7 3.1 10.9 2.3 11.5 1.7C11.1 1.4 10.6 1.2 10.1 1.2C9.5 1.1 9 1.3 8.5 1.6C8.8 1 8.8 0.5 8.5 0.1C8.3 0.1 8.1 0 8 0ZM8 4.6C8.7 4.6 9.3 4.8 9.8 5.1C9.5 5.7 9.6 6.5 10.1 7C10.6 7.6 11.5 7.8 12.2 7.4C12.4 8 12.5 8.7 12.5 9.4C12.5 11.9 10.5 13.8 8 13.8C5.5 13.8 3.5 11.9 3.5 9.4C3.5 6.9 5.5 4.6 8 4.6Z"/><circle cx="15.2" cy="1.6" r=".8" fill="#c4572e"/><circle cx="13.8" cy="-.6" r=".5" fill="#c8b27a"/></svg><span aria-hidden="true">s</span></a><p class="mt-3 text-body-sm text-on-surface-variant">Principal · Fraunces 700, el “o” es un SVG en línea que escala con el texto.</p></div>
+    <div><a href="index.html" class="logo " aria-label="Appetitos, ir al inicio"><span aria-hidden="true">Appetit</span><svg viewBox="0 0 16 17.6" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M8 0C3.6 0 0 4 0 8.8C0 13.6 3.6 17.6 8 17.6C12.4 17.6 16 13.6 16 8.8C16 7.1 15.5 5.5 14.6 4.2C14.1 4.8 13.3 5.2 12.4 5.1C11.8 5 11.3 4.5 11 3.9C10.7 3.1 10.9 2.3 11.5 1.7C11.1 1.4 10.6 1.2 10.1 1.2C9.5 1.1 9 1.3 8.5 1.6C8.8 1 8.8 0.5 8.5 0.1C8.3 0.1 8.1 0 8 0ZM8 4.6C8.7 4.6 9.3 4.8 9.8 5.1C9.5 5.7 9.6 6.5 10.1 7C10.6 7.6 11.5 7.8 12.2 7.4C12.4 8 12.5 8.7 12.5 9.4C12.5 11.9 10.5 13.8 8 13.8C5.5 13.8 3.5 11.9 3.5 9.4C3.5 6.9 5.5 4.6 8 4.6Z"/><circle cx="15.2" cy="1.6" r=".8" fill="#c4572e"/><circle cx="13.8" cy="-.6" r=".5" fill="#c8b27a"/></svg><span aria-hidden="true">s</span></a><p class="mt-3 text-body-sm text-on-surface-variant">Barra de navegación</p></div>
+    <div class="rounded-lg bg-primary-container p-5"><a href="index.html" class="logo logo--on-dark" aria-label="Appetitos, ir al inicio"><span aria-hidden="true">Appetit</span><svg viewBox="0 0 16 17.6" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M8 0C3.6 0 0 4 0 8.8C0 13.6 3.6 17.6 8 17.6C12.4 17.6 16 13.6 16 8.8C16 7.1 15.5 5.5 14.6 4.2C14.1 4.8 13.3 5.2 12.4 5.1C11.8 5 11.3 4.5 11 3.9C10.7 3.1 10.9 2.3 11.5 1.7C11.1 1.4 10.6 1.2 10.1 1.2C9.5 1.1 9 1.3 8.5 1.6C8.8 1 8.8 0.5 8.5 0.1C8.3 0.1 8.1 0 8 0ZM8 4.6C8.7 4.6 9.3 4.8 9.8 5.1C9.5 5.7 9.6 6.5 10.1 7C10.6 7.6 11.5 7.8 12.2 7.4C12.4 8 12.5 8.7 12.5 9.4C12.5 11.9 10.5 13.8 8 13.8C5.5 13.8 3.5 11.9 3.5 9.4C3.5 6.9 5.5 4.6 8 4.6Z"/><circle cx="15.2" cy="1.6" r=".8" fill="#c4572e"/><circle cx="13.8" cy="-.6" r=".5" fill="#c8b27a"/></svg><span aria-hidden="true">s</span></a><p class="mt-3 text-body-sm text-primary-fixed-dim">Sobre oliva</p></div>
+  </div></div>
+  </div></section>
+    <section id="color" aria-labelledby="h-color" class="border-t border-hairline py-12 first:border-t-0">
+  <div class="grid gap-8 lg:grid-cols-[260px_1fr] lg:gap-12">
+    <div><h2 id="h-color" class="font-display text-headline-md text-primary">Color</h2><p class="mt-2 text-body-sm text-on-surface-variant">La paleta no cambia. Se ordenó por función para que cada color tenga un solo trabajo.</p></div>
+    <div><ul class="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4"><li class="overflow-hidden rounded-lg border border-hairline bg-white"><div class="h-16" style="background:#2D3A1F"></div><div class="p-3"><p class="text-label-md text-primary">Oliva</p><p class="text-body-sm tabular text-on-surface-variant">#2D3A1F</p><p class="mt-1 text-body-sm text-on-surface-variant">Botones primarios, marca, selección · <code class="text-[12px]">primary-container</code></p></div></li><li class="overflow-hidden rounded-lg border border-hairline bg-white"><div class="h-16" style="background:#18240B"></div><div class="p-3"><p class="text-label-md text-primary">Oliva profundo</p><p class="text-body-sm tabular text-on-surface-variant">#18240B</p><p class="mt-1 text-body-sm text-on-surface-variant">Títulos, hover de botones · <code class="text-[12px]">primary</code></p></div></li><li class="overflow-hidden rounded-lg border border-hairline bg-white"><div class="h-16" style="background:#FCF9F0"></div><div class="p-3"><p class="text-label-md text-primary">Crema</p><p class="text-body-sm tabular text-on-surface-variant">#FCF9F0</p><p class="mt-1 text-body-sm text-on-surface-variant">Fondo de página · <code class="text-[12px]">surface</code></p></div></li><li class="overflow-hidden rounded-lg border border-hairline bg-white"><div class="h-16" style="background:#F6F3EA"></div><div class="p-3"><p class="text-label-md text-primary">Crema 2</p><p class="text-body-sm tabular text-on-surface-variant">#F6F3EA</p><p class="mt-1 text-body-sm text-on-surface-variant">Bandas y secciones de apoyo · <code class="text-[12px]">surface-container-low</code></p></div></li><li class="overflow-hidden rounded-lg border border-hairline bg-white"><div class="h-16" style="background:#F1EEE5"></div><div class="p-3"><p class="text-label-md text-primary">Crema 3</p><p class="text-body-sm tabular text-on-surface-variant">#F1EEE5</p><p class="mt-1 text-body-sm text-on-surface-variant">Chips, campos de búsqueda · <code class="text-[12px]">surface-container</code></p></div></li><li class="overflow-hidden rounded-lg border border-hairline bg-white"><div class="h-16" style="background:#FFFFFF"></div><div class="p-3"><p class="text-label-md text-primary">Blanco</p><p class="text-body-sm tabular text-on-surface-variant">#FFFFFF</p><p class="mt-1 text-body-sm text-on-surface-variant">Tarjetas, campos, resumen · <code class="text-[12px]">surface-container-lowest</code></p></div></li><li class="overflow-hidden rounded-lg border border-hairline bg-white"><div class="h-16" style="background:#F6DEA2"></div><div class="p-3"><p class="text-label-md text-primary">Arena</p><p class="text-body-sm tabular text-on-surface-variant">#F6DEA2</p><p class="mt-1 text-body-sm text-on-surface-variant">Descuentos, selección de texto, CTA sobre oliva · <code class="text-[12px]">secondary-container</code></p></div></li><li class="overflow-hidden rounded-lg border border-hairline bg-white"><div class="h-16" style="background:#6E5D2D"></div><div class="p-3"><p class="text-label-md text-primary">Dorado</p><p class="text-body-sm tabular text-on-surface-variant">#6E5D2D</p><p class="mt-1 text-body-sm text-on-surface-variant">Estrellas, distancias, enlaces secundarios · <code class="text-[12px]">secondary</code></p></div></li><li class="overflow-hidden rounded-lg border border-hairline bg-white"><div class="h-16" style="background:#D8E8C1"></div><div class="p-3"><p class="text-label-md text-primary">Hoja</p><p class="text-body-sm tabular text-on-surface-variant">#D8E8C1</p><p class="mt-1 text-body-sm text-on-surface-variant">Verificado, disponible, confianza · <code class="text-[12px]">primary-fixed</code></p></div></li><li class="overflow-hidden rounded-lg border border-hairline bg-white"><div class="h-16" style="background:#C46A4A"></div><div class="p-3"><p class="text-label-md text-primary">Terracota</p><p class="text-body-sm tabular text-on-surface-variant">#C46A4A</p><p class="mt-1 text-body-sm text-on-surface-variant">Puntos de “quedan pocas”. No para texto chico · <code class="text-[12px]">accent</code></p></div></li><li class="overflow-hidden rounded-lg border border-hairline bg-white"><div class="h-16" style="background:#793015"></div><div class="p-3"><p class="text-label-md text-primary">Terracota tinta</p><p class="text-body-sm tabular text-on-surface-variant">#793015</p><p class="mt-1 text-body-sm text-on-surface-variant">Texto de avisos de poco stock · <code class="text-[12px]">on-tertiary-fixed-variant</code></p></div></li><li class="overflow-hidden rounded-lg border border-hairline bg-white"><div class="h-16" style="background:#BA1A1A"></div><div class="p-3"><p class="text-label-md text-primary">Error</p><p class="text-body-sm tabular text-on-surface-variant">#BA1A1A</p><p class="mt-1 text-body-sm text-on-surface-variant">Errores y acciones de quitar · <code class="text-[12px]">error</code></p></div></li></ul></div>
+  </div></section>
+    <section id="tipo" aria-labelledby="h-tipo" class="border-t border-hairline py-12 first:border-t-0">
+  <div class="grid gap-8 lg:grid-cols-[260px_1fr] lg:gap-12">
+    <div><h2 id="h-tipo" class="font-display text-headline-md text-primary">Tipografía</h2><p class="mt-2 text-body-sm text-on-surface-variant">Newsreader para lo que se lee y se firma; Sora para lo que se toca. Nada por debajo de 12 px.</p></div>
+    <div><div class="divide-hair"><div class="grid items-baseline gap-2 py-4 sm:grid-cols-[150px_1fr]"><div><p class="text-label-md text-primary">display-lg</p><p class="text-body-sm text-on-surface-variant">60/64 · Newsreader 400</p></div><p class="font-display text-display-lg text-primary">Titular del hero</p></div><div class="grid items-baseline gap-2 py-4 sm:grid-cols-[150px_1fr]"><div><p class="text-label-md text-primary">headline-lg</p><p class="text-body-sm text-on-surface-variant">40/46 · Newsreader 400</p></div><p class="font-display text-headline-lg text-primary">Título de sección</p></div><div class="grid items-baseline gap-2 py-4 sm:grid-cols-[150px_1fr]"><div><p class="text-label-md text-primary">headline-md</p><p class="text-body-sm text-on-surface-variant">28/34 · Newsreader 500</p></div><p class="font-display text-headline-md text-primary">Subtítulo de bloque</p></div><div class="grid items-baseline gap-2 py-4 sm:grid-cols-[150px_1fr]"><div><p class="text-label-md text-primary">headline-sm</p><p class="text-body-sm text-on-surface-variant">22/28 · Newsreader 500</p></div><p class="font-display text-headline-sm text-primary">Nombre de chef, grupo</p></div><div class="grid items-baseline gap-2 py-4 sm:grid-cols-[150px_1fr]"><div><p class="text-label-md text-primary">title-md</p><p class="text-body-sm text-on-surface-variant">20/26 · Newsreader 500</p></div><p class="font-display text-title-md text-primary">Nombre de plato</p></div><div class="grid items-baseline gap-2 py-4 sm:grid-cols-[150px_1fr]"><div><p class="text-label-md text-primary">price-lg / md</p><p class="text-body-sm text-on-surface-variant">36/40 y 22/28 · Newsreader 500, cifras tabulares</p></div><p class="font-display text-price-lg tabular text-primary">$14.200</p></div><div class="grid items-baseline gap-2 py-4 sm:grid-cols-[150px_1fr]"><div><p class="text-label-md text-primary">body-lg</p><p class="text-body-sm text-on-surface-variant">18/28 · Sora 400</p></div><p class="text-body-lg text-primary">Bajada y párrafos de introducción</p></div><div class="grid items-baseline gap-2 py-4 sm:grid-cols-[150px_1fr]"><div><p class="text-label-md text-primary">body-md</p><p class="text-body-sm text-on-surface-variant">15/24 · Sora 400</p></div><p class="text-body-md text-primary">Texto corrido de la interfaz</p></div><div class="grid items-baseline gap-2 py-4 sm:grid-cols-[150px_1fr]"><div><p class="text-label-md text-primary">body-sm</p><p class="text-body-sm text-on-surface-variant">13/20 · Sora 400</p></div><p class="text-body-sm text-primary">Notas, ayudas y metadatos</p></div><div class="grid items-baseline gap-2 py-4 sm:grid-cols-[150px_1fr]"><div><p class="text-label-md text-primary">label-lg / md / sm</p><p class="text-body-sm text-on-surface-variant">14, 13 y 12 px · Sora 600</p></div><p class="text-label-lg text-primary">Botones, etiquetas, badges (nunca menos de 12 px)</p></div></div></div>
+  </div></section>
+    <section id="botones" aria-labelledby="h-botones" class="border-t border-hairline py-12 first:border-t-0">
+  <div class="grid gap-8 lg:grid-cols-[260px_1fr] lg:gap-12">
+    <div><h2 id="h-botones" class="font-display text-headline-md text-primary">Botones</h2><p class="mt-2 text-body-sm text-on-surface-variant">Un primario por vista, uno secundario, uno discreto.</p></div>
+    <div><div class="flex flex-wrap items-center gap-3">
+    <button class="btn btn-primary">Confirmar pedido</button>
+    <button class="btn btn-secondary">Ver su carta</button>
+    <button class="btn btn-quiet">Cancelar</button>
+    <button class="btn btn-primary" disabled>Sin stock</button>
+    <button class="btn btn-primary btn-sm">Pequeño</button>
+    <button class="btn btn-primary btn-icon" aria-label="Agregar"><span class="material-symbols-outlined">add_shopping_cart</span></button>
+    <button class="btn btn-secondary btn-icon" aria-label="Guardar"><span class="material-symbols-outlined">favorite</span></button>
+  </div>
+  <div class="on-dark mt-4 flex flex-wrap items-center gap-3 rounded-lg bg-primary-container p-5"><button class="btn btn-sand">Quiero vender</button><button class="btn btn-quiet !text-primary-fixed hover:!bg-white/10">Cómo funciona</button><span class="text-body-sm text-primary-fixed-dim">Sobre oliva: el primario es arena.</span></div>
+  <p class="mt-4 text-body-sm text-on-surface-variant">Un solo botón primario por vista. Todos miden al menos 44 px de alto o ancho. La etiqueta dice qué pasa: “Confirmar pedido”, no “Enviar”.</p></div>
+  </div></section>
+    <section id="campos" aria-labelledby="h-campos" class="border-t border-hairline py-12 first:border-t-0">
+  <div class="grid gap-8 lg:grid-cols-[260px_1fr] lg:gap-12">
+    <div><h2 id="h-campos" class="font-display text-headline-md text-primary">Campos y controles</h2><p class="mt-2 text-body-sm text-on-surface-variant">Etiqueta siempre visible, ayuda abajo y error con la solución.</p></div>
+    <div><div class="grid gap-6 sm:grid-cols-2">
+    <div><label class="label" for="f1">Nombre de usuario</label><input id="f1" class="field" placeholder="clara.mendez"><p class="hint">Entre 4 y 20 caracteres.</p></div>
+    <div><label class="label" for="f2">Correo electrónico</label><input id="f2" class="field" value="clara@" aria-invalid="true" aria-describedby="e2"><p id="e2" class="hint hint--error"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span>Falta el dominio. Escribilo así: nombre@correo.com</p></div>
+    <div><label class="label" for="f3">Barrio</label><select id="f3" class="field"><option>Palermo</option><option>Belgrano</option></select></div>
+    <div><label class="label" for="f4">Contraseña</label><input id="f4" class="field" type="password" value="12345678"><p class="hint">Mínimo 8 caracteres.</p></div>
+    <div class="sm:col-span-2"><label class="label" for="f5">Notas para el chef</label><textarea id="f5" class="field" placeholder="Sin picante"></textarea></div>
+  </div>
+  <div class="mt-8 grid gap-6 sm:grid-cols-3">
+    <label class="flex min-h-[44px] cursor-pointer items-center gap-3"><input type="checkbox" class="check" checked><span class="text-body-md text-primary">Pastas y masas</span></label>
+    <label class="flex min-h-[44px] cursor-pointer items-center gap-3"><input type="radio" name="r" class="radio" checked><span class="text-body-md text-primary">En el día</span></label>
+    <label class="flex min-h-[44px] cursor-pointer items-center justify-between gap-3"><span class="text-body-md text-primary">Solo con stock</span><input type="checkbox" class="switch" role="switch" checked></label>
+  </div>
+  <div class="mt-6 flex flex-wrap items-center gap-6">
+    <div class="qty" data-qty data-min="1" data-max="3"><button type="button" data-dec aria-label="Menos"><span class="material-symbols-outlined text-[20px]">remove</span></button><output>2</output><button type="button" data-inc aria-label="Más"><span class="material-symbols-outlined text-[20px]">add</span></button></div>
+    <div class="qty" data-qty data-min="1" data-max="3"><button type="button" data-dec aria-label="Menos"><span class="material-symbols-outlined text-[20px]">remove</span></button><output>3</output><button type="button" data-inc aria-label="Más"><span class="material-symbols-outlined text-[20px]">add</span></button></div>
+    <span class="text-body-sm text-on-surface-variant">Cantidad: se bloquea en el stock disponible.</span>
+  </div></div>
+  </div></section>
+    <section id="chips" aria-labelledby="h-chips" class="border-t border-hairline py-12 first:border-t-0">
+  <div class="grid gap-8 lg:grid-cols-[260px_1fr] lg:gap-12">
+    <div><h2 id="h-chips" class="font-display text-headline-md text-primary">Chips y badges</h2><p class="mt-2 text-body-sm text-on-surface-variant">Chips = el usuario actúa. Badges = el sistema informa.</p></div>
+    <div><div class="flex flex-wrap items-center gap-2"><span class="chip is-active"><span class="material-symbols-outlined">bakery_dining</span>Pastas y masas</span><span class="chip"><span class="material-symbols-outlined text-secondary">outdoor_grill</span>Fuego y brasas</span><span class="chip chip--applied">Orgánico certificado<button aria-label="Quitar filtro"><span class="material-symbols-outlined text-[18px]">close</span></button></span></div>
+  <div class="mt-5 flex flex-wrap items-center gap-2"><span class="badge badge-leaf"><span class="material-symbols-outlined">verified</span>Verificado</span><span class="badge badge-sand">−15%</span><span class="badge badge-terra"><span class="dot"></span>Quedan 3 hoy</span><span class="badge badge-mute">Sin stock</span><span class="badge badge-dark">Agotado hoy</span><span class="badge badge-glass shadow-sm"><span class="material-symbols-outlined">schedule</span>45 min</span></div>
+  <p class="mt-4 text-body-sm text-on-surface-variant">Los chips filtran o navegan (acción del usuario). Los badges informan estado (no se pueden tocar).</p></div>
+  </div></section>
+    <section id="plato" aria-labelledby="h-plato" class="border-t border-hairline py-12 first:border-t-0">
+  <div class="grid gap-8 lg:grid-cols-[260px_1fr] lg:gap-12">
+    <div><h2 id="h-plato" class="font-display text-headline-md text-primary">Tarjeta de plato</h2><p class="mt-2 text-body-sm text-on-surface-variant">Estados que pide el TPO: stock, sin stock y descuento.</p></div>
+    <div><div class="grid gap-x-6 gap-y-10 sm:grid-cols-2">
+    <div><p class="mb-3 text-label-md text-on-surface-variant">Disponible</p><article class="dish flex flex-col" data-state="available">
+    <a href="detalle.html" tabindex="-1" aria-hidden="true" class="dish__media relative block aspect-[4/3] overflow-hidden rounded-lg sm:aspect-[4/5] bg-surface-container">
+      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBh_tpZ6QaWQI4Iv941lDTLgMPHEd3hlPaE82nwMvte4YiRoc2Xjn-BtlLZSlbiKQ82BegvIK8kfBLy75GN4hSLzWxpFNH41Wx7vxwv1XR_PIJXK8v_RN2gXrGICGP71VTFu1yF658nd3WyzQCvrUm070tQjbazpsGH_ax0a8FwLaGlEXRqWsk-4iuFiWnSotaMPrx4uChJFDKl8i-ixPqL5yw7D1IqvE-tiZZ5Fy96WtBmXzFtoM1A" alt="Berenjena asada laqueada con miso y cebolla de verdeo" loading="lazy" class="h-full w-full object-cover">
+      <span class="badge badge-glass absolute left-3 top-3 shadow-sm"><span class="material-symbols-outlined">potted_plant</span>100% vegetal</span><span class="badge badge-glass absolute bottom-3 left-3"><span class="material-symbols-outlined">schedule</span>35 min</span>
+    </a>
+    <div class="mt-4 flex flex-1 flex-col gap-2">
+      <div class="flex items-center justify-between gap-3">
+        <a href="#" class="inline-flex min-w-0 items-center gap-2 text-label-md text-on-surface-variant hover:text-primary"><img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmm2T1FDyOrU4jVKUDdtRAIbbVtrcvurcr7q4NuirX79pISpPwxOCHSJXTxK_er6qACmIq6ypluxkpQ80qocxDcJm6c80FYs0M_GSFiu8u8FtKzyI-ER_AWEAe-2sqSTenltnseynN4xOwZy9KtOa2EY1zRwt-1-PaQoAuA_-_O_4rf4MSWhmw5_mGvHhbS6YrkI93cOH96imaTg81OmHI5pNBzUs0TyexrJCq-MgiULrGK5uFqg8_" alt="" class="rounded-full object-cover ring-1 ring-hairline" style="width:24px;height:24px"><span class="truncate">Kenji Takahashi</span></a>
+        <span class="inline-flex items-center gap-1 text-label-md text-primary"><span class="material-symbols-outlined fill text-[16px] text-secondary" aria-hidden="true">star</span><span>4.94<span class="sr-only"> de 5, </span></span><span class="font-normal text-on-surface-variant">(48)</span></span>
+      </div>
+      <h3 class="dish__title font-display text-title-md text-primary"><a href="detalle.html">Berenjena nasu dengaku con miso rojo</a></h3>
+      <p class="line-clamp-2 text-body-sm text-on-surface-variant">Asada sobre carbón de encina y laqueada con miso fermentado en barrica.</p>
+      <div class="mt-auto flex items-end justify-between gap-3 pt-2">
+        <div><p class="font-display text-price-md tabular text-primary">$14.200</p><p class="mt-0.5 text-label-sm text-on-surface-variant">Porción individual</p></div>
+        <button type="button" class="btn btn-primary btn-icon" data-add data-name="Berenjena nasu dengaku" aria-label="Agregar Berenjena nasu dengaku con miso rojo a la cesta"><span class="material-symbols-outlined">add_shopping_cart</span></button>
+      </div>
+    </div>
+  </article></div>
+    <div><p class="mb-3 text-label-md text-on-surface-variant">Quedan pocas</p><article class="dish flex flex-col" data-state="low">
+    <a href="detalle.html" tabindex="-1" aria-hidden="true" class="dish__media relative block aspect-[4/3] overflow-hidden rounded-lg sm:aspect-[4/5] bg-surface-container">
+      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuANhvv19i3bO8CZOGjtiv3eGepjcPg20Cxpm7L-atqFfTNCG76iLDbt8QwIEjAQv9EnTFr3FB65DzsJbm18gpLKJumkzw1Q0vw-gY7YtCDrV9_c79Fi339vRxkoEPksZlx9nURqHS14P1r20LceaBdYx8VBLO2-1ieJ9xH6NNPOUpQGUsZwm5LnyBOLAJKE7QzxP4VBS8cVmRw1kzaTHo5ftnWBSkOdm5ysZesa8HjUQhnhBWWMQC36" alt="Ravioli con hongos silvestres y salvia en un plato de cerámica" loading="lazy" class="h-full w-full object-cover">
+      <span class="badge badge-glass absolute left-3 top-3 shadow-sm"><span class="material-symbols-outlined">eco</span>Km 0</span><span class="badge badge-glass absolute bottom-3 left-3"><span class="material-symbols-outlined">schedule</span>45 min</span>
+    </a>
+    <div class="mt-4 flex flex-1 flex-col gap-2">
+      <div class="flex items-center justify-between gap-3">
+        <a href="#" class="inline-flex min-w-0 items-center gap-2 text-label-md text-on-surface-variant hover:text-primary"><img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDu6f35qJvtgazdwbgtk6jDLqmfeDeP0H71PJEU3_8JZMheDYPLk36qkouZgXq1BegBZvXqe5VClD10LFTB4GScc9NPFfuoMm_C2z3AxYie4Mpoft9Nx-RddgYUWc4GL5OOYpw1_Mc0gttDIpH_8emWjlkj_CuxIXTaS4fS34XaJMnWmCiiJ8HzGYdpZrW4AAvoq2_dtuAJKFnqz9XF_vVCWDx551xmnnVAb6YVMZQDieviXDBvfMAc" alt="" class="rounded-full object-cover ring-1 ring-hairline" style="width:24px;height:24px"><span class="truncate">Matteo Rossi</span></a>
+        <span class="inline-flex items-center gap-1 text-label-md text-primary"><span class="material-symbols-outlined fill text-[16px] text-secondary" aria-hidden="true">star</span><span>4.98<span class="sr-only"> de 5, </span></span><span class="font-normal text-on-surface-variant">(62)</span></span>
+      </div>
+      <h3 class="dish__title font-display text-title-md text-primary"><a href="detalle.html">Ravioli de hongos silvestres y noisette</a></h3>
+      <p class="line-clamp-2 text-body-sm text-on-surface-variant">Pasta de sémola rellena de ricotta de granja, setas de temporada y salvia crujiente.</p>
+      <div class="mt-auto flex items-end justify-between gap-3 pt-2">
+        <div><p class="font-display text-price-md tabular text-primary">$18.400</p><p class="mt-0.5 flex items-center gap-1.5 text-label-sm text-on-tertiary-fixed-variant"><span class="dot"></span>Quedan 4 hoy</p></div>
+        <button type="button" class="btn btn-primary btn-icon" data-add data-name="Ravioli de hongos" aria-label="Agregar Ravioli de hongos silvestres y noisette a la cesta"><span class="material-symbols-outlined">add_shopping_cart</span></button>
+      </div>
+    </div>
+  </article></div>
+    <div><p class="mb-3 text-label-md text-on-surface-variant">Con descuento</p><article class="dish flex flex-col" data-state="available">
+    <a href="detalle.html" tabindex="-1" aria-hidden="true" class="dish__media relative block aspect-[4/3] overflow-hidden rounded-lg sm:aspect-[4/5] bg-surface-container">
+      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBT416oGPUaVAYYWSdD7HlusSdvg6HrfvuOkiGN4Qh6eSpEDFPSJEGA00owHnkChGynzEBARDQklRkkWRWwmwiL4UujSSv-wiOxb2wQsLcXBeLuqeBRShx_PH1HhPBm7oERWB18z_pE1NdXGf0w_m5MIxaY-w2-Udj-friBZL-37G4n0mmhqBngTsXl83Pu88VYVr8MB2wi7mOigHs4voIfuyeasgHs8haBLLmoPKrKT2NF2FQV2URk" alt="Focaccia dorada con higos y romero" loading="lazy" class="h-full w-full object-cover">
+      <span class="badge badge-glass absolute left-3 top-3 shadow-sm"><span class="material-symbols-outlined">bakery_dining</span>Masa madre 48 h</span><span class="badge badge-glass absolute bottom-3 left-3"><span class="material-symbols-outlined">schedule</span>30 min</span>
+    </a>
+    <div class="mt-4 flex flex-1 flex-col gap-2">
+      <div class="flex items-center justify-between gap-3">
+        <a href="#" class="inline-flex min-w-0 items-center gap-2 text-label-md text-on-surface-variant hover:text-primary"><img src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0CNScmCUQLTI_BFfcyVVILISKQHUqAfVN0jR9JBVWf_UpBoeEwv1HNj6onC4tEvvuztwK45ouIDWVpP0ibQe5jC29NYT3vqSRj5c1Lu3b4GfQtGL0VM9G2PekVDXIRWZ2uO4FF8prFrNMpGomVPin_XYmCMhkjEL4KW4pkqiEFxd1suizP_8RG9K0DlMgmYkDv6pGspeIJVQhanDxqrOxYSy1eMetmar6fzpuhCbpXFKwJf0GgTpq" alt="" class="rounded-full object-cover ring-1 ring-hairline" style="width:24px;height:24px"><span class="truncate">Elena y Tomás</span></a>
+        <span class="inline-flex items-center gap-1 text-label-md text-primary"><span class="material-symbols-outlined fill text-[16px] text-secondary" aria-hidden="true">star</span><span>4.97<span class="sr-only"> de 5, </span></span><span class="font-normal text-on-surface-variant">(112)</span></span>
+      </div>
+      <h3 class="dish__title font-display text-title-md text-primary"><a href="detalle.html">Focaccia centenaria con higos y romero</a></h3>
+      <p class="line-clamp-2 text-body-sm text-on-surface-variant">Trigo molido a la piedra, higos caramelizados al horno de leña y flor de sal.</p>
+      <div class="mt-auto flex items-end justify-between gap-3 pt-2">
+        <div><p class="flex flex-wrap items-baseline gap-x-2"><span class="font-display text-price-md tabular text-primary">$8.160</span><span class="text-body-sm text-on-surface-variant tabular line-through decoration-1"><span class="sr-only">Precio anterior </span>$9.600</span><span class="badge badge-sand">−15%</span></p><p class="mt-0.5 text-label-sm text-on-surface-variant">Pieza de 600 g</p></div>
+        <button type="button" class="btn btn-primary btn-icon" data-add data-name="Focaccia con higos" aria-label="Agregar Focaccia centenaria con higos y romero a la cesta"><span class="material-symbols-outlined">add_shopping_cart</span></button>
+      </div>
+    </div>
+  </article></div>
+    <div><p class="mb-3 text-label-md text-on-surface-variant">Sin stock</p><article class="dish flex flex-col" data-state="soldout">
+    <a href="detalle.html" tabindex="-1" aria-hidden="true" class="dish__media relative block aspect-[4/3] overflow-hidden rounded-lg sm:aspect-[4/5] bg-surface-container">
+      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdEeu9Vzi21twtphOH7YN5tnAEyDwztJcrvDnfWX6KH-VC4sBwRZMKjr9HDP-ikd3ZaFjLb-GdugyJYGU78DTvhUZS-0wnoq4P9-QKRtf72itK0zShwngxL7TMw6Y8lqeckOxmRQFdOd9U1raltZILKCokqWPpN8VNuU0UjL3DlJeGFVWCzXR8aUB677ApLc16FXIgf_UPOuXX_UJuq1RrWaE7DRxKhXh_oUHQV5IHCGvGz_gFiCgf" alt="Tagliatelle con ragú de manzo y parmesano" loading="lazy" class="h-full w-full object-cover">
+      <span class="badge badge-dark absolute left-3 top-3">Agotado hoy</span>
+    </a>
+    <div class="mt-4 flex flex-1 flex-col gap-2">
+      <div class="flex items-center justify-between gap-3">
+        <a href="#" class="inline-flex min-w-0 items-center gap-2 text-label-md text-on-surface-variant hover:text-primary"><img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDu6f35qJvtgazdwbgtk6jDLqmfeDeP0H71PJEU3_8JZMheDYPLk36qkouZgXq1BegBZvXqe5VClD10LFTB4GScc9NPFfuoMm_C2z3AxYie4Mpoft9Nx-RddgYUWc4GL5OOYpw1_Mc0gttDIpH_8emWjlkj_CuxIXTaS4fS34XaJMnWmCiiJ8HzGYdpZrW4AAvoq2_dtuAJKFnqz9XF_vVCWDx551xmnnVAb6YVMZQDieviXDBvfMAc" alt="" class="rounded-full object-cover ring-1 ring-hairline" style="width:24px;height:24px"><span class="truncate">Matteo Rossi</span></a>
+        <span class="inline-flex items-center gap-1 text-label-md text-primary"><span class="material-symbols-outlined fill text-[16px] text-secondary" aria-hidden="true">star</span><span>5.0<span class="sr-only"> de 5, </span></span><span class="font-normal text-on-surface-variant">(98)</span></span>
+      </div>
+      <h3 class="dish__title font-display text-title-md text-primary"><a href="detalle.html">Tagliatelle al ragú de manzo al vino tinto</a></h3>
+      <p class="line-clamp-2 text-body-sm text-on-surface-variant">Receta de Bolonia de tres generaciones, reducida con Malbec orgánico.</p>
+      <div class="mt-auto flex items-end justify-between gap-3 pt-2">
+        <div><p class="font-display text-price-md tabular text-on-surface-variant">$15.500</p><p class="mt-0.5 text-label-sm text-on-surface-variant">Sin stock por hoy</p></div>
+        <button type="button" class="btn btn-icon" aria-disabled="true" disabled aria-label="Tagliatelle al ragú de manzo al vino tinto: sin stock"><span class="material-symbols-outlined">remove_shopping_cart</span></button>
+      </div>
+    </div>
+  </article></div>
+  </div>
+  <p class="mt-6 text-body-sm text-on-surface-variant">Props del componente: <code>title, chef, rating, reviews, price, oldPrice?, state: 'available' | 'low' | 'soldout', left?, tag?, time?, img</code>. Con <code>soldout</code> el botón queda deshabilitado y la foto pasa a escala de grises, como pide el requisito de stock.</p></div>
+  </div></section>
+    <section id="avisos" aria-labelledby="h-avisos" class="border-t border-hairline py-12 first:border-t-0">
+  <div class="grid gap-8 lg:grid-cols-[260px_1fr] lg:gap-12">
+    <div><h2 id="h-avisos" class="font-display text-headline-md text-primary">Avisos y estados vacíos</h2><p class="mt-2 text-body-sm text-on-surface-variant">Dicen qué pasó y qué hacer. Los errores no piden perdón.</p></div>
+    <div><div class="space-y-4">
+    <div role="alert" class="flex gap-3 rounded-lg border border-error/30 bg-error-container p-4 text-on-error-container"><span class="material-symbols-outlined fill" aria-hidden="true">error</span><div><p class="text-label-lg">Se agotó una porción</p><p class="text-body-sm">Quedaba 1 ravioli y alguien lo pidió antes. Bajamos tu cantidad de 2 a 1. Revisá tu cesta y confirmá de nuevo.</p></div></div>
+    <div class="flex gap-3 rounded-lg bg-accent-soft p-4 text-on-tertiary-fixed-variant"><span class="material-symbols-outlined fill" aria-hidden="true">schedule</span><div><p class="text-label-lg">Este plato sale en 20 minutos</p><p class="text-body-sm">El taller cierra pedidos a las 19:30. Después de esa hora pasa a mañana.</p></div></div>
+    <div class="flex gap-3 rounded-lg bg-primary-fixed p-4 text-on-primary-fixed-variant"><span class="material-symbols-outlined fill" aria-hidden="true">check_circle</span><div><p class="text-label-lg">Pedido confirmado</p><p class="text-body-sm">Clara y Kenji ya están cocinando. Te avisamos cuando salgan.</p></div></div>
+    <div class="flex flex-wrap items-center gap-4"><button class="btn btn-secondary" onclick="document.getElementById('toast').querySelector('[data-toast-text]').textContent='Agregaste Ravioli de hongos a tu cesta';document.getElementById('toast').classList.add('is-visible');setTimeout(()=>document.getElementById('toast').classList.remove('is-visible'),3500)">Probar aviso de cesta</button><span class="text-body-sm text-on-surface-variant">Mismo verbo en el botón y en el aviso: “Agregar” → “Agregaste”.</span></div>
+    <div class="rounded-lg border border-dashed border-line-strong p-8 text-center" style="border-color:rgba(45,58,31,.3)"><span class="mx-auto grid h-14 w-14 place-items-center rounded-full bg-surface-container-high text-primary"><span class="material-symbols-outlined" aria-hidden="true">search_off</span></span><p class="mt-4 font-display text-headline-sm text-primary">No hay platos con esos filtros</p><p class="mx-auto mt-1 max-w-sm text-body-sm text-on-surface-variant">Probá con otro rango de precio o quitá “Orgánico certificado”.</p><button class="btn btn-secondary btn-sm mt-5">Limpiar filtros</button></div>
+  </div></div>
+  </div></section>
+  </div>
+</main>
+<footer class="mt-20 border-t border-hairline bg-surface-container-low lg:mt-28">
+  <div class="mx-auto grid max-w-shell gap-12 px-5 py-14 md:grid-cols-12 lg:px-12 lg:py-16">
+    <div class="md:col-span-5">
+      <a href="index.html" class="logo " aria-label="Appetitos, ir al inicio"><span aria-hidden="true">Appetit</span><svg viewBox="0 0 16 17.6" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M8 0C3.6 0 0 4 0 8.8C0 13.6 3.6 17.6 8 17.6C12.4 17.6 16 13.6 16 8.8C16 7.1 15.5 5.5 14.6 4.2C14.1 4.8 13.3 5.2 12.4 5.1C11.8 5 11.3 4.5 11 3.9C10.7 3.1 10.9 2.3 11.5 1.7C11.1 1.4 10.6 1.2 10.1 1.2C9.5 1.1 9 1.3 8.5 1.6C8.8 1 8.8 0.5 8.5 0.1C8.3 0.1 8.1 0 8 0ZM8 4.6C8.7 4.6 9.3 4.8 9.8 5.1C9.5 5.7 9.6 6.5 10.1 7C10.6 7.6 11.5 7.8 12.2 7.4C12.4 8 12.5 8.7 12.5 9.4C12.5 11.9 10.5 13.8 8 13.8C5.5 13.8 3.5 11.9 3.5 9.4C3.5 6.9 5.5 4.6 8 4.6Z"/><circle cx="15.2" cy="1.6" r=".8" fill="#c4572e"/><circle cx="13.8" cy="-.6" r=".5" fill="#c8b27a"/></svg><span aria-hidden="true">s</span></a>
+      <p class="mt-3 font-display text-headline-sm italic text-secondary">Comida real, personas reales.</p>
+      <p class="mt-4 max-w-sm text-body-md text-on-surface-variant">Conectamos hogares con talleres de cocina independientes. Cada plato tiene nombre, apellido y origen.</p>
+    </div>
+    <div class="md:col-span-3 md:col-start-7"><nav aria-label="Para chefs"><h2 class="text-label-lg text-primary">Para chefs</h2><ul class="mt-4 space-y-1"><li><a href="registro.html?rol=vendedor" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Vender en Appetitos</a></li><li><a href="#" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Cómo funciona</a></li><li><a href="#" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Crónicas de temporada</a></li></ul></nav></div>
+    <div class="md:col-span-3"><nav aria-label="Ayuda"><h2 class="text-label-lg text-primary">Ayuda</h2><ul class="mt-4 space-y-1"><li><a href="#" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Preguntas frecuentes</a></li><li><a href="#" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Información sanitaria</a></li><li><a href="#" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Privacidad</a></li></ul></nav></div>
+  </div>
+  <div class="border-t border-hairline">
+    <div class="mx-auto flex max-w-shell flex-col gap-3 px-5 py-5 text-body-sm text-on-surface-variant sm:flex-row sm:items-center sm:justify-between lg:px-12">
+      <p>© 2026 Appetitos. Hecho con paciencia y fuego lento.</p>
+      <p class="flex flex-wrap gap-x-5 gap-y-1"><span class="inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">eco</span>Ingredientes de origen cercano</span><span class="inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">verified_user</span>Cocinas inspeccionadas</span></p>
+    </div>
+  </div>
+</footer>
+<div id="toast" class="toast" role="status" aria-live="polite"><span class="material-symbols-outlined fill text-[20px] text-primary-fixed-dim">check_circle</span><span data-toast-text></span><a href="cesta.html" hidden>Ver cesta</a></div>
+<script src="assets/app.js"></script>
+</body>
+</html>

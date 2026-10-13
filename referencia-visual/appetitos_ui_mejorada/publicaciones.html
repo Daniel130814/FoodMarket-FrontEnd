@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mis publicaciones · Appetitos</title>
+<meta name="description" content="Gestioná el stock, los descuentos y las publicaciones de tus platos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400&family=Sora:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<script src="assets/tailwind-config.js"></script>
+<link rel="stylesheet" href="assets/appetitos.css">
+</head>
+<body class="bg-surface font-sans text-on-surface antialiased ">
+<a class="skip-link" href="#contenido">Ir al contenido</a>
+<header class="sticky top-0 z-40 border-b border-hairline bg-surface/90 backdrop-blur-md">
+  <div class="mx-auto flex h-[68px] max-w-shell items-center gap-2 px-4 sm:px-5 lg:h-[76px] lg:gap-8 lg:px-12">
+    <button type="button" class="btn btn-quiet btn-icon -ml-2 lg:hidden" data-menu-toggle aria-expanded="false" aria-controls="menu-movil" aria-label="Abrir menú"><span class="material-symbols-outlined">menu</span></button>
+    <a href="index.html" class="logo " aria-label="Appetitos, ir al inicio"><span aria-hidden="true">Appetit</span><svg viewBox="0 0 16 17.6" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M8 0C3.6 0 0 4 0 8.8C0 13.6 3.6 17.6 8 17.6C12.4 17.6 16 13.6 16 8.8C16 7.1 15.5 5.5 14.6 4.2C14.1 4.8 13.3 5.2 12.4 5.1C11.8 5 11.3 4.5 11 3.9C10.7 3.1 10.9 2.3 11.5 1.7C11.1 1.4 10.6 1.2 10.1 1.2C9.5 1.1 9 1.3 8.5 1.6C8.8 1 8.8 0.5 8.5 0.1C8.3 0.1 8.1 0 8 0ZM8 4.6C8.7 4.6 9.3 4.8 9.8 5.1C9.5 5.7 9.6 6.5 10.1 7C10.6 7.6 11.5 7.8 12.2 7.4C12.4 8 12.5 8.7 12.5 9.4C12.5 11.9 10.5 13.8 8 13.8C5.5 13.8 3.5 11.9 3.5 9.4C3.5 6.9 5.5 4.6 8 4.6Z"/><circle cx="15.2" cy="1.6" r=".8" fill="#c4572e"/><circle cx="13.8" cy="-.6" r=".5" fill="#c8b27a"/></svg><span aria-hidden="true">s</span></a>
+    <nav class="hidden items-center gap-1 lg:flex" aria-label="Principal"><a class="nav-link" href="catalogo.html">Platos</a><a class="nav-link" href="#">Chefs</a><a class="nav-link" href="#">Historias</a><a class="nav-link" href="#">Valores</a></nav>
+    <div class="ml-auto flex items-center gap-0.5 sm:gap-1.5">
+      <form role="search" class="hidden md:block" onsubmit="return false">
+        <label class="relative block">
+          <span class="sr-only">Buscar platos o chefs</span>
+          <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant">search</span>
+          <input type="search" class="field !min-h-[44px] w-[210px] border-transparent bg-surface-container pl-10 hover:border-transparent focus:bg-white xl:w-[300px]" placeholder="Buscar platos o chefs">
+        </label>
+      </form>
+      <a href="#" class="icon-link md:hidden" aria-label="Buscar"><span class="material-symbols-outlined">search</span></a>
+      <a href="pedidos.html" class="icon-link" aria-label="Mis pedidos, 2 en curso"><span class="material-symbols-outlined">receipt_long</span><span class="count count--sand" aria-hidden="true">2</span></a>
+      <a href="cesta.html" class="icon-link" aria-label="Cesta"><span class="material-symbols-outlined">shopping_bag</span><span class="count" data-cart-count>3</span></a>
+      <details class="relative ml-1.5 hidden sm:block" data-account>
+        <summary class="cursor-pointer rounded-full" aria-label="Mi cuenta"><img src="https://lh3.googleusercontent.com/aida/AEtjO1UA-dYoobD3JbNgJWBcEdi7XPIacgEf3d-luAliCzoDi-PUmyVTYxQlS0SOjej3iFexXeh3aKn-CMw8y3aiyaVqwu4GdGo4BfO0svFrrX4S6lJXiTtNIJYE4k9j91-XSpCsb_GOtds_7225wVN5zS6v4TU19i72J338Pfkl1RKFiSFS-R2PsgxBvzOf_depxUGCknXMKfavlVgDwshe3SuDgcxra892NXtBkOMIfgIwPM0ttlrWdmNM2AE" alt="" class="h-10 w-10 rounded-full object-cover ring-1 ring-hairline"></summary>
+        <div class="absolute right-0 top-[calc(100%+10px)] z-50 w-64 rounded-lg border border-hairline bg-surface-container-lowest p-2 shadow-lift">
+          <div class="border-b border-hairline px-3 pb-3 pt-2"><p class="text-label-lg text-primary">Sofía Benítez</p><p class="text-body-sm text-on-surface-variant">Compra y vende</p></div>
+          <nav class="mt-2 flex flex-col" aria-label="Cuenta">
+            <a class="menu-item" href="pedidos.html"><span class="material-symbols-outlined text-[20px]" aria-hidden="true">receipt_long</span>Mis pedidos</a>
+            <a class="menu-item" href="publicaciones.html"><span class="material-symbols-outlined text-[20px]" aria-hidden="true">storefront</span>Mis publicaciones</a>
+            <a class="menu-item" href="publicar.html"><span class="material-symbols-outlined text-[20px]" aria-hidden="true">add_circle</span>Publicar un plato</a>
+            <a class="menu-item" href="ingreso.html"><span class="material-symbols-outlined text-[20px]" aria-hidden="true">logout</span>Salir</a>
+          </nav>
+        </div>
+      </details>
+    </div>
+  </div>
+  <div id="menu-movil" hidden class="border-t border-hairline bg-surface px-4 pb-4 pt-2 lg:hidden">
+    <nav aria-label="Principal móvil" class="flex flex-col"><a class="nav-link block !py-3" href="catalogo.html">Platos</a><a class="nav-link block !py-3" href="#">Chefs</a><a class="nav-link block !py-3" href="#">Historias</a><a class="nav-link block !py-3" href="#">Valores</a></nav>
+    <form role="search" class="mt-2" onsubmit="return false"><label class="block"><span class="sr-only">Buscar platos o chefs</span><input type="search" class="field" placeholder="Buscar platos o chefs"></label></form>
+    <nav aria-label="Cuenta" class="mt-3 flex flex-col border-t border-hairline pt-3"><a class="nav-link block !py-3" href="pedidos.html">Mis pedidos</a><a class="nav-link block !py-3" href="publicaciones.html">Mis publicaciones</a><a class="nav-link block !py-3" href="publicar.html">Publicar un plato</a><a class="nav-link block !py-3" href="ingreso.html">Salir</a></nav>
+  </div>
+</header>
+<main id="contenido" class="mx-auto max-w-shell px-5 pt-8 lg:px-12 lg:pt-12">
+  <nav aria-label="Ruta" class="text-body-sm text-on-surface-variant"><ol class="flex items-center gap-1.5"><li><a href="index.html" class="hover:text-primary hover:underline">Inicio</a></li><li aria-hidden="true">/</li><li aria-current="page" class="font-medium text-primary">Mis publicaciones</li></ol></nav>
+  <div class="mt-4 flex flex-wrap items-end justify-between gap-5">
+    <div>
+      <h1 class="font-display text-display-lg-mobile text-primary lg:text-[52px] lg:leading-[56px] lg:tracking-[-0.025em]">Mis publicaciones</h1>
+      <p class="mt-3 max-w-xl text-body-lg text-on-surface-variant">Manejá el stock, los descuentos y lo que se ve en el catálogo.</p>
+    </div>
+    <a href="publicar.html" class="btn btn-primary"><span class="material-symbols-outlined">add</span>Publicar un plato</a>
+  </div>
+
+  <div class="mt-10 flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar publicaciones">
+    <button type="button" class="chip" aria-pressed="true" data-pub-filter="all">Todas <span class="tabular opacity-80" data-count-all>6</span></button>
+    <button type="button" class="chip" aria-pressed="false" data-pub-filter="stock">Con stock <span class="tabular opacity-80" data-count-stock>5</span></button>
+    <button type="button" class="chip" aria-pressed="false" data-pub-filter="out">Sin stock <span class="tabular opacity-80" data-count-out>1</span></button>
+    <button type="button" class="chip" aria-pressed="false" data-pub-filter="disc">Con descuento <span class="tabular opacity-80" data-count-disc>1</span></button>
+  </div>
+
+  <section aria-label="Lista de publicaciones" class="mt-6">
+    <div class="hidden grid-cols-[88px_minmax(0,1fr)_150px_190px_auto] gap-x-6 border-b border-hairline pb-3 text-label-md text-on-surface-variant md:grid" aria-hidden="true"><span></span><span>Plato</span><span>Precio</span><span>Stock</span><span class="text-right">Acciones</span></div>
+    <ul class="divide-hair" data-pub-list>
+    <li class="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-x-4 gap-y-4 py-5 md:grid-cols-[88px_minmax(0,1fr)_150px_190px_auto] md:gap-x-6" data-pub data-title="Ravioli de ricotta de oveja y hongos" data-price="14200" data-discount="0" data-stock="6">
+      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuANhvv19i3bO8CZOGjtiv3eGepjcPg20Cxpm7L-atqFfTNCG76iLDbt8QwIEjAQv9EnTFr3FB65DzsJbm18gpLKJumkzw1Q0vw-gY7YtCDrV9_c79Fi339vRxkoEPksZlx9nURqHS14P1r20LceaBdYx8VBLO2-1ieJ9xH6NNPOUpQGUsZwm5LnyBOLAJKE7QzxP4VBS8cVmRw1kzaTHo5ftnWBSkOdm5ysZesa8HjUQhnhBWWMQC36" alt="" loading="lazy" class="h-[72px] w-[72px] rounded-md object-cover md:h-[88px] md:w-[88px]">
+      <div class="min-w-0">
+        <h3 class="font-display text-title-md text-primary"><a href="detalle.html" class="hover:underline">Ravioli de ricotta de oveja y hongos</a></h3>
+        <p class="text-body-sm text-on-surface-variant">Pastas y masas · Individual · 320 g</p>
+        <p class="mt-2"><span class="badge" data-stock-status></span></p>
+      </div>
+      <div class="col-span-2 flex items-baseline justify-between gap-3 md:col-span-1 md:block" data-price-cell>
+        <span class="text-body-sm text-on-surface-variant md:hidden">Precio</span>
+        <p class="flex flex-wrap items-baseline gap-x-2"><span class="font-display text-price-md tabular text-primary" data-price-now></span><span class="text-body-sm tabular text-on-surface-variant line-through" data-price-old hidden></span><span class="badge badge-sand" data-price-badge hidden></span></p>
+      </div>
+      <div class="col-span-2 flex items-center justify-between gap-3 md:col-span-1 md:justify-start" data-stock-row>
+        <span class="text-body-sm text-on-surface-variant md:hidden">Stock</span>
+        <div class="qty" data-qty data-min="0" data-max="99"><button type="button" data-dec aria-label="Menos stock: Ravioli de ricotta de oveja y hongos"><span class="material-symbols-outlined text-[20px]">remove</span></button><output aria-live="polite">6</output><button type="button" data-inc aria-label="Más stock: Ravioli de ricotta de oveja y hongos"><span class="material-symbols-outlined text-[20px]">add</span></button></div>
+      </div>
+      <div class="col-span-2 flex items-center justify-end gap-1 border-t border-hairline pt-3 md:col-span-1 md:border-0 md:pt-0">
+        <a href="publicar.html?editar=1" class="btn btn-quiet btn-sm"><span class="material-symbols-outlined">edit</span><span class="md:sr-only">Editar</span></a>
+        <button type="button" class="btn btn-quiet btn-sm" data-open-discount><span class="material-symbols-outlined">sell</span><span class="md:sr-only">Descuento</span></button>
+        <button type="button" class="btn btn-quiet btn-sm !text-error" data-open-delete><span class="material-symbols-outlined">delete</span><span class="md:sr-only">Eliminar</span></button>
+      </div>
+    </li>
+    <li class="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-x-4 gap-y-4 py-5 md:grid-cols-[88px_minmax(0,1fr)_150px_190px_auto] md:gap-x-6" data-pub data-title="Agnolotti del plin al jugo de asado" data-price="19800" data-discount="0" data-stock="3">
+      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUe9w0m2CasN_e-nExjRX86Wi_0O_4R4PisJ6Axfr4Rg6QzxpUhAkRQZfnKQJ0aks4fpSXQDQw65tOOlqjeIpM-PeO9K6tyZA0bPybI2dlsoywdYHyHGY65UHQMeondHN9wD_U1pU_Z-UktEkWZIui9DKl5VTN5dv4AuQRFveYz5m9SEgNmkvUTHXCWxRluOqpl0n6NEt9wKWuN9re6Vwqwp3o066K_6DgziFl0JE-8S-CI57wMewc" alt="" loading="lazy" class="h-[72px] w-[72px] rounded-md object-cover md:h-[88px] md:w-[88px]">
+      <div class="min-w-0">
+        <h3 class="font-display text-title-md text-primary"><a href="detalle.html" class="hover:underline">Agnolotti del plin al jugo de asado</a></h3>
+        <p class="text-body-sm text-on-surface-variant">Pastas y masas · Individual · 300 g</p>
+        <p class="mt-2"><span class="badge" data-stock-status></span></p>
+      </div>
+      <div class="col-span-2 flex items-baseline justify-between gap-3 md:col-span-1 md:block" data-price-cell>
+        <span class="text-body-sm text-on-surface-variant md:hidden">Precio</span>
+        <p class="flex flex-wrap items-baseline gap-x-2"><span class="font-display text-price-md tabular text-primary" data-price-now></span><span class="text-body-sm tabular text-on-surface-variant line-through" data-price-old hidden></span><span class="badge badge-sand" data-price-badge hidden></span></p>
+      </div>
+      <div class="col-span-2 flex items-center justify-between gap-3 md:col-span-1 md:justify-start" data-stock-row>
+        <span class="text-body-sm text-on-surface-variant md:hidden">Stock</span>
+        <div class="qty" data-qty data-min="0" data-max="99"><button type="button" data-dec aria-label="Menos stock: Agnolotti del plin al jugo de asado"><span class="material-symbols-outlined text-[20px]">remove</span></button><output aria-live="polite">3</output><button type="button" data-inc aria-label="Más stock: Agnolotti del plin al jugo de asado"><span class="material-symbols-outlined text-[20px]">add</span></button></div>
+      </div>
+      <div class="col-span-2 flex items-center justify-end gap-1 border-t border-hairline pt-3 md:col-span-1 md:border-0 md:pt-0">
+        <a href="publicar.html?editar=1" class="btn btn-quiet btn-sm"><span class="material-symbols-outlined">edit</span><span class="md:sr-only">Editar</span></a>
+        <button type="button" class="btn btn-quiet btn-sm" data-open-discount><span class="material-symbols-outlined">sell</span><span class="md:sr-only">Descuento</span></button>
+        <button type="button" class="btn btn-quiet btn-sm !text-error" data-open-delete><span class="material-symbols-outlined">delete</span><span class="md:sr-only">Eliminar</span></button>
+      </div>
+    </li>
+    <li class="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-x-4 gap-y-4 py-5 md:grid-cols-[88px_minmax(0,1fr)_150px_190px_auto] md:gap-x-6" data-pub data-title="Focaccia alta de romero y sal marina" data-price="4800" data-discount="0" data-stock="12">
+      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAK9x6WBU13wAQCySEdv5bz2aJd3lQee5h_gxRuFSB2UaBoZIjeK-adbnp0X2_T4Ind4OM4dEP3wluP6K733nFST81ScQP-jGfyL9LIXIIDGO13J98wD7jj1-okN8_grhocgug_7l_ygp1yWDJ2diNF2f4mNWx_0ecKj7gO46PL5nTTKzSWQihXjH5eQbT5-f4StbsSRNLEel_DKOJ8E5ACkRy_Kwj-pHNmPNfM78POKJRx0rsVgvZH" alt="" loading="lazy" class="h-[72px] w-[72px] rounded-md object-cover md:h-[88px] md:w-[88px]">
+      <div class="min-w-0">
+        <h3 class="font-display text-title-md text-primary"><a href="detalle.html" class="hover:underline">Focaccia alta de romero y sal marina</a></h3>
+        <p class="text-body-sm text-on-surface-variant">Panadería y dulces · Pieza · 400 g</p>
+        <p class="mt-2"><span class="badge" data-stock-status></span></p>
+      </div>
+      <div class="col-span-2 flex items-baseline justify-between gap-3 md:col-span-1 md:block" data-price-cell>
+        <span class="text-body-sm text-on-surface-variant md:hidden">Precio</span>
+        <p class="flex flex-wrap items-baseline gap-x-2"><span class="font-display text-price-md tabular text-primary" data-price-now></span><span class="text-body-sm tabular text-on-surface-variant line-through" data-price-old hidden></span><span class="badge badge-sand" data-price-badge hidden></span></p>
+      </div>
+      <div class="col-span-2 flex items-center justify-between gap-3 md:col-span-1 md:justify-start" data-stock-row>
+        <span class="text-body-sm text-on-surface-variant md:hidden">Stock</span>
+        <div class="qty" data-qty data-min="0" data-max="99"><button type="button" data-dec aria-label="Menos stock: Focaccia alta de romero y sal marina"><span class="material-symbols-outlined text-[20px]">remove</span></button><output aria-live="polite">12</output><button type="button" data-inc aria-label="Más stock: Focaccia alta de romero y sal marina"><span class="material-symbols-outlined text-[20px]">add</span></button></div>
+      </div>
+      <div class="col-span-2 flex items-center justify-end gap-1 border-t border-hairline pt-3 md:col-span-1 md:border-0 md:pt-0">
+        <a href="publicar.html?editar=1" class="btn btn-quiet btn-sm"><span class="material-symbols-outlined">edit</span><span class="md:sr-only">Editar</span></a>
+        <button type="button" class="btn btn-quiet btn-sm" data-open-discount><span class="material-symbols-outlined">sell</span><span class="md:sr-only">Descuento</span></button>
+        <button type="button" class="btn btn-quiet btn-sm !text-error" data-open-delete><span class="material-symbols-outlined">delete</span><span class="md:sr-only">Eliminar</span></button>
+      </div>
+    </li>
+    <li class="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-x-4 gap-y-4 py-5 md:grid-cols-[88px_minmax(0,1fr)_150px_190px_auto] md:gap-x-6" data-pub data-title="Tiramisú tradicional de vainillas caseras" data-price="6400" data-discount="10" data-stock="9">
+      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDj6RulaAhw_umB4d_uisGwTA_x8mYMbJyVL1YlAZqtiCWFrGeN6j4nf2fxyS4RH4EK9wwkJJ6XSmaoAcZePzweoO9w-ZKdtmaMA7oaEX54FshjSblwpQTolGLPgqvlU5mfvYsy9AFtuYXBuCS03o1FTV9bbBMmbiyo1qo9oYopNbuMfwcTqy3aLi7zKirKk8kwWWZKm9l9lNhwuLNVnsVirUM-brA1CTAXrI9OU3AjmR6xr8alP8R-" alt="" loading="lazy" class="h-[72px] w-[72px] rounded-md object-cover md:h-[88px] md:w-[88px]">
+      <div class="min-w-0">
+        <h3 class="font-display text-title-md text-primary"><a href="detalle.html" class="hover:underline">Tiramisú tradicional de vainillas caseras</a></h3>
+        <p class="text-body-sm text-on-surface-variant">Panadería y dulces · Vaso individual</p>
+        <p class="mt-2"><span class="badge" data-stock-status></span></p>
+      </div>
+      <div class="col-span-2 flex items-baseline justify-between gap-3 md:col-span-1 md:block" data-price-cell>
+        <span class="text-body-sm text-on-surface-variant md:hidden">Precio</span>
+        <p class="flex flex-wrap items-baseline gap-x-2"><span class="font-display text-price-md tabular text-primary" data-price-now></span><span class="text-body-sm tabular text-on-surface-variant line-through" data-price-old hidden></span><span class="badge badge-sand" data-price-badge hidden></span></p>
+      </div>
+      <div class="col-span-2 flex items-center justify-between gap-3 md:col-span-1 md:justify-start" data-stock-row>
+        <span class="text-body-sm text-on-surface-variant md:hidden">Stock</span>
+        <div class="qty" data-qty data-min="0" data-max="99"><button type="button" data-dec aria-label="Menos stock: Tiramisú tradicional de vainillas caseras"><span class="material-symbols-outlined text-[20px]">remove</span></button><output aria-live="polite">9</output><button type="button" data-inc aria-label="Más stock: Tiramisú tradicional de vainillas caseras"><span class="material-symbols-outlined text-[20px]">add</span></button></div>
+      </div>
+      <div class="col-span-2 flex items-center justify-end gap-1 border-t border-hairline pt-3 md:col-span-1 md:border-0 md:pt-0">
+        <a href="publicar.html?editar=1" class="btn btn-quiet btn-sm"><span class="material-symbols-outlined">edit</span><span class="md:sr-only">Editar</span></a>
+        <button type="button" class="btn btn-quiet btn-sm" data-open-discount><span class="material-symbols-outlined">sell</span><span class="md:sr-only">Descuento</span></button>
+        <button type="button" class="btn btn-quiet btn-sm !text-error" data-open-delete><span class="material-symbols-outlined">delete</span><span class="md:sr-only">Eliminar</span></button>
+      </div>
+    </li>
+    <li class="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-x-4 gap-y-4 py-5 md:grid-cols-[88px_minmax(0,1fr)_150px_190px_auto] md:gap-x-6" data-pub data-title="Curry verde de tubérculos y coco" data-price="15500" data-discount="0" data-stock="8">
+      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBpAyO37tsQDMAOgzhJIiaPhJmq1RSdGzy2Xgv9Pb7rDbrUrSKHL25PhqOyhzPc4klrKpBv5XT2vNWdnjTI-AWVKT9Wmmo42YJ8BA2XN4pDKJokn1r4QetCdW2kS2q46S66a5v9qrEcgmmSa5hvsJ_-mth6FORWGhOldfYfOWCHNOGdNsey9ReNFRXX0GG5McpeJDKvh-mBngTMUwp4TlTmH-5Kb-3r0mqfu7CusWm5eVJn4VAxlobD" alt="" loading="lazy" class="h-[72px] w-[72px] rounded-md object-cover md:h-[88px] md:w-[88px]">
+      <div class="min-w-0">
+        <h3 class="font-display text-title-md text-primary"><a href="detalle.html" class="hover:underline">Curry verde de tubérculos y coco</a></h3>
+        <p class="text-body-sm text-on-surface-variant">Cocina botánica y silvestre · Individual · 350 g</p>
+        <p class="mt-2"><span class="badge" data-stock-status></span></p>
+      </div>
+      <div class="col-span-2 flex items-baseline justify-between gap-3 md:col-span-1 md:block" data-price-cell>
+        <span class="text-body-sm text-on-surface-variant md:hidden">Precio</span>
+        <p class="flex flex-wrap items-baseline gap-x-2"><span class="font-display text-price-md tabular text-primary" data-price-now></span><span class="text-body-sm tabular text-on-surface-variant line-through" data-price-old hidden></span><span class="badge badge-sand" data-price-badge hidden></span></p>
+      </div>
+      <div class="col-span-2 flex items-center justify-between gap-3 md:col-span-1 md:justify-start" data-stock-row>
+        <span class="text-body-sm text-on-surface-variant md:hidden">Stock</span>
+        <div class="qty" data-qty data-min="0" data-max="99"><button type="button" data-dec aria-label="Menos stock: Curry verde de tubérculos y coco"><span class="material-symbols-outlined text-[20px]">remove</span></button><output aria-live="polite">8</output><button type="button" data-inc aria-label="Más stock: Curry verde de tubérculos y coco"><span class="material-symbols-outlined text-[20px]">add</span></button></div>
+      </div>
+      <div class="col-span-2 flex items-center justify-end gap-1 border-t border-hairline pt-3 md:col-span-1 md:border-0 md:pt-0">
+        <a href="publicar.html?editar=1" class="btn btn-quiet btn-sm"><span class="material-symbols-outlined">edit</span><span class="md:sr-only">Editar</span></a>
+        <button type="button" class="btn btn-quiet btn-sm" data-open-discount><span class="material-symbols-outlined">sell</span><span class="md:sr-only">Descuento</span></button>
+        <button type="button" class="btn btn-quiet btn-sm !text-error" data-open-delete><span class="material-symbols-outlined">delete</span><span class="md:sr-only">Eliminar</span></button>
+      </div>
+    </li>
+    <li class="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-x-4 gap-y-4 py-5 md:grid-cols-[88px_minmax(0,1fr)_150px_190px_auto] md:gap-x-6" data-pub data-title="Ñoquis soufflé de papa y ragú lento" data-price="12900" data-discount="0" data-stock="0">
+      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQm6PD6hD3-xMtHG1A9DfmGKXeyBzXKy1kfMmg-mCvmlbROLW8AoePAZMjGorlPdouv5bWZEomrbn9Y-DwdswC_r_B-gpUKQ_xtXZlYtWQbnRMBtoe-9m__diz8hVmdC1Tj3-mZciNGV-NEe5HIrhS9av8MsuC-xxcFTxMCSvpYz65jLUntzrn8F1pDXNqagPtH5egJscrXnrHWwaqkMIs1Ce-T8bUok43ZXiuo26nz685XtRQB1BX" alt="" loading="lazy" class="h-[72px] w-[72px] rounded-md object-cover md:h-[88px] md:w-[88px]">
+      <div class="min-w-0">
+        <h3 class="font-display text-title-md text-primary"><a href="detalle.html" class="hover:underline">Ñoquis soufflé de papa y ragú lento</a></h3>
+        <p class="text-body-sm text-on-surface-variant">Pastas y masas · Individual · 380 g</p>
+        <p class="mt-2"><span class="badge" data-stock-status></span></p>
+      </div>
+      <div class="col-span-2 flex items-baseline justify-between gap-3 md:col-span-1 md:block" data-price-cell>
+        <span class="text-body-sm text-on-surface-variant md:hidden">Precio</span>
+        <p class="flex flex-wrap items-baseline gap-x-2"><span class="font-display text-price-md tabular text-primary" data-price-now></span><span class="text-body-sm tabular text-on-surface-variant line-through" data-price-old hidden></span><span class="badge badge-sand" data-price-badge hidden></span></p>
+      </div>
+      <div class="col-span-2 flex items-center justify-between gap-3 md:col-span-1 md:justify-start" data-stock-row>
+        <span class="text-body-sm text-on-surface-variant md:hidden">Stock</span>
+        <div class="qty" data-qty data-min="0" data-max="99"><button type="button" data-dec aria-label="Menos stock: Ñoquis soufflé de papa y ragú lento"><span class="material-symbols-outlined text-[20px]">remove</span></button><output aria-live="polite">0</output><button type="button" data-inc aria-label="Más stock: Ñoquis soufflé de papa y ragú lento"><span class="material-symbols-outlined text-[20px]">add</span></button></div>
+      </div>
+      <div class="col-span-2 flex items-center justify-end gap-1 border-t border-hairline pt-3 md:col-span-1 md:border-0 md:pt-0">
+        <a href="publicar.html?editar=1" class="btn btn-quiet btn-sm"><span class="material-symbols-outlined">edit</span><span class="md:sr-only">Editar</span></a>
+        <button type="button" class="btn btn-quiet btn-sm" data-open-discount><span class="material-symbols-outlined">sell</span><span class="md:sr-only">Descuento</span></button>
+        <button type="button" class="btn btn-quiet btn-sm !text-error" data-open-delete><span class="material-symbols-outlined">delete</span><span class="md:sr-only">Eliminar</span></button>
+      </div>
+    </li></ul>
+    <div id="pub-vacio" hidden class="mx-auto max-w-md py-16 text-center">
+      <span class="mx-auto grid h-16 w-16 place-items-center rounded-full bg-surface-container-high text-primary"><span class="material-symbols-outlined" aria-hidden="true">storefront</span></span>
+      <p class="mt-5 font-display text-headline-sm text-primary">No hay publicaciones para mostrar</p>
+      <p class="mt-1 text-body-sm text-on-surface-variant">Cambiá el filtro o publicá un plato nuevo.</p>
+      <a href="publicar.html" class="btn btn-primary btn-sm mt-5">Publicar un plato</a>
+    </div>
+  </section>
+</main>
+
+<dialog id="dlg-eliminar" class="dialog" aria-labelledby="dlg-eliminar-t">
+  <form method="dialog" class="p-6 sm:p-8">
+    <span class="grid h-12 w-12 place-items-center rounded-full bg-error-container text-error"><span class="material-symbols-outlined" aria-hidden="true">delete</span></span>
+    <h2 id="dlg-eliminar-t" class="mt-5 font-display text-headline-md text-primary">¿Eliminar este plato?</h2>
+    <p class="mt-2 text-body-md text-on-surface-variant"><strong class="font-semibold text-primary" data-dlg-title></strong> deja de verse en el catálogo. Los pedidos que ya confirmaron se entregan igual.</p>
+    <div class="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button value="cancel" class="btn btn-secondary">Cancelar</button><button value="confirm" class="btn btn-danger">Eliminar plato</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-descuento" class="dialog" aria-labelledby="dlg-descuento-t">
+  <form method="dialog" class="p-6 sm:p-8">
+    <h2 id="dlg-descuento-t" class="font-display text-headline-md text-primary">Descuento del plato</h2>
+    <p class="mt-1 text-body-md text-on-surface-variant" data-dlg-title></p>
+    <div class="mt-6">
+      <label class="label" for="desc-pct">Porcentaje de descuento</label>
+      <div class="relative"><input id="desc-pct" type="number" min="0" max="90" step="5" value="0" class="field pr-10 tabular" inputmode="numeric"><span class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-body-md text-on-surface-variant">%</span></div>
+      <p class="hint">Entre 0 y 90. Con 0 se quita el descuento.</p>
+    </div>
+    <dl class="mt-5 space-y-2 rounded-lg bg-surface-container-low p-4 text-body-md">
+      <div class="flex justify-between"><dt class="text-on-surface-variant">Precio original</dt><dd class="tabular text-primary" data-dlg-original></dd></div>
+      <div class="flex justify-between"><dt class="text-label-lg text-primary">Precio final</dt><dd class="font-display text-price-md tabular text-primary" data-dlg-final></dd></div>
+    </dl>
+    <div class="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button value="cancel" class="btn btn-secondary">Cancelar</button><button value="confirm" class="btn btn-primary">Aplicar descuento</button></div>
+  </form>
+</dialog>
+<footer class="mt-20 border-t border-hairline bg-surface-container-low lg:mt-28">
+  <div class="mx-auto grid max-w-shell gap-12 px-5 py-14 md:grid-cols-12 lg:px-12 lg:py-16">
+    <div class="md:col-span-5">
+      <a href="index.html" class="logo " aria-label="Appetitos, ir al inicio"><span aria-hidden="true">Appetit</span><svg viewBox="0 0 16 17.6" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M8 0C3.6 0 0 4 0 8.8C0 13.6 3.6 17.6 8 17.6C12.4 17.6 16 13.6 16 8.8C16 7.1 15.5 5.5 14.6 4.2C14.1 4.8 13.3 5.2 12.4 5.1C11.8 5 11.3 4.5 11 3.9C10.7 3.1 10.9 2.3 11.5 1.7C11.1 1.4 10.6 1.2 10.1 1.2C9.5 1.1 9 1.3 8.5 1.6C8.8 1 8.8 0.5 8.5 0.1C8.3 0.1 8.1 0 8 0ZM8 4.6C8.7 4.6 9.3 4.8 9.8 5.1C9.5 5.7 9.6 6.5 10.1 7C10.6 7.6 11.5 7.8 12.2 7.4C12.4 8 12.5 8.7 12.5 9.4C12.5 11.9 10.5 13.8 8 13.8C5.5 13.8 3.5 11.9 3.5 9.4C3.5 6.9 5.5 4.6 8 4.6Z"/><circle cx="15.2" cy="1.6" r=".8" fill="#c4572e"/><circle cx="13.8" cy="-.6" r=".5" fill="#c8b27a"/></svg><span aria-hidden="true">s</span></a>
+      <p class="mt-3 font-display text-headline-sm italic text-secondary">Comida real, personas reales.</p>
+      <p class="mt-4 max-w-sm text-body-md text-on-surface-variant">Conectamos hogares con talleres de cocina independientes. Cada plato tiene nombre, apellido y origen.</p>
+    </div>
+    <div class="md:col-span-3 md:col-start-7"><nav aria-label="Para chefs"><h2 class="text-label-lg text-primary">Para chefs</h2><ul class="mt-4 space-y-1"><li><a href="registro.html?rol=vendedor" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Vender en Appetitos</a></li><li><a href="#" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Cómo funciona</a></li><li><a href="#" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Crónicas de temporada</a></li></ul></nav></div>
+    <div class="md:col-span-3"><nav aria-label="Ayuda"><h2 class="text-label-lg text-primary">Ayuda</h2><ul class="mt-4 space-y-1"><li><a href="#" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Preguntas frecuentes</a></li><li><a href="#" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Información sanitaria</a></li><li><a href="#" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Privacidad</a></li></ul></nav></div>
+  </div>
+  <div class="border-t border-hairline">
+    <div class="mx-auto flex max-w-shell flex-col gap-3 px-5 py-5 text-body-sm text-on-surface-variant sm:flex-row sm:items-center sm:justify-between lg:px-12">
+      <p>© 2026 Appetitos. Hecho con paciencia y fuego lento.</p>
+      <p class="flex flex-wrap gap-x-5 gap-y-1"><span class="inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">eco</span>Ingredientes de origen cercano</span><span class="inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">verified_user</span>Cocinas inspeccionadas</span></p>
+    </div>
+  </div>
+</footer>
+<div id="toast" class="toast" role="status" aria-live="polite"><span class="material-symbols-outlined fill text-[20px] text-primary-fixed-dim">check_circle</span><span data-toast-text></span><a href="cesta.html" hidden>Ver cesta</a></div>
+<script src="assets/app.js"></script>
+</body>
+</html>

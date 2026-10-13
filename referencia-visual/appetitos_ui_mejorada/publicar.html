@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Publicar un plato · Appetitos</title>
+<meta name="description" content="Publicá o editá un plato: fotos, descripción, categoría, precio y stock.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400&family=Sora:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<script src="assets/tailwind-config.js"></script>
+<link rel="stylesheet" href="assets/appetitos.css">
+</head>
+<body class="bg-surface font-sans text-on-surface antialiased ">
+<a class="skip-link" href="#contenido">Ir al contenido</a>
+<header class="sticky top-0 z-40 border-b border-hairline bg-surface/90 backdrop-blur-md">
+  <div class="mx-auto flex h-[68px] max-w-shell items-center gap-2 px-4 sm:px-5 lg:h-[76px] lg:gap-8 lg:px-12">
+    <button type="button" class="btn btn-quiet btn-icon -ml-2 lg:hidden" data-menu-toggle aria-expanded="false" aria-controls="menu-movil" aria-label="Abrir menú"><span class="material-symbols-outlined">menu</span></button>
+    <a href="index.html" class="logo " aria-label="Appetitos, ir al inicio"><span aria-hidden="true">Appetit</span><svg viewBox="0 0 16 17.6" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M8 0C3.6 0 0 4 0 8.8C0 13.6 3.6 17.6 8 17.6C12.4 17.6 16 13.6 16 8.8C16 7.1 15.5 5.5 14.6 4.2C14.1 4.8 13.3 5.2 12.4 5.1C11.8 5 11.3 4.5 11 3.9C10.7 3.1 10.9 2.3 11.5 1.7C11.1 1.4 10.6 1.2 10.1 1.2C9.5 1.1 9 1.3 8.5 1.6C8.8 1 8.8 0.5 8.5 0.1C8.3 0.1 8.1 0 8 0ZM8 4.6C8.7 4.6 9.3 4.8 9.8 5.1C9.5 5.7 9.6 6.5 10.1 7C10.6 7.6 11.5 7.8 12.2 7.4C12.4 8 12.5 8.7 12.5 9.4C12.5 11.9 10.5 13.8 8 13.8C5.5 13.8 3.5 11.9 3.5 9.4C3.5 6.9 5.5 4.6 8 4.6Z"/><circle cx="15.2" cy="1.6" r=".8" fill="#c4572e"/><circle cx="13.8" cy="-.6" r=".5" fill="#c8b27a"/></svg><span aria-hidden="true">s</span></a>
+    <nav class="hidden items-center gap-1 lg:flex" aria-label="Principal"><a class="nav-link" href="catalogo.html">Platos</a><a class="nav-link" href="#">Chefs</a><a class="nav-link" href="#">Historias</a><a class="nav-link" href="#">Valores</a></nav>
+    <div class="ml-auto flex items-center gap-0.5 sm:gap-1.5">
+      <form role="search" class="hidden md:block" onsubmit="return false">
+        <label class="relative block">
+          <span class="sr-only">Buscar platos o chefs</span>
+          <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant">search</span>
+          <input type="search" class="field !min-h-[44px] w-[210px] border-transparent bg-surface-container pl-10 hover:border-transparent focus:bg-white xl:w-[300px]" placeholder="Buscar platos o chefs">
+        </label>
+      </form>
+      <a href="#" class="icon-link md:hidden" aria-label="Buscar"><span class="material-symbols-outlined">search</span></a>
+      <a href="pedidos.html" class="icon-link" aria-label="Mis pedidos, 2 en curso"><span class="material-symbols-outlined">receipt_long</span><span class="count count--sand" aria-hidden="true">2</span></a>
+      <a href="cesta.html" class="icon-link" aria-label="Cesta"><span class="material-symbols-outlined">shopping_bag</span><span class="count" data-cart-count>3</span></a>
+      <details class="relative ml-1.5 hidden sm:block" data-account>
+        <summary class="cursor-pointer rounded-full" aria-label="Mi cuenta"><img src="https://lh3.googleusercontent.com/aida/AEtjO1UA-dYoobD3JbNgJWBcEdi7XPIacgEf3d-luAliCzoDi-PUmyVTYxQlS0SOjej3iFexXeh3aKn-CMw8y3aiyaVqwu4GdGo4BfO0svFrrX4S6lJXiTtNIJYE4k9j91-XSpCsb_GOtds_7225wVN5zS6v4TU19i72J338Pfkl1RKFiSFS-R2PsgxBvzOf_depxUGCknXMKfavlVgDwshe3SuDgcxra892NXtBkOMIfgIwPM0ttlrWdmNM2AE" alt="" class="h-10 w-10 rounded-full object-cover ring-1 ring-hairline"></summary>
+        <div class="absolute right-0 top-[calc(100%+10px)] z-50 w-64 rounded-lg border border-hairline bg-surface-container-lowest p-2 shadow-lift">
+          <div class="border-b border-hairline px-3 pb-3 pt-2"><p class="text-label-lg text-primary">Sofía Benítez</p><p class="text-body-sm text-on-surface-variant">Compra y vende</p></div>
+          <nav class="mt-2 flex flex-col" aria-label="Cuenta">
+            <a class="menu-item" href="pedidos.html"><span class="material-symbols-outlined text-[20px]" aria-hidden="true">receipt_long</span>Mis pedidos</a>
+            <a class="menu-item" href="publicaciones.html"><span class="material-symbols-outlined text-[20px]" aria-hidden="true">storefront</span>Mis publicaciones</a>
+            <a class="menu-item" href="publicar.html"><span class="material-symbols-outlined text-[20px]" aria-hidden="true">add_circle</span>Publicar un plato</a>
+            <a class="menu-item" href="ingreso.html"><span class="material-symbols-outlined text-[20px]" aria-hidden="true">logout</span>Salir</a>
+          </nav>
+        </div>
+      </details>
+    </div>
+  </div>
+  <div id="menu-movil" hidden class="border-t border-hairline bg-surface px-4 pb-4 pt-2 lg:hidden">
+    <nav aria-label="Principal móvil" class="flex flex-col"><a class="nav-link block !py-3" href="catalogo.html">Platos</a><a class="nav-link block !py-3" href="#">Chefs</a><a class="nav-link block !py-3" href="#">Historias</a><a class="nav-link block !py-3" href="#">Valores</a></nav>
+    <form role="search" class="mt-2" onsubmit="return false"><label class="block"><span class="sr-only">Buscar platos o chefs</span><input type="search" class="field" placeholder="Buscar platos o chefs"></label></form>
+    <nav aria-label="Cuenta" class="mt-3 flex flex-col border-t border-hairline pt-3"><a class="nav-link block !py-3" href="pedidos.html">Mis pedidos</a><a class="nav-link block !py-3" href="publicaciones.html">Mis publicaciones</a><a class="nav-link block !py-3" href="publicar.html">Publicar un plato</a><a class="nav-link block !py-3" href="ingreso.html">Salir</a></nav>
+  </div>
+</header>
+<main id="contenido" class="mx-auto max-w-shell px-5 pt-8 lg:px-12 lg:pt-12">
+  <nav aria-label="Ruta" class="text-body-sm text-on-surface-variant"><ol class="flex items-center gap-1.5"><li><a href="publicaciones.html" class="hover:text-primary hover:underline">Mis publicaciones</a></li><li aria-hidden="true">/</li><li aria-current="page" class="font-medium text-primary" data-crumb>Publicar un plato</li></ol></nav>
+  <h1 class="mt-4 font-display text-display-lg-mobile text-primary lg:text-[52px] lg:leading-[56px] lg:tracking-[-0.025em]" data-h1>Publicar un plato</h1>
+  <p class="mt-3 max-w-xl text-body-lg text-on-surface-variant">Cargá fotos, precio y stock. Podés editarlos cuando quieras.</p>
+
+  <div id="form-error" role="alert" hidden class="mt-6 flex gap-3 rounded-lg border border-error/30 bg-error-container p-4 text-on-error-container"><span class="material-symbols-outlined fill" aria-hidden="true">error</span><div><p class="text-label-lg" data-error-title>Revisá los campos marcados</p><p class="text-body-sm">Te marcamos qué falta para poder publicar.</p></div></div>
+
+  <form class="mt-8 grid items-start gap-8 lg:grid-cols-[1fr_360px] lg:gap-12" novalidate data-validate data-publish data-redirect="publicaciones.html" data-edit-photos="https://lh3.googleusercontent.com/aida-public/AB6AXuAUkCuw4QzCperkB29Zq9Vi5_HRf6tXvi1gT9o-fz4medk95dHCdOBffBpza-l7IyhvoIha__yY13TUmEinHTCB89Y5wMD8RNvSYUGMJeRmOmiwRZ8wedv1ueR2Zg4_H10KwE4r0Tzyh_4LiQN8_dFmMcy4JxtQzwjVpryiFX2RXcM1IhOrzd_kNsZdRMiNjt32YldmRh0-yoAKofg4X3fsyDXDyKBf7nf1a-6lJ9zoI7-suuC5d01Y|https://lh3.googleusercontent.com/aida-public/AB6AXuDAKV0u6sqS2NStkjOjn4n6MDm0QIXEMyb_zMByzKRa3VzC9p_CPaop8JbcnhFKB_yTkS7vDVnN8q_2-ayPsdspSzRr99OZZ6ClK1XIAbBel1LHT9siTW6bKlLqKBZje-zAwHN9sxbz_dWgq_S9Qhcqg-E0M-xfNDjmkyWP89r3QhhjWH188vzrziPF204s3BgH1uD3hkLqZSHCOR2aNfU_unXSbm9XB2Wew4O3ubuIVyU5M-gxQYpz">
+    <div class="space-y-6">
+      <section class="rounded-xl bg-surface-container-lowest p-5 shadow-ambient sm:p-7" aria-labelledby="s-fotos"><h2 id="s-fotos" class="font-display text-headline-sm text-primary">Fotos</h2><p class="mt-1 text-body-sm text-on-surface-variant">La primera es la principal. Hasta 6 fotos, JPG o PNG de hasta 5 MB.</p><div class="mt-5 space-y-5">
+        <label class="dropzone" data-dropzone><span class="material-symbols-outlined text-[36px] text-surface-tint" aria-hidden="true">add_photo_alternate</span><span class="text-label-lg text-primary">Elegí fotos o arrastralas acá</span><span class="text-body-sm text-on-surface-variant">Mostrá el plato servido y, si podés, cómo lo preparás.</span><input type="file" accept="image/*" multiple data-photos-input aria-label="Subir fotos del plato"></label>
+        <ul class="grid grid-cols-3 gap-3 sm:grid-cols-6" data-photos></ul>
+        <p class="hint hint--error" data-err-for="fotos" hidden><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span><span data-err-text></span></p></div></section>
+      <section class="rounded-xl bg-surface-container-lowest p-5 shadow-ambient sm:p-7" aria-labelledby="s-datos"><h2 id="s-datos" class="font-display text-headline-sm text-primary">Datos del plato</h2><div class="mt-5 space-y-5">
+        <div><label class="label" for="titulo">Nombre del plato</label><input id="titulo" name="titulo" class="field" required maxlength="70" data-msg="Escribí el nombre del plato." placeholder="Ravioli de ricotta y hongos silvestres" data-bind="title"><p class="hint hint--error" data-err-for="titulo" hidden><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span><span data-err-text></span></p></div>
+        <div><label class="label" for="descripcion">Descripción</label><textarea id="descripcion" name="descripcion" class="field" rows="4" required minlength="20" data-msg="Contá en al menos 20 caracteres qué lleva y cómo se prepara." placeholder="Ingredientes, cómo se cocina y cómo llega a la mesa." data-bind="desc"></textarea><p class="hint hint--error" data-err-for="descripcion" hidden><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span><span data-err-text></span></p></div>
+        <div class="grid gap-5 sm:grid-cols-2">
+          <div><label class="label" for="categoria">Categoría</label><select id="categoria" name="categoria" class="field" required data-msg="Elegí una categoría." data-bind="cat"><option value="">Elegí una</option><option>Pastas y masas</option><option>Fuego y robata</option><option>Cocina botánica y silvestre</option><option>Fermentos y koji</option><option>Panadería y dulces</option></select><p class="hint hint--error" data-err-for="categoria" hidden><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span><span data-err-text></span></p></div>
+          <div><label class="label" for="porcion">Porción <span class="font-normal text-on-surface-variant">(opcional)</span></label><input id="porcion" name="porcion" class="field" placeholder="Individual · 320 g" data-bind="unit"></div>
+        </div>
+        <fieldset><legend class="label">Alimentación <span class="font-normal text-on-surface-variant">(opcional)</span></legend><div class="flex flex-wrap gap-2"><label class="chip"><input type="checkbox" class="sr-only" name="alimentacion" value="Sin gluten">Sin gluten</label><label class="chip"><input type="checkbox" class="sr-only" name="alimentacion" value="100% vegetal">100% vegetal</label><label class="chip"><input type="checkbox" class="sr-only" name="alimentacion" value="Sin lácteos">Sin lácteos</label><label class="chip"><input type="checkbox" class="sr-only" name="alimentacion" value="Orgánico">Orgánico</label><label class="chip"><input type="checkbox" class="sr-only" name="alimentacion" value="Km 0">Km 0</label></div></fieldset></div></section>
+      <section class="rounded-xl bg-surface-container-lowest p-5 shadow-ambient sm:p-7" aria-labelledby="s-precio"><h2 id="s-precio" class="font-display text-headline-sm text-primary">Precio y stock</h2><div class="mt-5 space-y-5">
+        <div class="grid gap-5 sm:grid-cols-2">
+          <div><label class="label" for="precio">Precio</label><div class="relative"><span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-body-md text-on-surface-variant">$</span><input id="precio" name="precio" type="number" min="1" step="1" class="field pl-8 tabular" required inputmode="numeric" data-msg="Escribí un precio mayor a 0." data-bind="price"></div><p class="hint hint--error" data-err-for="precio" hidden><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span><span data-err-text></span></p></div>
+          <div><label class="label" for="stock">Stock de hoy</label><input id="stock" name="stock" type="number" min="0" step="1" class="field tabular" required inputmode="numeric" data-msg="Escribí cuántas porciones tenés (0 si no hay)." data-bind="stock"><p class="hint">Se descuenta solo con cada pedido confirmado.</p><p class="hint hint--error" data-err-for="stock" hidden><span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span><span data-err-text></span></p></div>
+        </div>
+        <div class="rounded-lg border border-hairline p-4">
+          <label class="flex cursor-pointer items-center justify-between gap-4"><span><span class="block text-label-lg text-primary">Aplicar un descuento</span><span class="block text-body-sm text-on-surface-variant">Se muestra el precio anterior tachado.</span></span><input type="checkbox" class="switch" role="switch" data-discount-toggle></label>
+          <div class="mt-4 hidden" data-discount-box><label class="label" for="dpct">Porcentaje</label><div class="relative max-w-[180px]"><input id="dpct" name="descuento" type="number" min="5" max="90" step="5" value="10" class="field pr-10 tabular" data-bind="disc"><span class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-body-md text-on-surface-variant">%</span></div></div>
+        </div></div></section>
+      <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <a href="publicaciones.html" class="btn btn-quiet">Cancelar</a>
+        <div class="flex flex-col-reverse gap-3 sm:flex-row"><button type="button" class="btn btn-secondary" data-draft>Guardar borrador</button><button type="submit" class="btn btn-primary sm:min-w-[200px]" data-submit-label>Publicar plato</button></div>
+      </div>
+    </div>
+
+    <aside class="lg:sticky lg:top-[100px]" aria-labelledby="h-prev">
+      <h2 id="h-prev" class="text-label-lg text-on-surface-variant">Así lo van a ver en el catálogo</h2>
+      <article class="mt-4" aria-label="Vista previa del plato">
+        <div class="relative aspect-[4/5] overflow-hidden rounded-lg bg-surface-container">
+          <img data-pv-img alt="" class="hidden h-full w-full object-cover">
+          <div data-pv-empty class="grid h-full place-items-center text-center text-on-surface-variant"><div><span class="material-symbols-outlined text-[40px]" aria-hidden="true">image</span><p class="mt-1 text-body-sm">Acá va tu primera foto</p></div></div>
+          <span class="badge badge-sand absolute left-3 top-3" data-pv-badge hidden></span>
+        </div>
+        <div class="mt-4 space-y-2">
+          <div class="flex items-center gap-2 text-label-md text-on-surface-variant"><img src="https://lh3.googleusercontent.com/aida/AEtjO1UA-dYoobD3JbNgJWBcEdi7XPIacgEf3d-luAliCzoDi-PUmyVTYxQlS0SOjej3iFexXeh3aKn-CMw8y3aiyaVqwu4GdGo4BfO0svFrrX4S6lJXiTtNIJYE4k9j91-XSpCsb_GOtds_7225wVN5zS6v4TU19i72J338Pfkl1RKFiSFS-R2PsgxBvzOf_depxUGCknXMKfavlVgDwshe3SuDgcxra892NXtBkOMIfgIwPM0ttlrWdmNM2AE" alt="" class="rounded-full object-cover ring-1 ring-hairline" style="width:24px;height:24px"><span>Sofía Benítez</span></div>
+          <h3 class="font-display text-title-md text-primary" data-pv-title>Nombre del plato</h3>
+          <p class="line-clamp-2 text-body-sm text-on-surface-variant" data-pv-desc>La descripción aparece acá.</p>
+          <div class="pt-1"><p class="flex flex-wrap items-baseline gap-x-2"><span class="font-display text-price-md tabular text-primary" data-pv-price>$0</span><span class="text-body-sm tabular text-on-surface-variant line-through" data-pv-old hidden></span></p><p class="mt-0.5 text-label-sm text-on-surface-variant" data-pv-stock>Sin stock cargado</p></div>
+        </div>
+      </article>
+    </aside>
+  </form>
+</main>
+<footer class="mt-20 border-t border-hairline bg-surface-container-low lg:mt-28">
+  <div class="mx-auto grid max-w-shell gap-12 px-5 py-14 md:grid-cols-12 lg:px-12 lg:py-16">
+    <div class="md:col-span-5">
+      <a href="index.html" class="logo " aria-label="Appetitos, ir al inicio"><span aria-hidden="true">Appetit</span><svg viewBox="0 0 16 17.6" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M8 0C3.6 0 0 4 0 8.8C0 13.6 3.6 17.6 8 17.6C12.4 17.6 16 13.6 16 8.8C16 7.1 15.5 5.5 14.6 4.2C14.1 4.8 13.3 5.2 12.4 5.1C11.8 5 11.3 4.5 11 3.9C10.7 3.1 10.9 2.3 11.5 1.7C11.1 1.4 10.6 1.2 10.1 1.2C9.5 1.1 9 1.3 8.5 1.6C8.8 1 8.8 0.5 8.5 0.1C8.3 0.1 8.1 0 8 0ZM8 4.6C8.7 4.6 9.3 4.8 9.8 5.1C9.5 5.7 9.6 6.5 10.1 7C10.6 7.6 11.5 7.8 12.2 7.4C12.4 8 12.5 8.7 12.5 9.4C12.5 11.9 10.5 13.8 8 13.8C5.5 13.8 3.5 11.9 3.5 9.4C3.5 6.9 5.5 4.6 8 4.6Z"/><circle cx="15.2" cy="1.6" r=".8" fill="#c4572e"/><circle cx="13.8" cy="-.6" r=".5" fill="#c8b27a"/></svg><span aria-hidden="true">s</span></a>
+      <p class="mt-3 font-display text-headline-sm italic text-secondary">Comida real, personas reales.</p>
+      <p class="mt-4 max-w-sm text-body-md text-on-surface-variant">Conectamos hogares con talleres de cocina independientes. Cada plato tiene nombre, apellido y origen.</p>
+    </div>
+    <div class="md:col-span-3 md:col-start-7"><nav aria-label="Para chefs"><h2 class="text-label-lg text-primary">Para chefs</h2><ul class="mt-4 space-y-1"><li><a href="registro.html?rol=vendedor" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Vender en Appetitos</a></li><li><a href="#" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Cómo funciona</a></li><li><a href="#" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Crónicas de temporada</a></li></ul></nav></div>
+    <div class="md:col-span-3"><nav aria-label="Ayuda"><h2 class="text-label-lg text-primary">Ayuda</h2><ul class="mt-4 space-y-1"><li><a href="#" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Preguntas frecuentes</a></li><li><a href="#" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Información sanitaria</a></li><li><a href="#" class="inline-block py-1.5 text-body-md text-on-surface-variant hover:text-primary hover:underline underline-offset-4">Privacidad</a></li></ul></nav></div>
+  </div>
+  <div class="border-t border-hairline">
+    <div class="mx-auto flex max-w-shell flex-col gap-3 px-5 py-5 text-body-sm text-on-surface-variant sm:flex-row sm:items-center sm:justify-between lg:px-12">
+      <p>© 2026 Appetitos. Hecho con paciencia y fuego lento.</p>
+      <p class="flex flex-wrap gap-x-5 gap-y-1"><span class="inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">eco</span>Ingredientes de origen cercano</span><span class="inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">verified_user</span>Cocinas inspeccionadas</span></p>
+    </div>
+  </div>
+</footer>
+<div id="toast" class="toast" role="status" aria-live="polite"><span class="material-symbols-outlined fill text-[20px] text-primary-fixed-dim">check_circle</span><span data-toast-text></span><a href="cesta.html" hidden>Ver cesta</a></div>
+<script src="assets/app.js"></script>
+</body>
+</html>
