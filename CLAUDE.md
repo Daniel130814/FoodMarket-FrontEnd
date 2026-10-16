@@ -45,6 +45,7 @@ appetitos.css, GUIA-REACT.md).
 - [x] 7. Home y Catálogo con datos de ejemplo (map y key)
 - [x] 8. Detalle del plato (useParams y useState)
 - [x] 9. Carrito con CartContext (createContext, Provider, useContext)
+- [x] 10. Vistas de Ingreso y Registro (formularios controlados, validación y responsive)
 
 ## Referencia de diseño
 
