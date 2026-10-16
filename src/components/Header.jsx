@@ -4,19 +4,19 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import Logo from './Logo'
-import { useCart } from '../context/CartContext'
 
 const ENLACES = [
   { texto: 'Inicio', ruta: '/' },
   { texto: 'Platos', ruta: '/catalogo' },
 ]
 
-function Header() {
+// Props:
+//  - cartCount: cantidad total de platos en el carrito (el número de la insignia).
+//    Lo calcula App y llega por props: el Header solo lo muestra, no sabe de dónde sale.
+function Header({ cartCount }) {
+  // Estado local de UI: si el menú móvil está abierto. Solo le importa al Header,
+  // por eso puede quedarse acá (la regla permite estado local de UI de un solo componente).
   const [menuOpen, setMenuOpen] = useState(false)
-
-  // useCart() lee el carrito compartido. Renombramos cantidadTotal a cartCount para
-  // no cambiar el resto del componente. Cuando alguien agrega algo, el Header se redibuja solo.
-  const { cantidadTotal: cartCount } = useCart()
 
   return (
     <header className="sticky top-0 z-40 border-b border-hairline bg-surface/90 backdrop-blur-md">

@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom'
 import Button from './Button'
-import { useCart } from '../context/CartContext'
 
-function PlatoCard({ dish }) {
+// Tarjeta de un plato (catálogo e inicio). Componente "tonto": solo recibe props y dibuja.
+// Props:
+//  - dish: el plato a mostrar { id, title, price, stock, images, ... }
+//  - onAdd: función (plato, cantidad) que viene del padre. La tarjeta no sabe qué pasa al
+//    agregar (stock, aviso): solo avisa "quiero agregar este plato".
+function PlatoCard({ dish, onAdd }) {
   const { id, title, description, images, price, discountPercent, stock, seller, rating, reviewsCount } = dish
-
-  // agregar viene del contexto del carrito; desde la tarjeta siempre suma 1 unidad
-  const { agregar } = useCart()
 
   const state = stock === 0 ? 'soldout' : stock <= 5 ? 'low' : 'available'
   const oldPrice = discountPercent > 0 ? Math.round(price / (1 - discountPercent / 100)) : null
@@ -51,7 +52,7 @@ function PlatoCard({ dish }) {
             {state === 'low' && <p className="text-label-sm">Quedan {stock} hoy</p>}
             {state === 'soldout' && <p className="text-label-sm">Agotado hoy</p>}
           </div>
-          <Button disabled={state === 'soldout'} onClick={() => agregar(dish, 1)}>Agregar</Button>
+          <Button disabled={state === 'soldout'} onClick={() => onAdd(dish, 1)}>Agregar</Button>
         </div>
       </div>
     </article>

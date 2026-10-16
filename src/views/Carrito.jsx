@@ -1,7 +1,6 @@
 // Vista del carrito (ruta /carrito). Lee el carrito compartido y lo muestra agrupado por chef.
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useCart } from '../context/CartContext'
 import CartGroup from '../components/CartGroup'
 import OrderSummary from '../components/OrderSummary'
 import EmptyState from '../components/EmptyState'
@@ -11,11 +10,15 @@ import PLATOS_EJEMPLO from '../data/platosEjemplo'
 // Costo de envío fijo de ejemplo (en el diseño es $3.200). Más adelante lo calcula el backend.
 const ENVIO = 3200
 
-function Carrito() {
+// Props (todas vienen de App, que es la dueña del estado del carrito):
+//  - items: array de { plato, cantidad } con lo que hay en el carrito
+//  - cartCount: total de unidades (ya calculado por App)
+//  - subtotal: suma de precios (ya calculada por App)
+//  - onQuantityChange: función (platoId, nuevaCantidad); App aplica las reglas de stock
+//  - onRemove: función (platoId) para quitar un ítem
+//  - onClear: función sin argumentos para vaciar el carrito al confirmar el pedido
+function Carrito({ items, cartCount, subtotal, onQuantityChange, onRemove, onClear }) {
   const navigate = useNavigate()
-
-  // Todo viene del contexto: los ítems, las acciones y los totales ya calculados.
-  const { items, cambiarCantidad, quitar, vaciar, cantidadTotal, subtotal } = useCart()
 
   // Estado: mensajes de conflicto de stock al confirmar. Lista vacía = sin conflictos.
   // Va antes del return de "carrito vacío" porque los hooks siempre se llaman primero.
@@ -25,17 +28,25 @@ function Carrito() {
   const confirmar = () => {
     // Por cada ítem buscamos el plato "actual" en los datos de ejemplo. El ítem guarda una
     // copia del plato de cuando se agregó; el stock real puede haber cambiado desde entonces.
-    const mensajes = []
-    items.forEach((item) => {
-      const actual = PLATOS_EJEMPLO.find((p) => p.id === item.plato.id)
-      const disponible = actual === undefined ? 0 : actual.stock
+    // La regla de la profe pide .map() para recorrer (nunca forEach), así que lo hacemos en 2 pasos:
+    //  1) .map() convierte CADA ítem en un mensaje de conflicto, o en null si está todo bien.
+    //  2) .filter() descarta los null y deja solo los conflictos reales.
+    // Ventaja: no hay que ir mutando un array de afuera con push; el resultado sale de la cadena.
+    const mensajes = items
+      .map((item) => {
+        const actual = PLATOS_EJEMPLO.find((p) => p.id === item.plato.id)
+        const disponible = actual === undefined ? 0 : actual.stock
 
-      if (disponible === 0) {
-        mensajes.push(`${item.plato.title} se agotó.`)
-      } else if (item.cantidad > disponible) {
-        mensajes.push(`De ${item.plato.title} quedan ${disponible} y pediste ${item.cantidad}.`)
-      }
-    })
+        if (disponible === 0) {
+          return `${item.plato.title} se agotó.`
+        }
+        if (item.cantidad > disponible) {
+          return `De ${item.plato.title} quedan ${disponible} y pediste ${item.cantidad}.`
+        }
+        // Sin conflicto: devolvemos null para que el filter lo saque
+        return null
+      })
+      .filter((mensaje) => mensaje !== null)
 
     if (mensajes.length > 0) {
       // Hay conflicto: lo mostramos y NO confirmamos.
@@ -45,7 +56,7 @@ function Carrito() {
 
     // Todo bien: limpiamos avisos, vaciamos el carrito y vamos a "Mis pedidos".
     setConflictos([])
-    vaciar()
+    onClear()
     navigate('/pedidos')
   }
 
@@ -102,13 +113,13 @@ function Carrito() {
               key={grupo.seller.id}
               seller={grupo.seller}
               items={grupo.items}
-              onQuantityChange={cambiarCantidad}
-              onRemove={quitar}
+              onQuantityChange={onQuantityChange}
+              onRemove={onRemove}
             />
           ))}
         </div>
         <div className="lg:col-span-4">
-          <OrderSummary units={cantidadTotal} subtotal={subtotal} shipping={ENVIO} onConfirm={confirmar} />
+          <OrderSummary units={cartCount} subtotal={subtotal} shipping={ENVIO} onConfirm={confirmar} />
         </div>
       </div>
     </>

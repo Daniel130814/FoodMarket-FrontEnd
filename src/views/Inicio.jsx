@@ -6,7 +6,9 @@ import PLATOS_EJEMPLO from '../data/platosEjemplo'
 import CATEGORIAS_EJEMPLO from '../data/categoriasEjemplo'
 import CHEFS_EJEMPLO from '../data/chefsEjemplo'
 
-function Inicio() {
+// Props:
+//  - onAdd: función (plato, cantidad) de App. Inicio no la usa: solo la reenvía a cada PlatoCard.
+function Inicio({ onAdd }) {
   const platosDeHoy = PLATOS_EJEMPLO.slice(0, 4)
 
   return (
@@ -38,7 +40,7 @@ function Inicio() {
         </div>
         <div className="mt-10 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
           {platosDeHoy.map((plato) => (
-            <PlatoCard key={plato.id} dish={plato} />
+            <PlatoCard key={plato.id} dish={plato} onAdd={onAdd} />
           ))}
         </div>
       </section>

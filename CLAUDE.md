@@ -65,3 +65,21 @@ Ignorar `referencia-visual/assets/app.js` (usa DOM, está prohibido en React).
 
 Agregá comentarios explicativos (según las reglas de CLAUDE.md) a los
 archivos que ya existen en src/, sin cambiar la lógica ni el aspecto.
+
+## Flujo de datos y estado (profesora)
+
+- Flujo unidireccional: el estado vive en el componente PADRE y baja a los
+  hijos por props. Los hijos no tienen datos propios: reciben props y emiten
+  eventos hacia arriba con funciones que les pasa el padre.
+- El código que responde a un evento vive en el padre.
+- Componentes "tontos": solo reciben props y renderizan (DishCard, CartItem,
+  QuantityStepper, etc.). Sin lógica ni estado propio, salvo estado local de
+  UI de un solo componente (por ejemplo, la foto activa de Gallery).
+- Hooks: solo en componentes funcionales. Por ahora: useState (después los
+  que vayan dando en clase). No usar Context hasta que yo lo confirme;
+  levantar el estado al padre (App.jsx) y pasarlo por props.
+- Recorrer arrays para renderizar: SIEMPRE .map() (con key), nunca forEach ni for.
+- Prohibido alert(), confirm() y prompt(): avisos con un Toast y
+  confirmaciones con un Dialog hechos con estado.
+- Formularios: input + label + botón con useState; el valor se lee con
+  event.target.

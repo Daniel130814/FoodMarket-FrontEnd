@@ -1,4 +1,4 @@
-// Aviso flotante abajo de la pantalla. Lo dibuja CartProvider (context/CartContext).
+// Aviso flotante abajo de la pantalla. Lo dibuja App.jsx una sola vez para toda la app.
 // Solo muestra: el estado (qué mensaje y si está visible) vive en quien lo usa.
 
 // Props:

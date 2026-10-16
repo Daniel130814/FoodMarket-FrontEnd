@@ -7,10 +7,12 @@ import QuantityStepper from '../components/QuantityStepper'
 import PortionPicker from '../components/PortionPicker'
 import IngredientTrace from '../components/IngredientTrace'
 import ReviewList from '../components/ReviewList'
-import { useCart } from '../context/CartContext'
 import PLATOS_EJEMPLO from '../data/platosEjemplo'
 
-function DetallePlato() {
+// Props:
+//  - onAdd: función (plato, cantidad) que viene de App. La vista solo avisa "quiero agregar
+//    esto"; App decide si se puede (stock) y muestra el aviso. Así la vista no sabe de reglas.
+function DetallePlato({ onAdd }) {
   // useParams es un hook de react-router: devuelve un objeto con los parámetros
   // de la URL. Para /plato/3 devuelve { id: '3' }. Ojo: el valor es un STRING.
   const { id } = useParams()
@@ -25,9 +27,6 @@ function DetallePlato() {
   // Los hooks siempre se llaman ANTES de cualquier return: React exige que se
   // ejecuten en el mismo orden en cada render.
   const [cantidad, setCantidad] = useState(1)
-
-  // agregar viene del contexto del carrito (compartido con el Header y la vista Carrito)
-  const { agregar } = useCart()
 
   // Estado: id de la porción elegida. Guardamos SOLO el id; el precio no se guarda
   // aparte, se calcula más abajo a partir de este id.
@@ -112,12 +111,13 @@ function DetallePlato() {
           </div>
         )}
 
-        {/* Sin stock el botón queda deshabilitado. Al tocarlo, agregar() del contexto suma el plato
-            al carrito. El carrito no guarda la porción: siempre cuenta el precio Individual. */}
+        {/* Sin stock el botón queda deshabilitado. Al tocarlo, llamamos a onAdd (la función del
+            padre) con el plato y la cantidad elegida. El carrito no guarda la porción: siempre
+            cuenta el precio Individual. */}
         <div className="mt-6">
           <Button
             disabled={agotado}
-            onClick={() => agregar(plato, cantidad)}
+            onClick={() => onAdd(plato, cantidad)}
           >
             Agregar al carrito · {formatear(total)}
           </Button>

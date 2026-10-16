@@ -32,7 +32,6 @@ Solo se usa JavaScript (archivos `.jsx`).
 
 - `views/`: una vista por pantalla.
 - `components/`: componentes reutilizables (Header, Footer, PlatoCard, etc.).
-- `context/`: estado compartido del carrito (`CartContext`).
 - `data/`: datos de ejemplo hasta conectar el backend.
 - `App.jsx` y `main.jsx`: punto de entrada; el router vive en `App.jsx`.
 
