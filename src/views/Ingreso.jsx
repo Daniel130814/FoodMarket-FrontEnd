@@ -32,10 +32,10 @@ function Ingreso() {
     if (!usuario.trim()) {
       nuevosErrores.usuario = 'Escribí tu usuario o tu correo.'
     }
+    // Solo verificamos que no esté vacía: la regla de longitud mínima vive en Registro
+    // y las credenciales las valida el backend
     if (!clave) {
-      nuevosErrores.clave = 'Escribí tu contraseña de al menos 8 caracteres.'
-    } else if (clave.length < 8) {
-      nuevosErrores.clave = 'La contraseña debe tener al menos 8 caracteres.'
+      nuevosErrores.clave = 'Escribí tu contraseña.'
     }
 
     // Si hay errores de validación en los campos, los guardamos y frenamos el envío
@@ -139,9 +139,11 @@ function Ingreso() {
                 <label className="label" htmlFor="clave">
                   Contraseña
                 </label>
-                <a href="#" className="link text-label-md">
+                {/* TODO: reemplazar por <Link> cuando exista la pantalla de recuperación.
+                    Es un button (no un <a href="#">) para no navegar a ningún lado por ahora */}
+                <button type="button" className="link text-label-md">
                   Olvidé mi contraseña
-                </a>
+                </button>
               </div>
               <div className="relative">
                 <input
