@@ -1,6 +1,6 @@
 // Raíz de la app: define las rutas y es DUEÑA del estado del carrito (carrito y aviso).
 // Se monta desde main.jsx.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
@@ -21,6 +21,9 @@ import MIS_PLATOS_EJEMPLO from './data/misPlatosEjemplo'
 import RESENAS_EJEMPLO from './data/resenasEjemplo'
 import CATEGORIAS_EJEMPLO from './data/categoriasEjemplo'
 import INGREDIENTES_EJEMPLO from './data/ingredientesEjemplo'
+
+// URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
+const API_URL = import.meta.env.VITE_API_URL
 
 // Clave con la que se guarda el JWT en localStorage. Está en una constante para escribirla una sola vez.
 const CLAVE_TOKEN = 'jwtToken'
@@ -129,10 +132,11 @@ const calcularCarrito = (id, items) => {
 //    las acciones sobre ellas; se reenvían a MisPublicaciones (misPlatos también a PublicarPlato).
 //  - onSavePlato: función (datos, platoId) para crear o editar un plato; se reenvía a PublicarPlato.
 //  - onLogin: función (sesion) para iniciar sesión; se reenvía a Ingreso y Registro.
-//  - sesion / onLogout: la sesión actual (o null) y la función para cerrarla; se reenvían al Header.
+//  - sesion / cargandoSesion / onLogout: la sesión actual (o null), si se está verificando el token guardado
+//    y la función para cerrarla; se reenvían al Header.
 //    AppContent además usa sesion para proteger las rutas (RutaProtegida) y para decidir si se puede agregar al carrito.
 //  - onAviso: función (texto) para mostrar un Toast; AppContent la usa cuando un rol no puede comprar.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onConfirmOrder, pedidos, onCancelOrder, misPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onLogin, sesion, onLogout, onAviso }) {
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onConfirmOrder, pedidos, onCancelOrder, misPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onLogin, sesion, cargandoSesion, onLogout, onAviso }) {
   const location = useLocation()
 
   // useNavigate devuelve una función para cambiar de ruta desde el código. Se puede usar acá
@@ -185,7 +189,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
           <Route
             path="/cesta"
             element={
-              <RutaProtegida sesion={sesion} rolesPermitidos={['CLIENTE']}>
+              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE']}>
                 <Carrito
                   carrito={carrito}
                   cartCount={cartCount}
@@ -198,7 +202,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
           <Route
             path="/checkout"
             element={
-              <RutaProtegida sesion={sesion} rolesPermitidos={['CLIENTE']}>
+              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE']}>
                 <Checkout carrito={carrito} cartCount={cartCount} onConfirm={onConfirmOrder} />
               </RutaProtegida>
             }
@@ -206,7 +210,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
           <Route
             path="/pedidos"
             element={
-              <RutaProtegida sesion={sesion} rolesPermitidos={['CLIENTE']}>
+              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE']}>
                 <MisPedidos pedidos={pedidos} onCancelOrder={onCancelOrder} />
               </RutaProtegida>
             }
@@ -216,7 +220,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
           <Route
             path="/mis-publicaciones"
             element={
-              <RutaProtegida sesion={sesion} rolesPermitidos={['CHEF']}>
+              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
                 <MisPublicaciones
                   platos={misPlatos}
                   onStockChange={onStockChange}
@@ -232,7 +236,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
           <Route
             path="/publicar"
             element={
-              <RutaProtegida sesion={sesion} rolesPermitidos={['CHEF']}>
+              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
                 <PublicarPlato platos={misPlatos} onSave={onSavePlato} />
               </RutaProtegida>
             }
@@ -240,7 +244,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
           <Route
             path="/publicar/:id"
             element={
-              <RutaProtegida sesion={sesion} rolesPermitidos={['CHEF']}>
+              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
                 <PublicarPlato platos={misPlatos} onSave={onSavePlato} />
               </RutaProtegida>
             }
@@ -269,6 +273,14 @@ function App() {
   // Vive acá, en el padre, porque el Header y las rutas protegidas necesitan saber quién es.
   // Sin localStorage: al recargar la página la sesión se pierde (todavía no hay persistencia).
   const [sesion, setSesion] = useState(null)
+
+  // ESTADO: true mientras verificamos el token guardado al abrir la app. Si hay un token guardado
+  // arranca en true, para que las rutas protegidas esperen en lugar de mandarte a /ingreso; si no
+  // hay token, arranca en false porque no hay nada que verificar.
+  // useState acepta una función como valor inicial: se ejecuta una sola vez, al crear el estado.
+  // Decidirlo acá evita llamar a setCargandoSesion de forma sincrónica dentro del efecto
+  // (React lo desaconseja: provoca un redibujado extra, y el lint lo marca).
+  const [cargandoSesion, setCargandoSesion] = useState(() => localStorage.getItem(CLAVE_TOKEN) !== null)
 
   // ESTADO DE LOS PEDIDOS: la lista de pedidos del cliente, con la forma de OrderResponse.
   // Vive en App (el padre común) porque lo ESCRIBE Checkout (al confirmar crea un pedido nuevo)
@@ -392,6 +404,45 @@ function App() {
     setCarrito(calcularCarrito(carrito.id, []))
     setAviso('Pedido confirmado')
   }
+
+  // RESTAURAR LA SESIÓN al abrir la app (o al recargar con F5). useEffect ejecuta código DESPUÉS de
+  // dibujar la pantalla; con [] como segundo argumento corre una sola vez, al montarse App.
+  // Es el lugar correcto para un GET (leer datos). Los POST, PUT y DELETE nunca van en un efecto.
+  // En desarrollo React ejecuta los efectos dos veces (Strict Mode): para un GET es inofensivo.
+  // Este es el segundo punto donde se usa localStorage: LEER el token al iniciar.
+  useEffect(() => {
+    const token = localStorage.getItem(CLAVE_TOKEN)
+
+    // Sin token guardado no hay nada que restaurar (y cargandoSesion ya arrancó en false).
+    if (token === null) {
+      return
+    }
+
+    // GET /users/me es una ruta privada: mandamos el token en la cabecera Authorization.
+    // El login no devuelve el rol dentro del JWT, por eso lo pedimos al backend.
+    fetch(`${API_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((response) =>
+        // fetch NO manda los errores HTTP al .catch(): revisamos response.ok nosotros.
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.data
+        })
+      )
+      .then((usuario) => setSesion({ token, userId: usuario.id, role: usuario.role, nombre: usuario.nombre }))
+      .catch((fallo) => {
+        // Si el servidor RESPONDIÓ con un error (401: token vencido o inválido), el token ya no sirve
+        // y lo borramos. Si ni siquiera llegamos al servidor (status undefined, por ejemplo el backend
+        // apagado), lo conservamos: en el próximo F5 puede servir.
+        if (fallo.status !== undefined) {
+          localStorage.removeItem(CLAVE_TOKEN)
+        }
+      })
+      .finally(() => setCargandoSesion(false))
+  }, [])
 
   // Inicia sesión: guarda la sesión que le pasan y avisa. Ingreso y Registro la llaman cuando el
   // backend responde bien, con { token, userId, role, nombre } ya armado.
@@ -569,6 +620,7 @@ function App() {
         onSavePlato={guardarPlato}
         onLogin={iniciarSesion}
         sesion={sesion}
+        cargandoSesion={cargandoSesion}
         onLogout={cerrarSesion}
         onAviso={setAviso}
       />
