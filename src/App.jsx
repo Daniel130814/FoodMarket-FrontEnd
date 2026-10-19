@@ -13,11 +13,14 @@ import Carrito from './views/Carrito'
 import Checkout from './views/Checkout'
 import MisPedidos from './views/MisPedidos'
 import MisPublicaciones from './views/MisPublicaciones'
+import PublicarPlato from './views/PublicarPlato'
 import Ingreso from './views/Ingreso'
 import Registro from './views/Registro'
 import PLATOS_EJEMPLO from './data/platosEjemplo'
 import MIS_PLATOS_EJEMPLO from './data/misPlatosEjemplo'
 import RESENAS_EJEMPLO from './data/resenasEjemplo'
+import CATEGORIAS_EJEMPLO from './data/categoriasEjemplo'
+import INGREDIENTES_EJEMPLO from './data/ingredientesEjemplo'
 
 // ---------------------------------------------------------------------------------------
 // PEDIDOS DE EJEMPLO (TEMPORAL, paso 11b). Tienen la forma de OrderResponse de la API
@@ -129,12 +132,13 @@ const rolDePrueba = (username) => {
 //  - onAdd: función (platoId, cantidad) para agregar al carrito; se reenvía a Inicio, Catalogo (que se la pasan a PlatoCard) y DetallePlato.
 //  - pedidos / onCancelOrder: la lista de pedidos y la función (pedidoId) para cancelar uno; se reenvían a MisPedidos.
 //  - misPlatos y onStockChange / onTogglePause / onDiscount / onDeleteDish: las publicaciones del chef y
-//    las acciones sobre ellas; se reenvían a MisPublicaciones.
+//    las acciones sobre ellas; se reenvían a MisPublicaciones (misPlatos también a PublicarPlato).
+//  - onSavePlato: función (datos, platoId) para crear o editar un plato; se reenvía a PublicarPlato.
 //  - onLogin: función (datos) para iniciar sesión; se reenvía a Ingreso y Registro.
 //  - sesion / onLogout: la sesión actual (o null) y la función para cerrarla; se reenvían al Header.
 //    AppContent además usa sesion para proteger las rutas (RutaProtegida) y para decidir si se puede agregar al carrito.
 //  - onAviso: función (texto) para mostrar un Toast; AppContent la usa cuando un rol no puede comprar.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onConfirmOrder, pedidos, onCancelOrder, misPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onLogin, sesion, onLogout, onAviso }) {
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onConfirmOrder, pedidos, onCancelOrder, misPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onLogin, sesion, onLogout, onAviso }) {
   const location = useLocation()
 
   // useNavigate devuelve una función para cambiar de ruta desde el código. Se puede usar acá
@@ -229,8 +233,25 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
             }
           />
 
-          {/* LUGAR PREPARADO: estas rutas se agregan cuando existan sus vistas, con el mismo patrón.
-              /publicar, /publicar/:id (11b.10c) -> rolesPermitidos={['CHEF']}
+          {/* /publicar crea un plato; /publicar/:id edita el plato con ese id. Misma vista. */}
+          <Route
+            path="/publicar"
+            element={
+              <RutaProtegida sesion={sesion} rolesPermitidos={['CHEF']}>
+                <PublicarPlato platos={misPlatos} onSave={onSavePlato} />
+              </RutaProtegida>
+            }
+          />
+          <Route
+            path="/publicar/:id"
+            element={
+              <RutaProtegida sesion={sesion} rolesPermitidos={['CHEF']}>
+                <PublicarPlato platos={misPlatos} onSave={onSavePlato} />
+              </RutaProtegida>
+            }
+          />
+
+          {/* LUGAR PREPARADO: esta ruta se agrega cuando exista su vista, con el mismo patrón.
               /admin (paso 14)                          -> rolesPermitidos={['ADMIN']} */}
         </Routes>
       </main>
@@ -465,6 +486,53 @@ function App() {
     setAviso(porcentaje === 0 ? `Quitaste el descuento de ${plato.nombre}` : `${plato.nombre} ahora tiene ${porcentaje} % de descuento`)
   }
 
+  // Crea o edita un plato. PublicarPlato la llama con el cuerpo de PlatoRequest (datos) y el id del
+  // plato que se edita (null si es uno nuevo). Arma un plato con la forma de PlatoResponse.
+  // SIMULADA (paso 11b.10c): en el paso 13 es POST /platos/createPlato (nuevo) o PUT /platos/{id}
+  // (edición, que REEMPLAZA el plato entero), y el backend devuelve el plato ya armado.
+  const guardarPlato = (datos, platoId) => {
+    const existente = platoId === null ? undefined : misPlatos.find((plato) => plato.id === platoId)
+
+    // Regla de la API: si el estado pedido es PUBLICADO, el backend lo recalcula según el stock
+    // (stock 0 -> AGOTADO). BORRADOR y PAUSADO se respetan tal cual.
+    const estado = datos.estado === 'PUBLICADO' && datos.stockDisponible === 0 ? 'AGOTADO' : datos.estado
+
+    // PlatoRequest no trae el descuento (se maneja aparte): al editar se conserva el que tenía.
+    const descuentoPorcentaje = existente === undefined ? 0 : existente.descuentoPorcentaje
+
+    const plato = {
+      // id nuevo: el siguiente al más grande (lo asigna el backend en producción)
+      id: existente === undefined ? misPlatos.reduce((mayor, p) => Math.max(mayor, p.id), 0) + 1 : existente.id,
+      nombre: datos.nombre,
+      descripcion: datos.descripcion,
+      imagenesUrls: datos.imagenesUrls,
+      precio: datos.precio,
+      descuentoPorcentaje,
+      precioConDescuento: Math.round(datos.precio * (100 - descuentoPorcentaje)) / 100,
+      stockDisponible: datos.stockDisponible,
+      estado,
+      chefId: existente === undefined ? 1 : existente.chefId,
+      // TODO: la API todavía no trae el nombre del chef (solo chefId). Se quita en el paso 13.
+      chefNombre: existente === undefined ? 'Matteo Rossi' : existente.chefNombre,
+      // La API recibe ids pero devuelve los NOMBRES de las categorías y los datos del ingrediente.
+      categorias: CATEGORIAS_EJEMPLO.filter((c) => datos.categoriasIds.includes(c.id)).map((c) => c.description),
+      ingredientes: datos.ingredientes.map((fila) => ({
+        ingredienteId: fila.ingredienteId,
+        nombre: INGREDIENTES_EJEMPLO.find((i) => i.id === fila.ingredienteId).nombre,
+        cantidad: fila.cantidad,
+        unidadMedida: fila.unidadMedida,
+      })),
+    }
+
+    // Editar: reemplaza el plato con ese id (map). Crear: lo agrega al final (...misPlatos copia los demás).
+    setMisPlatos(
+      existente === undefined
+        ? [...misPlatos, plato]
+        : misPlatos.map((p) => (p.id === existente.id ? plato : p))
+    )
+    setAviso(existente === undefined ? `Creaste ${plato.nombre}` : `Guardaste los cambios de ${plato.nombre}`)
+  }
+
   // Elimina un plato. Igual que la API: si el plato tiene historial (aparece en algún pedido o
   // tiene reseñas) NO se borra, queda PAUSADO; si no, se borra de verdad. El mensaje es el mismo
   // en los dos casos porque la API no avisa cuál de las dos pasó.
@@ -503,6 +571,7 @@ function App() {
         onTogglePause={pausarOReactivar}
         onDiscount={aplicarDescuento}
         onDeleteDish={eliminarPlato}
+        onSavePlato={guardarPlato}
         onLogin={iniciarSesion}
         sesion={sesion}
         onLogout={cerrarSesion}

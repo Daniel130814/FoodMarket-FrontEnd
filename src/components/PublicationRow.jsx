@@ -1,4 +1,5 @@
 // Una fila de la lista de publicaciones del chef: foto, nombre, estado, precio, stock y acciones. Se usa en views/MisPublicaciones.
+import { Link } from 'react-router-dom'
 import QuantityStepper from './QuantityStepper'
 
 // Cómo se ve cada estado de la API: el texto y la clase del badge. Es un objeto usado como
@@ -60,6 +61,11 @@ function PublicationRow({ plato, onStockChange, onTogglePause, onOpenDiscount, o
         <QuantityStepper value={stockDisponible} min={0} max={STOCK_MAXIMO} onChange={(nuevo) => onStockChange(id, nuevo)} />
       </div>
       <div className="col-span-2 flex items-center justify-end gap-1 border-t border-hairline pt-3 md:col-span-1 md:border-0 md:pt-0">
+        {/* Editar lleva al formulario con el id del plato en la URL */}
+        <Link to={`/publicar/${id}`} className="btn btn-quiet btn-sm">
+          <span className="material-symbols-outlined">edit</span>
+          <span className="md:sr-only">Editar</span>
+        </Link>
         {/* Un borrador no se pausa ni se reactiva: se publica editándolo. */}
         {estado !== 'BORRADOR' && (
           <button type="button" className="btn btn-quiet btn-sm" onClick={() => onTogglePause(id)}>

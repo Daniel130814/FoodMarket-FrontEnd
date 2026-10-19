@@ -1,5 +1,6 @@
 // Vista de Mis publicaciones del chef (ruta /mis-publicaciones, solo rol CHEF). Lista sus platos en cualquier estado.
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import FilterChips from '../components/FilterChips'
 import PublicationRow from '../components/PublicationRow'
 import Dialog from '../components/Dialog'
@@ -87,10 +88,18 @@ function MisPublicaciones({ platos, onStockChange, onTogglePause, onDiscount, on
 
   return (
     <>
-      <h1 className="font-display text-display-lg-mobile text-primary lg:text-[52px] lg:leading-[56px]">Mis publicaciones</h1>
-      <p className="mt-3 max-w-xl text-body-lg text-on-surface-variant">
-        Manejá el stock, los descuentos y lo que se ve en el catálogo.
-      </p>
+      <div className="flex flex-wrap items-end justify-between gap-5">
+        <div>
+          <h1 className="font-display text-display-lg-mobile text-primary lg:text-[52px] lg:leading-[56px]">Mis publicaciones</h1>
+          <p className="mt-3 max-w-xl text-body-lg text-on-surface-variant">
+            Manejá el stock, los descuentos y lo que se ve en el catálogo.
+          </p>
+        </div>
+        {/* Link navega sin recargar la página */}
+        <Link to="/publicar" className="btn btn-primary">
+          <span className="material-symbols-outlined">add</span>Publicar un plato
+        </Link>
+      </div>
 
       <div className="mt-10">
         <FilterChips options={opciones} activeId={filtro} onChange={setFiltro} label="Filtrar publicaciones por estado" />
