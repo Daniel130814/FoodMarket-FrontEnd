@@ -3,14 +3,19 @@ import Button from './Button'
 
 // Tarjeta de un plato (catálogo e inicio). Componente "tonto": solo recibe props y dibuja.
 // Props:
-//  - dish: el plato a mostrar { id, title, price, stock, images, ... }
-//  - onAdd: función (plato, cantidad) que viene del padre. La tarjeta no sabe qué pasa al
+//  - dish: el plato a mostrar, con la forma de PlatoResponse de la API
+//    { id, nombre, descripcion, imagenesUrls, precio, descuentoPorcentaje, precioConDescuento,
+//      stockDisponible, estado, chefNombre, ... }
+//  - onAdd: función (platoId, cantidad) que viene del padre. La tarjeta no sabe qué pasa al
 //    agregar (stock, aviso): solo avisa "quiero agregar este plato".
 function PlatoCard({ dish, onAdd }) {
-  const { id, title, description, images, price, discountPercent, stock, seller, rating, reviewsCount } = dish
+  // Desestructuración: sacamos del plato solo los campos que usa la tarjeta.
+  const { id, nombre, descripcion, imagenesUrls, precio, descuentoPorcentaje, precioConDescuento, stockDisponible, estado, chefNombre } = dish
 
-  const state = stock === 0 ? 'soldout' : stock <= 5 ? 'low' : 'available'
-  const oldPrice = discountPercent > 0 ? Math.round(price / (1 - discountPercent / 100)) : null
+  // El estado visual sale del estado que manda la API: AGOTADO = sin stock.
+  const state = estado === 'AGOTADO' ? 'soldout' : stockDisponible <= 5 ? 'low' : 'available'
+  // Hay descuento si el porcentaje es mayor a 0: entonces mostramos el precio base tachado.
+  const tieneDescuento = descuentoPorcentaje > 0
   const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
 
   return (
@@ -20,39 +25,35 @@ function PlatoCard({ dish, onAdd }) {
         to={`/plato/${id}`}
         className="dish__media relative block aspect-[4/3] overflow-hidden rounded-lg sm:aspect-[4/5] bg-surface-container"
       >
-        <img src={images[0]} alt={title} className="h-full w-full object-cover" />
+        <img src={imagenesUrls[0]} alt={nombre} className="h-full w-full object-cover" />
         {state === 'soldout' && (
           <span className="badge badge-dark absolute left-3 top-3">Agotado hoy</span>
         )}
       </Link>
       <div className="mt-4 flex flex-1 flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
-          <span className="truncate text-label-md text-on-surface-variant">{seller.name}</span>
-          {rating > 0 && (
-            <span className="text-label-md text-primary">
-              ★ {rating} <span className="font-normal text-on-surface-variant">({reviewsCount})</span>
-            </span>
-          )}
+          {/* TODO: la API no trae el nombre del chef; llega como chefNombre solo en el ejemplo */}
+          <span className="truncate text-label-md text-on-surface-variant">{chefNombre}</span>
         </div>
         <h3 className="dish__title font-display text-title-md text-primary">
-          <Link to={`/plato/${id}`}>{title}</Link>
+          <Link to={`/plato/${id}`}>{nombre}</Link>
         </h3>
-        <p className="line-clamp-2 text-body-sm text-on-surface-variant">{description}</p>
+        <p className="line-clamp-2 text-body-sm text-on-surface-variant">{descripcion}</p>
         <div className="mt-auto flex items-end justify-between gap-3 pt-2">
           <div>
             <p className="flex flex-wrap items-baseline gap-x-2">
-              <span className="font-display text-price-md tabular text-primary">{formatear(price)}</span>
-              {oldPrice !== null && (
+              <span className="font-display text-price-md tabular text-primary">{formatear(precioConDescuento)}</span>
+              {tieneDescuento && (
                 <>
-                  <span className="text-body-sm text-on-surface-variant line-through">{formatear(oldPrice)}</span>
-                  <span className="badge badge-sand">−{discountPercent}%</span>
+                  <span className="text-body-sm text-on-surface-variant line-through">{formatear(precio)}</span>
+                  <span className="badge badge-sand">−{descuentoPorcentaje}%</span>
                 </>
               )}
             </p>
-            {state === 'low' && <p className="text-label-sm">Quedan {stock} hoy</p>}
+            {state === 'low' && <p className="text-label-sm">Quedan {stockDisponible} hoy</p>}
             {state === 'soldout' && <p className="text-label-sm">Agotado hoy</p>}
           </div>
-          <Button disabled={state === 'soldout'} onClick={() => onAdd(dish, 1)}>Agregar</Button>
+          <Button disabled={state === 'soldout'} onClick={() => onAdd(id, 1)}>Agregar</Button>
         </div>
       </div>
     </article>

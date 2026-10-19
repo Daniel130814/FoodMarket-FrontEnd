@@ -4,13 +4,13 @@ import { useParams, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Gallery from '../components/Gallery'
 import QuantityStepper from '../components/QuantityStepper'
-import PortionPicker from '../components/PortionPicker'
 import IngredientTrace from '../components/IngredientTrace'
 import ReviewList from '../components/ReviewList'
 import PLATOS_EJEMPLO from '../data/platosEjemplo'
+import RESENAS_EJEMPLO from '../data/resenasEjemplo'
 
 // Props:
-//  - onAdd: función (plato, cantidad) que viene de App. La vista solo avisa "quiero agregar
+//  - onAdd: función (platoId, cantidad) que viene de App. La vista solo avisa "quiero agregar
 //    esto"; App decide si se puede (stock) y muestra el aviso. Así la vista no sabe de reglas.
 function DetallePlato({ onAdd }) {
   // useParams es un hook de react-router: devuelve un objeto con los parámetros
@@ -27,10 +27,6 @@ function DetallePlato({ onAdd }) {
   // Los hooks siempre se llaman ANTES de cualquier return: React exige que se
   // ejecuten en el mismo orden en cada render.
   const [cantidad, setCantidad] = useState(1)
-
-  // Estado: id de la porción elegida. Guardamos SOLO el id; el precio no se guarda
-  // aparte, se calcula más abajo a partir de este id.
-  const [porcionId, setPorcionId] = useState('individual')
 
   // .find() recorre el array y devuelve el PRIMER plato que cumple la condición
   // (o undefined si ninguno). Number(id) pasa '3' a 3: con === '3' y 3 no son
@@ -53,47 +49,43 @@ function DetallePlato({ onAdd }) {
     )
   }
 
-  // Sin stock el plato está agotado (se calcula, no se guarda).
-  const agotado = plato.stock === 0
+  // El plato está agotado cuando la API lo marca con estado AGOTADO (se calcula, no se guarda).
+  const agotado = plato.estado === 'AGOTADO'
 
-  // VALORES CALCULADOS a partir del estado (porcionId y cantidad). Si guardáramos
-  // el precio en otro useState habría que acordarse de actualizarlo cada vez que
-  // cambia la porción: dos datos que pueden quedar desincronizados. Calculado en
-  // cada render, siempre es coherente.
-  const porcion = plato.portions.find((p) => p.id === porcionId)
-  const precioAnterior =
-    plato.discountPercent > 0 ? Math.round(porcion.price / (1 - plato.discountPercent / 100)) : null
-  // Total del botón: usa el precio Individual (plato.price) porque así lo cuenta el carrito.
-  const total = plato.price * cantidad
+  // VALORES CALCULADOS a partir del estado (cantidad). Si guardáramos el total en otro
+  // useState habría que acordarse de actualizarlo cada vez que cambia la cantidad: dos datos
+  // que pueden quedar desincronizados. Calculado en cada render, siempre es coherente.
+  const tieneDescuento = plato.descuentoPorcentaje > 0
+  const total = plato.precioConDescuento * cantidad
   const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
 
-  // No todos los platos de ejemplo traen ingredientes o reseñas: solo mostramos
-  // cada sección si hay datos (undefined o lista vacía -> no se dibuja).
-  const tieneIngredientes = plato.ingredients !== undefined && plato.ingredients.length > 0
-  const tieneResenas = plato.reviews !== undefined && plato.reviews.length > 0
+  // Las reseñas son un recurso aparte en la API (GET /resenas/plato/{id}); acá filtramos las de
+  // este plato. filter devuelve un array nuevo con las que cumplen la condición.
+  // TEMPORAL: en el paso 12 se piden al backend.
+  const resenas = RESENAS_EJEMPLO.filter((resena) => resena.platoId === plato.id)
+
+  // Solo mostramos cada sección si hay datos (lista vacía -> no se dibuja).
+  const tieneIngredientes = plato.ingredientes.length > 0
+  const tieneResenas = resenas.length > 0
 
   return (
     <>
     <div className="grid gap-10 lg:grid-cols-2 lg:gap-12">
       {/* Gallery recibe las fotos y el título por props; el estado vive adentro suyo */}
-      <Gallery images={plato.images} title={plato.title} />
+      <Gallery images={plato.imagenesUrls} title={plato.nombre} />
       <div>
-        <h1 className="font-display text-headline-lg text-primary">{plato.title}</h1>
-        <p className="mt-3 max-w-xl text-body-md text-on-surface-variant">{plato.description}</p>
+        <h1 className="font-display text-headline-lg text-primary">{plato.nombre}</h1>
+        <p className="mt-3 max-w-xl text-body-md text-on-surface-variant">{plato.descripcion}</p>
 
-        <div className="mt-6">
-          <PortionPicker options={plato.portions} value={porcionId} onChange={setPorcionId} />
-        </div>
-
-        {/* Precio de la porción elegida; tachado y badge solo si hay descuento */}
+        {/* Precio con descuento destacado; el precio base tachado y el badge solo si hay descuento */}
         <div className="mt-6 border-t border-hairline pt-6">
           <p className="text-body-sm text-on-surface-variant">Precio</p>
           <p className="flex flex-wrap items-baseline gap-x-3">
-            <span className="font-display text-price-lg tabular text-primary">{formatear(porcion.price)}</span>
-            {precioAnterior !== null && (
+            <span className="font-display text-price-lg tabular text-primary">{formatear(plato.precioConDescuento)}</span>
+            {tieneDescuento && (
               <>
-                <span className="text-body-md text-on-surface-variant line-through">{formatear(precioAnterior)}</span>
-                <span className="badge badge-sand">−{plato.discountPercent}%</span>
+                <span className="text-body-md text-on-surface-variant line-through">{formatear(plato.precio)}</span>
+                <span className="badge badge-sand">−{plato.descuentoPorcentaje}%</span>
               </>
             )}
           </p>
@@ -106,18 +98,17 @@ function DetallePlato({ onAdd }) {
             {/* Props hacia abajo: value y max. Función hacia arriba: onChange.
                 Cuando el stepper la llama con un número nuevo, setCantidad lo guarda
                 y React vuelve a dibujar la vista con la cantidad actualizada. */}
-            <QuantityStepper value={cantidad} min={1} max={plato.stock} onChange={setCantidad} />
-            <span className="text-body-sm text-on-surface-variant">Quedan {plato.stock} hoy</span>
+            <QuantityStepper value={cantidad} min={1} max={plato.stockDisponible} onChange={setCantidad} />
+            <span className="text-body-sm text-on-surface-variant">Quedan {plato.stockDisponible} hoy</span>
           </div>
         )}
 
         {/* Sin stock el botón queda deshabilitado. Al tocarlo, llamamos a onAdd (la función del
-            padre) con el plato y la cantidad elegida. El carrito no guarda la porción: siempre
-            cuenta el precio Individual. */}
+            padre) con el id del plato y la cantidad elegida. */}
         <div className="mt-6">
           <Button
             disabled={agotado}
-            onClick={() => onAdd(plato, cantidad)}
+            onClick={() => onAdd(plato.id, cantidad)}
           >
             Agregar al carrito · {formatear(total)}
           </Button>
@@ -127,12 +118,12 @@ function DetallePlato({ onAdd }) {
 
     {tieneIngredientes && (
       <div className="mt-16">
-        <IngredientTrace items={plato.ingredients} />
+        <IngredientTrace items={plato.ingredientes} />
       </div>
     )}
     {tieneResenas && (
       <div className="mt-16">
-        <ReviewList reviews={plato.reviews} />
+        <ReviewList reviews={resenas} />
       </div>
     )}
     </>

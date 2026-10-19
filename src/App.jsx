@@ -1,4 +1,4 @@
-// Raíz de la app: define las rutas y es DUEÑA del estado del carrito (items y aviso).
+// Raíz de la app: define las rutas y es DUEÑA del estado del carrito (carrito y aviso).
 // Se monta desde main.jsx.
 import { useState } from 'react'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
@@ -14,81 +14,110 @@ import Ingreso from './views/Ingreso'
 import Registro from './views/Registro'
 import PLATOS_EJEMPLO from './data/platosEjemplo'
 
-// Pedidos temporales: los grupos ya vienen separados para no filtrarlos en la vista.
-// Cada ítem conserva { plato, cantidad }, la misma estructura que usa el carrito.
-const PEDIDOS_EN_CURSO = [
-  {
-    id: 1042,
-    when: 'Hoy, 18:20',
-    chefs: 'Clara Méndez y Kenji Takahashi',
-    status: 'Cocinando',
-    message: 'Los chefs están cocinando',
-    delivery: 'Llega hoy entre 20:15 y 20:45',
-    items: [
-      // find reutiliza un plato existente por su id, sin duplicar sus fotos ni precios.
-      { plato: PLATOS_EJEMPLO.find((plato) => plato.id === 3), cantidad: 1 },
-      { plato: PLATOS_EJEMPLO.find((plato) => plato.id === 2), cantidad: 1 },
-      { plato: PLATOS_EJEMPLO.find((plato) => plato.id === 5), cantidad: 1 },
-    ],
-  },
-  {
-    id: 1039,
-    when: 'Hoy, 11:05',
-    chefs: 'Elena Rostand',
-    status: 'En camino',
-    message: 'Tu pedido va en camino',
-    delivery: 'Llega en unos 15 minutos',
-    items: [
-      { plato: PLATOS_EJEMPLO.find((plato) => plato.id === 8), cantidad: 1 },
-    ],
-  },
+// ---------------------------------------------------------------------------------------
+// PEDIDOS DE EJEMPLO (TEMPORAL, paso 11b). Tienen la forma de OrderResponse de la API
+// (ENDPOINTS.md, sección 3.8): un pedido con sus subPedidos (uno por chef) y cada subPedido con
+// sus detalles. En el paso 12 esto se reemplaza por GET /orders.
+// Los helpers de abajo arman los objetos a partir de PLATOS_EJEMPLO para no repetir precios.
+// ---------------------------------------------------------------------------------------
+
+// Arma un detalle { id, platoId, platoNombre, cantidad, precioUnitario, subtotal }.
+// precioUnitario es el precio con descuento del plato (la API lo "congela" al crear el pedido).
+const crearDetalle = (id, platoId, cantidad) => {
+  const plato = PLATOS_EJEMPLO.find((p) => p.id === platoId)
+  return {
+    id,
+    platoId,
+    platoNombre: plato.nombre,
+    cantidad,
+    precioUnitario: plato.precioConDescuento,
+    subtotal: plato.precioConDescuento * cantidad,
+  }
+}
+
+// Arma un subPedido de un chef. Su subtotal es la suma de los subtotales de sus detalles
+// (reduce acumula un resultado recorriendo el array).
+const crearSubPedido = (id, chefId, estado, detalles) => {
+  const platoDelChef = PLATOS_EJEMPLO.find((p) => p.chefId === chefId)
+  return {
+    id,
+    chefId,
+    chefNombre: platoDelChef.chefNombre,
+    estado,
+    subtotal: detalles.reduce((acumulado, detalle) => acumulado + detalle.subtotal, 0),
+    detalles,
+  }
+}
+
+// Arma un pedido completo. precioFinal es la suma de los subtotales de sus subPedidos.
+const crearPedido = (id, fechaCreacion, estado, subPedidos) => ({
+  id,
+  userId: 7,
+  domicilioEntregaId: 5,
+  fechaCreacion,
+  estado,
+  precioFinal: subPedidos.reduce((acumulado, subPedido) => acumulado + subPedido.subtotal, 0),
+  pagoBloqueado: false,
+  subPedidos,
+})
+
+// Hay un pedido en cada estado para poder probar la vista de pedidos (paso 11b.8).
+const PEDIDOS_EJEMPLO = [
+  crearPedido(1050, '2026-10-19T19:40:00', 'PENDIENTE', [
+    crearSubPedido(80, 1, 'PENDIENTE', [crearDetalle(100, 1, 1)]),
+  ]),
+  crearPedido(1042, '2026-10-19T18:20:00', 'EN_PREPARACION', [
+    crearSubPedido(70, 3, 'EN_PREPARACION', [crearDetalle(90, 3, 1), crearDetalle(91, 5, 1)]),
+    crearSubPedido(71, 2, 'EN_PREPARACION', [crearDetalle(92, 2, 1)]),
+  ]),
+  crearPedido(1039, '2026-10-19T11:05:00', 'ENVIADO', [
+    crearSubPedido(60, 5, 'ENVIADO', [crearDetalle(80, 8, 1)]),
+  ]),
+  crearPedido(1031, '2026-10-02T13:10:00', 'ENTREGADO', [
+    crearSubPedido(50, 1, 'ENTREGADO', [crearDetalle(70, 7, 1)]),
+  ]),
+  crearPedido(1018, '2026-09-24T20:00:00', 'ENTREGADO', [
+    crearSubPedido(40, 6, 'ENTREGADO', [crearDetalle(60, 9, 1)]),
+    crearSubPedido(41, 4, 'ENTREGADO', [crearDetalle(61, 4, 1)]),
+  ]),
+  crearPedido(1004, '2026-09-15T12:30:00', 'ENTREGADO', [
+    crearSubPedido(30, 3, 'ENTREGADO', [crearDetalle(50, 5, 1)]),
+  ]),
+  crearPedido(1002, '2026-09-10T21:15:00', 'CANCELADO', [
+    crearSubPedido(20, 2, 'CANCELADO', [crearDetalle(40, 6, 1)]),
+  ]),
 ]
 
-const PEDIDOS_ANTERIORES = [
-  {
-    id: 1031,
-    when: '2 de octubre',
-    chefs: 'Matteo Rossi',
-    status: 'Entregado',
-    message: 'Tagliatelle al ragú de manzo al vino tinto',
-    delivery: null,
-    items: [
-      { plato: PLATOS_EJEMPLO.find((plato) => plato.id === 7), cantidad: 1 },
-    ],
-  },
-  {
-    id: 1018,
-    when: '24 de septiembre',
-    chefs: 'Camila Valenzuela, Elena y Tomás',
-    status: 'Entregado',
-    message: 'Costillar ahumado, Focaccia con higos',
-    delivery: null,
-    items: [
-      { plato: PLATOS_EJEMPLO.find((plato) => plato.id === 9), cantidad: 1 },
-      { plato: PLATOS_EJEMPLO.find((plato) => plato.id === 4), cantidad: 1 },
-    ],
-  },
-  {
-    id: 1004,
-    when: '15 de septiembre',
-    chefs: 'Clara Méndez',
-    status: 'Entregado',
-    message: 'Curry verde de tubérculos y coco',
-    delivery: null,
-    items: [
-      { plato: PLATOS_EJEMPLO.find((plato) => plato.id === 5), cantidad: 1 },
-    ],
-  },
-]
+// Por ahora App separa los pedidos en dos grupos con filter. En el paso 11b.8 esa separación
+// pasa a la vista de Mis pedidos (pestañas "En curso" y "Anteriores").
+const PEDIDOS_EN_CURSO = PEDIDOS_EJEMPLO.filter(
+  (pedido) => pedido.estado !== 'ENTREGADO' && pedido.estado !== 'CANCELADO'
+)
+const PEDIDOS_ANTERIORES = PEDIDOS_EJEMPLO.filter(
+  (pedido) => pedido.estado === 'ENTREGADO' || pedido.estado === 'CANCELADO'
+)
+
+// Recalcula el carrito completo a partir de sus ítems. Es la ÚNICA función que calcula
+// subtotales y total: así nunca quedan desincronizados (en producción lo calcula el backend).
+// Recibe el id del carrito y la lista de ítems; devuelve un carrito NUEVO { id, items, totalEstimado }.
+// Math.round(x * 100) / 100 redondea a 2 decimales, como la API.
+const calcularCarrito = (id, items) => {
+  const itemsCalculados = items.map((item) => ({
+    ...item,
+    subtotalEstimado: Math.round(item.precioUnitarioActual * item.cantidad * 100) / 100,
+  }))
+  const totalEstimado = itemsCalculados.reduce((acumulado, item) => acumulado + item.subtotalEstimado, 0)
+  return { id, items: itemsCalculados, totalEstimado: Math.round(totalEstimado * 100) / 100 }
+}
 
 // Componente interno que evalúa la ruta actual para decidir el diseño (layout)
 // Props:
 //  - cartCount: total de platos del carrito. AppContent NO lo usa: solo lo reenvía al Header.
 //    Eso es "prop drilling": pasar un dato por un componente intermedio hasta quien lo necesita.
-//  - items, subtotal, onQuantityChange, onRemove, onClear: también solo se reenvían, a Carrito.
-//  - onAdd: función (plato, cantidad) para agregar al carrito; se reenvía a Inicio, Catalogo (que se la pasan a PlatoCard) y DetallePlato.
+//  - carrito, onQuantityChange, onRemove, onClear: también solo se reenvían, a Carrito.
+//  - onAdd: función (platoId, cantidad) para agregar al carrito; se reenvía a Inicio, Catalogo (que se la pasan a PlatoCard) y DetallePlato.
 //  - ordersInProgress / previousOrders: grupos de ejemplo que se reenvían a MisPedidos.
-function AppContent({ cartCount, items, subtotal, onAdd, onQuantityChange, onRemove, onClear, ordersInProgress, previousOrders }) {
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, ordersInProgress, previousOrders }) {
   const location = useLocation()
 
   // Las vistas de autenticación ocupan toda la pantalla y traen su propio encabezado
@@ -117,9 +146,8 @@ function AppContent({ cartCount, items, subtotal, onAdd, onQuantityChange, onRem
             path="/carrito"
             element={
               <Carrito
-                items={items}
+                carrito={carrito}
                 cartCount={cartCount}
-                subtotal={subtotal}
                 onQuantityChange={onQuantityChange}
                 onRemove={onRemove}
                 onClear={onClear}
@@ -140,73 +168,96 @@ function AppContent({ cartCount, items, subtotal, onAdd, onQuantityChange, onRem
 function App() {
   // ESTADO DEL CARRITO: vive acá, en el padre más alto. Según la regla de la profe, el estado
   // vive en el padre y baja a los hijos por props; los hijos le avisan con funciones.
-  // Array de ítems { plato, cantidad }. Arranca vacío.
-  const [items, setItems] = useState([])
+  // Un objeto con la forma de CarritoResponse de la API: { id, items, totalEstimado }.
+  // Arranca vacío. Cada ítem: { id, platoId, nombrePlato, cantidad, precioBase,
+  // descuentoPorcentaje, precioUnitarioActual, subtotalEstimado }. Ojo: el id del ítem NO es el
+  // id del plato (la API usa el id del ítem para cambiar la cantidad o quitarlo).
+  const [carrito, setCarrito] = useState({ id: 1, items: [], totalEstimado: 0 })
 
   // Estado del aviso (Toast): el texto a mostrar, o null si no hay aviso.
   const [aviso, setAviso] = useState(null)
 
-  // Agrega un plato. Devuelve true si se pudo agregar y false si no, y deja un
-  // aviso para el usuario en los dos casos.
-  const agregar = (plato, cantidad) => {
-    // Regla del TPO: sin stock no se agrega.
-    if (plato.stock === 0) {
-      setAviso(`${plato.title} está agotado hoy`)
-      return false
+  // Agrega un plato al carrito. Si el plato YA está, SUMA la cantidad (no la reemplaza).
+  // Recibe el id del plato (no el objeto): igual que la API, POST /carrito/items { platoId, cantidad }.
+  // TEMPORAL: en el mock validamos el stock contra PLATOS_EJEMPLO. En producción lo valida el
+  // backend (responde 400 "no tiene stock suficiente") y esta validación se elimina.
+  const agregar = (platoId, cantidad) => {
+    const plato = PLATOS_EJEMPLO.find((p) => p.id === platoId)
+
+    if (plato === undefined) {
+      setAviso('El plato no está disponible para agregar al carrito')
+      return
+    }
+    // Regla del TPO: un plato agotado (o no publicado) no se agrega.
+    if (plato.estado !== 'PUBLICADO') {
+      setAviso(`${plato.nombre} está agotado hoy`)
+      return
     }
 
-    const existente = items.find((item) => item.plato.id === plato.id)
-
-    // Regla del TPO: la cantidad de un ítem nunca supera el stock.
-    if (existente !== undefined && existente.cantidad >= plato.stock) {
-      setAviso(`Ya tenés las ${plato.stock} porciones disponibles de ${plato.title}`)
-      return false
+    const existente = carrito.items.find((item) => item.platoId === platoId)
+    // La cantidad total del ítem (lo que ya había + lo nuevo) no puede superar el stock.
+    const cantidadTotal = (existente === undefined ? 0 : existente.cantidad) + cantidad
+    if (cantidadTotal > plato.stockDisponible) {
+      setAviso(`No hay stock suficiente de ${plato.nombre}: quedan ${plato.stockDisponible}`)
+      return
     }
 
-    if (existente !== undefined) {
-      // Ya estaba: sumamos a la fila existente (sin duplicarla), sin pasar el stock.
-      // map devuelve un array NUEVO; solo reemplazamos el ítem que cambió.
-      setItems(
-        items.map((item) =>
-          item.plato.id === plato.id
-            ? { ...item, cantidad: Math.min(item.cantidad + cantidad, plato.stock) }
-            : item
-        )
-      )
-    } else {
-      // No estaba: array nuevo con los ítems de antes (...items) y el nuevo al final.
-      setItems([...items, { plato, cantidad: Math.min(cantidad, plato.stock) }])
+    // map devuelve un array NUEVO; solo reemplazamos el ítem que cambió (React necesita
+    // arrays y objetos nuevos para detectar el cambio de estado).
+    const itemsNuevos =
+      existente !== undefined
+        ? carrito.items.map((item) => (item.platoId === platoId ? { ...item, cantidad: cantidadTotal } : item))
+        : [
+            ...carrito.items,
+            {
+              // id del ítem: el siguiente al más grande que haya (el backend real lo asigna solo)
+              id: carrito.items.reduce((mayor, item) => Math.max(mayor, item.id), 0) + 1,
+              platoId: plato.id,
+              nombrePlato: plato.nombre,
+              cantidad,
+              precioBase: plato.precio,
+              descuentoPorcentaje: plato.descuentoPorcentaje,
+              precioUnitarioActual: plato.precioConDescuento,
+              subtotalEstimado: 0, // lo completa calcularCarrito
+            },
+          ]
+
+    setCarrito(calcularCarrito(carrito.id, itemsNuevos))
+    setAviso(`Agregaste ${plato.nombre} a tu carrito`)
+  }
+
+  // Cambia la cantidad de un ítem: la REEMPLAZA (no suma). Recibe el id del ÍTEM, no del plato.
+  // TEMPORAL: validamos el stock contra PLATOS_EJEMPLO; en producción lo valida el backend.
+  const cambiarCantidad = (itemId, cantidad) => {
+    const item = carrito.items.find((i) => i.id === itemId)
+    const plato = PLATOS_EJEMPLO.find((p) => p.id === item.platoId)
+
+    if (cantidad < 1) {
+      return
     }
-    setAviso(`Agregaste ${plato.title} a tu carrito`)
-    return true
+    if (cantidad > plato.stockDisponible) {
+      setAviso(`De ${plato.nombre} quedan ${plato.stockDisponible} porciones`)
+      return
+    }
+
+    const itemsNuevos = carrito.items.map((i) => (i.id === itemId ? { ...i, cantidad } : i))
+    setCarrito(calcularCarrito(carrito.id, itemsNuevos))
   }
 
-  // Cambia la cantidad de un ítem, siempre entre 1 y el stock del plato.
-  const cambiarCantidad = (platoId, cantidad) => {
-    setItems(
-      items.map((item) =>
-        item.plato.id === platoId
-          ? { ...item, cantidad: Math.max(1, Math.min(cantidad, item.plato.stock)) }
-          : item
-      )
-    )
+  // Quita un ítem: filter se queda con todos los que NO tienen ese id de ítem.
+  const quitar = (itemId) => {
+    setCarrito(calcularCarrito(carrito.id, carrito.items.filter((item) => item.id !== itemId)))
   }
 
-  // Quita un ítem: filter se queda con todos los que NO son ese plato.
-  const quitar = (platoId) => {
-    setItems(items.filter((item) => item.plato.id !== platoId))
-  }
-
-  // Vacía el carrito con un array vacío nuevo y avisa que el pedido se confirmó.
+  // Vacía el carrito (lista de ítems vacía) y avisa que el pedido se confirmó.
   // Carrito la llama (como onClear) solo cuando la confirmación salió bien.
   const vaciar = () => {
-    setItems([])
+    setCarrito(calcularCarrito(carrito.id, []))
     setAviso('¡Pedido confirmado! Cada taller ya empezó a preparar tus platos.')
   }
 
-  // VALORES CALCULADOS: salen de items en cada render, no se guardan aparte.
-  const cantidadTotal = items.reduce((acumulado, item) => acumulado + item.cantidad, 0)
-  const subtotal = items.reduce((acumulado, item) => acumulado + item.plato.price * item.cantidad, 0)
+  // VALOR CALCULADO: sale del carrito en cada render, no se guarda aparte.
+  const cantidadTotal = carrito.items.reduce((acumulado, item) => acumulado + item.cantidad, 0)
 
   return (
     <BrowserRouter>
@@ -214,8 +265,7 @@ function App() {
           abajo y las funciones on... para que los hijos avisen hacia arriba. */}
       <AppContent
         cartCount={cantidadTotal}
-        items={items}
-        subtotal={subtotal}
+        carrito={carrito}
         onAdd={agregar}
         onQuantityChange={cambiarCantidad}
         onRemove={quitar}

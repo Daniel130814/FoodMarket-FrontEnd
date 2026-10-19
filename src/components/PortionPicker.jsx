@@ -1,3 +1,4 @@
+// OJO: este componente ya NO se usa (paso 11b): el backend no tiene porciones. No se borra a pedido de la consigna.
 // Selector de porción (Individual / Para compartir). Se usa en views/DetallePlato.
 // Igual que QuantityStepper: no guarda nada, el padre manda lo elegido y recibe los cambios.
 

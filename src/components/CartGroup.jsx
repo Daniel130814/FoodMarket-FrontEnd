@@ -1,3 +1,5 @@
+// OJO: este componente ya NO se usa (paso 11b): la API no trae el chef en los ítems del carrito,
+// así que la Cesta es una lista simple. Sigue con la forma vieja { plato, cantidad }. No se borra a pedido de la consigna.
 // Bloque del carrito con los platos de UN chef y su subtotal. Se usa en views/Carrito.
 import CartItem from './CartItem'
 
