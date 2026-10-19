@@ -22,6 +22,9 @@ import RESENAS_EJEMPLO from './data/resenasEjemplo'
 import CATEGORIAS_EJEMPLO from './data/categoriasEjemplo'
 import INGREDIENTES_EJEMPLO from './data/ingredientesEjemplo'
 
+// Clave con la que se guarda el JWT en localStorage. Está en una constante para escribirla una sola vez.
+const CLAVE_TOKEN = 'jwtToken'
+
 // ---------------------------------------------------------------------------------------
 // PEDIDOS DE EJEMPLO (TEMPORAL, paso 11b). Tienen la forma de OrderResponse de la API
 // (ENDPOINTS.md, sección 3.8): un pedido con sus subPedidos (uno por chef) y cada subPedido con
@@ -392,9 +395,14 @@ function App() {
 
   // Inicia sesión: guarda la sesión que le pasan y avisa. Ingreso y Registro la llaman cuando el
   // backend responde bien, con { token, userId, role, nombre } ya armado.
-  // TODO (12.1b): guardar también el token en localStorage con la clave jwtToken.
+  // El token se guarda en DOS lugares:
+  //  - en el estado (sesion): para que React vuelva a dibujar la app con el usuario ingresado;
+  //  - en localStorage: el almacenamiento del navegador, que sobrevive a recargar la página (F5).
+  // localStorage solo se usa para el JWT y solo desde App.jsx: acá (guardar al ingresar), al
+  // iniciar la app (leer, paso 12.1c) y al cerrar sesión (borrar).
   const iniciarSesion = (nuevaSesion) => {
     setSesion(nuevaSesion)
+    localStorage.setItem(CLAVE_TOKEN, nuevaSesion.token)
     setAviso(`Ingresaste como ${nuevaSesion.nombre}`)
   }
 
@@ -402,6 +410,8 @@ function App() {
   // páginas que ya no puede ver.)
   const cerrarSesion = () => {
     setSesion(null)
+    // removeItem borra SOLO esta clave. Nunca localStorage.clear(), que borraría todo lo demás.
+    localStorage.removeItem(CLAVE_TOKEN)
     setAviso('Cerraste sesión')
   }
 

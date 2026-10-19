@@ -1,21 +1,32 @@
-// Vista de inicio de sesión (Login) de Appetitos.
-// Se usa cuando el usuario quiere ingresar a su cuenta existente.
+// Vista de inicio de sesión (Login) de Appetitos (ruta /ingreso).
+// Se usa cuando el usuario quiere ingresar a su cuenta existente. Valida las credenciales en el
+// backend con POST /api/v1/auth/authenticate y pide el nombre con GET /users/me.
 
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/Logo'
 
-// TEMPORAL (se ELIMINA en el paso 12.1b, cuando el ingreso use la API real): para poder probar los
-// roles sin backend, el rol sale del username. "chef" y "admin" tienen ese rol; cualquier otro es CLIENTE.
-const rolDePrueba = (username) => {
-  if (username === 'chef') return 'CHEF'
-  if (username === 'admin') return 'ADMIN'
-  return 'CLIENTE'
-}
+// URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env;
+// solo se exponen las que empiezan con VITE_.
+const API_URL = import.meta.env.VITE_API_URL
+
+// Lee una respuesta del backend y devuelve lo que viene en "data". Si el servidor respondió con un
+// error (400, 401, 500...) lanza un Error con el "message" del backend y el código en "status".
+// Hace falta porque fetch NO manda los errores HTTP al .catch(): hay que mirar response.ok nosotros.
+// La usamos dos veces en esta vista (login y GET /users/me), por eso la definimos acá arriba.
+const leerRespuesta = (response) =>
+  response.json().then((cuerpo) => {
+    if (!response.ok) {
+      const fallo = new Error(cuerpo.message)
+      fallo.status = response.status
+      throw fallo
+    }
+    return cuerpo.data
+  })
 
 // Props:
-//  - onLogin: función (sesion) que viene de App (iniciarSesion). Le pasamos la sesión
-//    { token, userId, role, nombre }. Por ahora la armamos nosotros (simulada).
+//  - onLogin: función (sesion) que viene de App (iniciarSesion). Cuando el backend acepta las
+//    credenciales le pasamos la sesión { token, userId, role, nombre } con lo que respondió la API.
 function Ingreso({ onLogin }) {
   // useState nos permite guardar y actualizar datos que cambian con la interacción del usuario.
   // Un solo objeto guarda todos los campos del formulario ("componentes controlados"). Las claves
@@ -26,8 +37,13 @@ function Ingreso({ onLogin }) {
   const [mostrarClave, setMostrarClave] = useState(false)
 
   // Estados para manejar errores visuales sin tocar el DOM directamente
-  const [errorGeneral, setErrorGeneral] = useState(false)
+  // errorGeneral: el texto del cartel rojo ('' = no hay cartel). errores: un mensaje por campo.
+  const [errorGeneral, setErrorGeneral] = useState('')
   const [errores, setErrores] = useState({})
+
+  // Estado: true mientras esperamos la respuesta del backend. Sirve para deshabilitar el botón y
+  // evitar que un doble clic mande dos pedidos.
+  const [enviando, setEnviando] = useState(false)
 
   // useNavigate es un hook de React Router que nos permite redirigir al usuario por código
   const navigate = useNavigate()
@@ -73,26 +89,52 @@ function Ingreso({ onLogin }) {
     // Si hay errores de validación en los campos, los guardamos y frenamos el envío
     if (Object.keys(nuevosErrores).length > 0) {
       setErrores(nuevosErrores)
-      setErrorGeneral(false)
+      setErrorGeneral('')
       return
     }
 
-    // Disparador de demo según la guía: si la clave es "error1234", simulamos error de credenciales
-    // (la API responde 401 cuando usuario o contraseña no coinciden).
-    if (datos.password === 'error1234') {
-      setErrorGeneral(true)
-      setErrores({})
-      return
-    }
-
-    // Todo bien: limpiamos errores, le avisamos a App y redirigimos.
     // El backend normaliza el username (sin espacios y en minúsculas); lo hacemos igual acá.
-    // SIMULADO (hasta 12.1b): armamos la sesión nosotros; después la arma la respuesta de la API.
-    setErrorGeneral(false)
-    setErrores({})
     const username = datos.username.trim().toLowerCase()
-    onLogin({ token: 'token-simulado', userId: 7, role: rolDePrueba(username), nombre: username })
-    navigate(destino)
+
+    setErrores({})
+    setErrorGeneral('')
+    setEnviando(true)
+
+    // POST al backend. Va dentro de este handler (se ejecuta una vez por envío) y NUNCA en un
+    // useEffect. fetch devuelve una promesa: se encadena con .then() (cuando llega la respuesta),
+    // .catch() (si algo falla) y .finally() (pase lo que pase).
+    fetch(`${API_URL}/api/v1/auth/authenticate`, {
+      method: 'POST',
+      // headers (en plural) avisa que mandamos JSON; JSON.stringify pasa el objeto a texto JSON.
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password: datos.password }),
+    })
+      .then(leerRespuesta)
+      .then((auth) =>
+        // La respuesta del login trae { access_token, userId, role } pero NO el nombre. Lo pedimos
+        // con GET /users/me, que es una ruta privada: mandamos el token en la cabecera
+        // Authorization. Devolvemos la promesa para que el siguiente .then() espere el resultado.
+        fetch(`${API_URL}/users/me`, { headers: { Authorization: `Bearer ${auth.access_token}` } })
+          .then(leerRespuesta)
+          .then((usuario) => ({ auth, usuario }))
+      )
+      .then(({ auth, usuario }) => {
+        // Ojo: el token está en access_token (no en token). App lo guarda en el estado y en localStorage.
+        onLogin({ token: auth.access_token, userId: auth.userId, role: auth.role, nombre: usuario.nombre })
+        navigate(destino)
+      })
+      .catch((fallo) => {
+        // 401 = usuario o contraseña incorrectos. Sin status, ni siquiera llegamos al servidor.
+        // Cualquier otro error del backend: mostramos su mensaje.
+        if (fallo.status === 401) {
+          setErrorGeneral('El usuario o la contraseña no coinciden. Revisalos e intentá de nuevo.')
+        } else if (fallo.status === undefined) {
+          setErrorGeneral('No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.')
+        } else {
+          setErrorGeneral(fallo.message)
+        }
+      })
+      .finally(() => setEnviando(false))
   }
 
   return (
@@ -119,7 +161,7 @@ function Ingreso({ onLogin }) {
           </p>
 
           {/* Cartel de error general si fallan las credenciales */}
-          {errorGeneral && (
+          {errorGeneral !== '' && (
             <div
               role="alert"
               className="mt-6 flex gap-3 rounded-lg border border-error/30 bg-error-container p-4 text-on-error-container"
@@ -129,9 +171,7 @@ function Ingreso({ onLogin }) {
               </span>
               <div>
                 <p className="text-label-lg">No pudimos ingresar</p>
-                <p className="text-body-sm">
-                  El usuario o la contraseña no coinciden. Revisalos e intentá de nuevo.
-                </p>
+                <p className="text-body-sm">{errorGeneral}</p>
               </div>
             </div>
           )}
@@ -208,8 +248,8 @@ function Ingreso({ onLogin }) {
             </div>
 
             {/* Botón de envío */}
-            <button type="submit" className="btn btn-primary btn-block !min-h-[54px]">
-              Ingresar
+            <button type="submit" className="btn btn-primary btn-block !min-h-[54px]" disabled={enviando}>
+              {enviando ? 'Ingresando...' : 'Ingresar'}
             </button>
           </form>
 
