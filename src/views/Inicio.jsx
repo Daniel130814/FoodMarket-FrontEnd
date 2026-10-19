@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import PlatoCard from '../components/PlatoCard'
 import CategoryChips from '../components/CategoryChips'
 import ChefCard from '../components/ChefCard'
+import LoadingState from '../components/LoadingState'
+import ErrorState from '../components/ErrorState'
 import PLATOS_EJEMPLO from '../data/platosEjemplo'
 import CATEGORIAS_EJEMPLO from '../data/categoriasEjemplo'
 import CHEFS_EJEMPLO from '../data/chefsEjemplo'
@@ -9,6 +12,23 @@ import CHEFS_EJEMPLO from '../data/chefsEjemplo'
 // Props:
 //  - onAdd: función (plato, cantidad) de App. Inicio no la usa: solo la reenvía a cada PlatoCard.
 function Inicio({ onAdd }) {
+  // ESTADOS de carga y error. Todavía no hay pedidos al backend, así que quedan fijos en
+  // "no cargando" y "sin error". Solo desestructuramos el primer valor: el setter (setCargando /
+  // setError) se agrega en el paso 12, cuando haya un fetch que los cambie.
+  //  - cargando: true mientras esperamos la respuesta de la API.
+  //  - error: null si todo está bien, o el texto del error si la API falló.
+  const [cargando] = useState(false)
+  const [error] = useState(null)
+
+  // Renderizado condicional: si estamos cargando o hubo un error, mostramos eso y cortamos acá.
+  // Los hooks (useState) siempre van ANTES de estos return.
+  if (cargando) {
+    return <LoadingState message="Cargando los platos de hoy..." />
+  }
+  if (error !== null) {
+    return <ErrorState message={error} />
+  }
+
   const platosDeHoy = PLATOS_EJEMPLO.slice(0, 4)
 
   return (

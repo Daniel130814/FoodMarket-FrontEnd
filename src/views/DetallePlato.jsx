@@ -2,6 +2,9 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
+import EmptyState from '../components/EmptyState'
+import LoadingState from '../components/LoadingState'
+import ErrorState from '../components/ErrorState'
 import Gallery from '../components/Gallery'
 import QuantityStepper from '../components/QuantityStepper'
 import IngredientTrace from '../components/IngredientTrace'
@@ -28,24 +31,35 @@ function DetallePlato({ onAdd }) {
   // ejecuten en el mismo orden en cada render.
   const [cantidad, setCantidad] = useState(1)
 
+  // ESTADOS de carga y error. Todavía no hay pedidos al backend, así que quedan fijos en "no
+  // cargando" y "sin error". El setter (setCargando / setError) se agrega en el paso 12.
+  const [cargando] = useState(false)
+  const [error] = useState(null)
+
   // .find() recorre el array y devuelve el PRIMER plato que cumple la condición
   // (o undefined si ninguno). Number(id) pasa '3' a 3: con === '3' y 3 no son
   // iguales porque tienen distinto tipo, y nunca encontraríamos el plato.
   // TEMPORAL: cuando conectemos el backend, esto será un pedido a /plato/:id.
   const plato = PLATOS_EJEMPLO.find((p) => p.id === Number(id))
 
-  // Renderizado condicional: si no hay plato, mostramos este mensaje y cortamos acá.
+  // Renderizado condicional: si estamos cargando o hubo un error, mostramos eso y cortamos acá.
+  if (cargando) {
+    return <LoadingState message="Cargando el plato..." />
+  }
+  if (error !== null) {
+    return <ErrorState message={error} />
+  }
+
+  // Si el id no existe mostramos "Este plato no está disponible". Equivale al 404 de la API
+  // (GET /platos/{id} responde 404 si el plato no existe o está pausado).
   if (plato === undefined) {
     return (
-      <div className="py-10">
-        <h1 className="font-display text-headline-lg text-primary">Plato no encontrado</h1>
-        <p className="mt-3 max-w-xl text-body-md text-on-surface-variant">
-          No existe ningún plato con el código {id}. Puede que ya no esté disponible.
-        </p>
-        <div className="mt-8">
-          <Button onClick={() => navigate('/catalogo')}>Volver al catálogo</Button>
-        </div>
-      </div>
+      <EmptyState
+        title="Este plato no está disponible"
+        message="Puede que se haya pausado o que ya no exista."
+        actionLabel="Volver al catálogo"
+        onAction={() => navigate('/catalogo')}
+      />
     )
   }
 
