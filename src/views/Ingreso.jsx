@@ -2,7 +2,7 @@
 // Se usa cuando el usuario quiere ingresar a su cuenta existente.
 
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/Logo'
 
 // Props:
@@ -23,6 +23,13 @@ function Ingreso({ onLogin }) {
 
   // useNavigate es un hook de React Router que nos permite redirigir al usuario por código
   const navigate = useNavigate()
+
+  // useLocation devuelve la ruta actual y el "state" con el que nos mandaron acá. Si venimos de
+  // una ruta protegida (o de agregar a la cesta sin sesión), location.state.from es esa ruta.
+  // Si entraron directo a /ingreso, location.state es null y el destino es el inicio.
+  // El signo ? evita un error cuando location.state es null.
+  const location = useLocation()
+  const destino = location.state?.from ?? '/'
 
   // Un único handler para todos los inputs. event.target es el input que cambió:
   //  - name: el atributo name del input ('username' o 'password')
@@ -75,7 +82,7 @@ function Ingreso({ onLogin }) {
     setErrorGeneral(false)
     setErrores({})
     onLogin({ username: datos.username.trim().toLowerCase(), password: datos.password })
-    navigate('/')
+    navigate(destino)
   }
 
   return (
@@ -199,7 +206,8 @@ function Ingreso({ onLogin }) {
           {/* Enlace para ir a la pantalla de registro */}
           <p className="mt-8 text-center text-body-md text-on-surface-variant">
             ¿Todavía no tenés cuenta?{' '}
-            <Link to="/registro" className="link">
+            {/* Pasamos el mismo state para no perder la ruta de origen si se registra */}
+            <Link to="/registro" state={location.state} className="link">
               Crear cuenta
             </Link>
           </p>

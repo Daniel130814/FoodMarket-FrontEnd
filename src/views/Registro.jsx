@@ -2,7 +2,7 @@
 // Permite a nuevos usuarios registrarse eligiendo si quieren comprar o vender comida.
 
 import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/Logo'
 import RoleOption from '../components/RoleOption'
 
@@ -10,9 +10,12 @@ import RoleOption from '../components/RoleOption'
 //  - onLogin: función (datos) que viene de App (iniciarSesion). Al registrarse, el formulario le
 //    avisa con { username, nombre, apellido, email, password, tipoCuenta }.
 function Registro({ onLogin }) {
-  // useSearchParams nos permite leer los parámetros que vienen en la URL (por ejemplo: /registro?rol=vendedor)
-  const [searchParams] = useSearchParams()
-  const tipoCuentaPorDefecto = searchParams.get('rol') === 'vendedor' ? 'CHEF' : 'CLIENTE'
+  // useLocation devuelve la ruta actual: location.search es la parte de la URL que empieza con ?
+  // (por ejemplo '?rol=vendedor' en /registro?rol=vendedor) y location.state es lo que nos mandaron
+  // al navegar (acá, la ruta de origen para volver después de registrarse).
+  const location = useLocation()
+  const tipoCuentaPorDefecto = location.search === '?rol=vendedor' ? 'CHEF' : 'CLIENTE'
+  const destino = location.state?.from ?? '/'
 
   // Un solo objeto guarda todos los campos. Las claves son los mismos nombres que pide la API
   // en POST /api/v1/auth/register. tipoCuenta solo puede ser "CLIENTE" o "CHEF".
@@ -109,7 +112,7 @@ function Registro({ onLogin }) {
       password: datos.password,
       tipoCuenta: datos.tipoCuenta,
     })
-    navigate('/')
+    navigate(destino)
   }
 
   return (
@@ -326,7 +329,7 @@ function Registro({ onLogin }) {
           {/* Enlace para ir al login si ya tiene cuenta */}
           <p className="mt-8 text-center text-body-md text-on-surface-variant">
             ¿Ya tenés cuenta?{' '}
-            <Link to="/ingreso" className="link">
+            <Link to="/ingreso" state={location.state} className="link">
               Ingresar
             </Link>
           </p>

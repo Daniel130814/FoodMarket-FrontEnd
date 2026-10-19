@@ -147,12 +147,13 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
 
   // Agregar a la cesta según la sesión. Las tarjetas y el detalle reciben ESTA función en lugar de
   // onAdd, así no saben nada de sesiones: siguen avisando "quiero agregar este plato".
-  //  - Sin sesión: lo mandamos a ingresar.
+  //  - Sin sesión: lo mandamos a ingresar (y después vuelve a esta misma página).
   //  - CHEF o ADMIN: no pueden comprar, avisamos con un Toast.
   //  - CLIENTE: agregamos de verdad (onAdd valida el stock).
   const agregarSegunSesion = (platoId, cantidad) => {
     if (sesion === null) {
-      navigate('/ingreso')
+      // Mandamos la ruta actual como "state" para volver acá después de ingresar.
+      navigate('/ingreso', { state: { from: location.pathname } })
       return
     }
     if (sesion.role !== 'CLIENTE') {
