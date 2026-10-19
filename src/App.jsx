@@ -110,6 +110,15 @@ const calcularCarrito = (id, items) => {
   return { id, items: itemsCalculados, totalEstimado: Math.round(totalEstimado * 100) / 100 }
 }
 
+// TEMPORAL (paso 11b.3, se ELIMINA en el paso 12): para poder probar los tres roles sin backend,
+// el ingreso asigna el rol según el username. Si es "cliente", "chef" o "admin" tiene ese rol;
+// cualquier otro username entra como CLIENTE. En el paso 12 el rol lo manda la API en el login.
+const rolDePrueba = (username) => {
+  if (username === 'chef') return 'CHEF'
+  if (username === 'admin') return 'ADMIN'
+  return 'CLIENTE'
+}
+
 // Componente interno que evalúa la ruta actual para decidir el diseño (layout)
 // Props:
 //  - cartCount: total de platos del carrito. AppContent NO lo usa: solo lo reenvía al Header.
@@ -118,7 +127,8 @@ const calcularCarrito = (id, items) => {
 //  - onAdd: función (platoId, cantidad) para agregar al carrito; se reenvía a Inicio, Catalogo (que se la pasan a PlatoCard) y DetallePlato.
 //  - ordersInProgress / previousOrders: grupos de ejemplo que se reenvían a MisPedidos.
 //  - onLogin: función (datos) para iniciar sesión; se reenvía a Ingreso y Registro.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, ordersInProgress, previousOrders, onLogin }) {
+//  - sesion / onLogout: la sesión actual (o null) y la función para cerrarla; se reenvían al Header.
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, ordersInProgress, previousOrders, onLogin, sesion, onLogout }) {
   const location = useLocation()
 
   // Las vistas de autenticación ocupan toda la pantalla y traen su propio encabezado
@@ -136,7 +146,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
   return (
     <>
       <a className="skip-link" href="#contenido">Ir al contenido</a>
-      <Header cartCount={cartCount} />
+      <Header cartCount={cartCount} sesion={sesion} onLogout={onLogout} />
       <main id="contenido" className="mx-auto max-w-shell px-5 py-10 lg:px-12">
         <Routes>
           <Route path="/" element={<Inicio onAdd={onAdd} />} />
@@ -174,6 +184,12 @@ function App() {
   // descuentoPorcentaje, precioUnitarioActual, subtotalEstimado }. Ojo: el id del ítem NO es el
   // id del plato (la API usa el id del ítem para cambiar la cantidad o quitarlo).
   const [carrito, setCarrito] = useState({ id: 1, items: [], totalEstimado: 0 })
+
+  // ESTADO DE LA SESIÓN: null si no hay nadie ingresado, o { token, userId, role, nombre } con la
+  // misma información que devuelve la API al hacer login (role: "CLIENTE", "CHEF" o "ADMIN").
+  // Vive acá, en el padre, porque el Header y las rutas protegidas necesitan saber quién es.
+  // Sin localStorage: al recargar la página la sesión se pierde (todavía no hay persistencia).
+  const [sesion, setSesion] = useState(null)
 
   // Estado del aviso (Toast): el texto a mostrar, o null si no hay aviso.
   const [aviso, setAviso] = useState(null)
@@ -258,10 +274,25 @@ function App() {
   }
 
   // Inicia sesión. Ingreso y Registro la llaman con los datos del formulario.
-  // PROVISORIO (paso 11b.2): todavía no guarda ninguna sesión, solo muestra un aviso para poder
-  // probar los formularios. En el paso 11b.3 se reemplaza por el estado de sesión real.
+  // SIMULADA (paso 11b.3): no hay backend, así que armamos la sesión nosotros. En el paso 12 esta
+  // función hace POST /api/v1/auth/authenticate (o /register) y guarda lo que responde la API.
+  //  - Registro manda tipoCuenta (CLIENTE o CHEF): ese es el rol.
+  //  - Ingreso no manda tipoCuenta: el rol sale de rolDePrueba (TEMPORAL).
   const iniciarSesion = (datos) => {
-    setAviso(`Ingresaste como ${datos.username}`)
+    const esRegistro = datos.tipoCuenta !== undefined
+    const role = esRegistro ? datos.tipoCuenta : rolDePrueba(datos.username)
+    // ?? usa el valor de la derecha si el de la izquierda es undefined (el login no manda nombre).
+    const nombre = datos.nombre ?? datos.username
+
+    setSesion({ token: 'token-simulado', userId: 7, role, nombre })
+    setAviso(`Ingresaste como ${nombre}`)
+  }
+
+  // Cierra la sesión: vuelve a null. (Las rutas protegidas del paso 11b.4 sacan al usuario de las
+  // páginas que ya no puede ver.)
+  const cerrarSesion = () => {
+    setSesion(null)
+    setAviso('Cerraste sesión')
   }
 
   // VALOR CALCULADO: sale del carrito en cada render, no se guarda aparte.
@@ -281,6 +312,8 @@ function App() {
         ordersInProgress={PEDIDOS_EN_CURSO}
         previousOrders={PEDIDOS_ANTERIORES}
         onLogin={iniciarSesion}
+        sesion={sesion}
+        onLogout={cerrarSesion}
       />
       {/* Toast: se dibuja una sola vez para toda la app; al cerrarlo el aviso vuelve a null */}
       <Toast message={aviso ?? ''} visible={aviso !== null} onClose={() => setAviso(null)} />
