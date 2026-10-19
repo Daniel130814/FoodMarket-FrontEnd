@@ -1,4 +1,4 @@
-// Vista del carrito (ruta /carrito). Lee el carrito que le pasa App y lo muestra como una lista simple.
+// Vista del carrito (ruta /cesta). Lee el carrito que le pasa App y lo muestra como una lista simple.
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import CartItem from '../components/CartItem'

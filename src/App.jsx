@@ -1,10 +1,11 @@
 // Raíz de la app: define las rutas y es DUEÑA del estado del carrito (carrito y aviso).
 // Se monta desde main.jsx.
 import { useState } from 'react'
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import Toast from './components/Toast'
+import RutaProtegida from './components/RutaProtegida'
 import Inicio from './views/Inicio'
 import Catalogo from './views/Catalogo'
 import DetallePlato from './views/DetallePlato'
@@ -128,8 +129,31 @@ const rolDePrueba = (username) => {
 //  - ordersInProgress / previousOrders: grupos de ejemplo que se reenvían a MisPedidos.
 //  - onLogin: función (datos) para iniciar sesión; se reenvía a Ingreso y Registro.
 //  - sesion / onLogout: la sesión actual (o null) y la función para cerrarla; se reenvían al Header.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, ordersInProgress, previousOrders, onLogin, sesion, onLogout }) {
+//    AppContent además usa sesion para proteger las rutas (RutaProtegida) y para decidir si se puede agregar al carrito.
+//  - onAviso: función (texto) para mostrar un Toast; AppContent la usa cuando un rol no puede comprar.
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, ordersInProgress, previousOrders, onLogin, sesion, onLogout, onAviso }) {
   const location = useLocation()
+
+  // useNavigate devuelve una función para cambiar de ruta desde el código. Se puede usar acá
+  // porque AppContent está DENTRO del BrowserRouter (App, que está afuera, no podría).
+  const navigate = useNavigate()
+
+  // Agregar a la cesta según la sesión. Las tarjetas y el detalle reciben ESTA función en lugar de
+  // onAdd, así no saben nada de sesiones: siguen avisando "quiero agregar este plato".
+  //  - Sin sesión: lo mandamos a ingresar.
+  //  - CHEF o ADMIN: no pueden comprar, avisamos con un Toast.
+  //  - CLIENTE: agregamos de verdad (onAdd valida el stock).
+  const agregarSegunSesion = (platoId, cantidad) => {
+    if (sesion === null) {
+      navigate('/ingreso')
+      return
+    }
+    if (sesion.role !== 'CLIENTE') {
+      onAviso('Solo los clientes pueden comprar')
+      return
+    }
+    onAdd(platoId, cantidad)
+  }
 
   // Las vistas de autenticación ocupan toda la pantalla y traen su propio encabezado
   const esPantallaAuth = location.pathname === '/ingreso' || location.pathname === '/registro'
@@ -149,26 +173,40 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
       <Header cartCount={cartCount} sesion={sesion} onLogout={onLogout} />
       <main id="contenido" className="mx-auto max-w-shell px-5 py-10 lg:px-12">
         <Routes>
-          <Route path="/" element={<Inicio onAdd={onAdd} />} />
-          <Route path="/catalogo" element={<Catalogo onAdd={onAdd} />} />
+          {/* Rutas públicas: las puede ver cualquiera, con o sin sesión */}
+          <Route path="/" element={<Inicio onAdd={agregarSegunSesion} />} />
+          <Route path="/catalogo" element={<Catalogo onAdd={agregarSegunSesion} />} />
           {/* ":id" es un parámetro: /plato/1, /plato/2... todas muestran DetallePlato */}
-          <Route path="/plato/:id" element={<DetallePlato onAdd={onAdd} />} />
+          <Route path="/plato/:id" element={<DetallePlato onAdd={agregarSegunSesion} />} />
+
+          {/* Rutas del CLIENTE: RutaProtegida decide si muestra la vista o redirige */}
           <Route
-            path="/carrito"
+            path="/cesta"
             element={
-              <Carrito
-                carrito={carrito}
-                cartCount={cartCount}
-                onQuantityChange={onQuantityChange}
-                onRemove={onRemove}
-                onClear={onClear}
-              />
+              <RutaProtegida sesion={sesion} rolesPermitidos={['CLIENTE']}>
+                <Carrito
+                  carrito={carrito}
+                  cartCount={cartCount}
+                  onQuantityChange={onQuantityChange}
+                  onRemove={onRemove}
+                  onClear={onClear}
+                />
+              </RutaProtegida>
             }
           />
           <Route
             path="/pedidos"
-            element={<MisPedidos ordersInProgress={ordersInProgress} previousOrders={previousOrders} />}
+            element={
+              <RutaProtegida sesion={sesion} rolesPermitidos={['CLIENTE']}>
+                <MisPedidos ordersInProgress={ordersInProgress} previousOrders={previousOrders} />
+              </RutaProtegida>
+            }
           />
+
+          {/* LUGAR PREPARADO: estas rutas se agregan cuando existan sus vistas, con el mismo patrón.
+              /checkout (11b.7)                         -> rolesPermitidos={['CLIENTE']}
+              /mis-publicaciones, /publicar, /publicar/:id (11b.10) -> rolesPermitidos={['CHEF']}
+              /admin (paso 14)                          -> rolesPermitidos={['ADMIN']} */}
         </Routes>
       </main>
       <Footer />
@@ -314,6 +352,7 @@ function App() {
         onLogin={iniciarSesion}
         sesion={sesion}
         onLogout={cerrarSesion}
+        onAviso={setAviso}
       />
       {/* Toast: se dibuja una sola vez para toda la app; al cerrarlo el aviso vuelve a null */}
       <Toast message={aviso ?? ''} visible={aviso !== null} onClose={() => setAviso(null)} />

@@ -76,7 +76,7 @@ function Header({ cartCount, sesion, onLogout }) {
           )}
 
           {/* Carrito con insignia de cantidad */}
-          <Link to="/carrito" className="icon-link" aria-label={`Carrito, ${cartCount} platos`}>
+          <Link to="/cesta" className="icon-link" aria-label={`Cesta, ${cartCount} platos`}>
             <span className="material-symbols-outlined">shopping_bag</span>
             <span className="count" aria-hidden="true">{cartCount}</span>
           </Link>
