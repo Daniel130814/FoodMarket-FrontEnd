@@ -46,6 +46,10 @@ function Header({ cartCount, sesion, onLogout }) {
               {enlace.texto}
             </NavLink>
           ))}
+          {/* Renderizado condicional: este enlace solo lo ve un chef con sesión iniciada */}
+          {sesion !== null && sesion.role === 'CHEF' && (
+            <NavLink to="/mis-publicaciones" className="nav-link">Mis publicaciones</NavLink>
+          )}
         </nav>
 
         {/* Accesos rápidos de la derecha: cuenta y carrito */}
@@ -97,6 +101,15 @@ function Header({ cartCount, sesion, onLogout }) {
                 {enlace.texto}
               </NavLink>
             ))}
+            {sesion !== null && sesion.role === 'CHEF' && (
+              <NavLink
+                to="/mis-publicaciones"
+                className="nav-link block !py-3"
+                onClick={() => setMenuOpen(false)}
+              >
+                Mis publicaciones
+              </NavLink>
+            )}
           </nav>
 
           {/* Sección de autenticación en el menú móvil */}

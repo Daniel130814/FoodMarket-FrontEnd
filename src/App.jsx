@@ -12,9 +12,11 @@ import DetallePlato from './views/DetallePlato'
 import Carrito from './views/Carrito'
 import Checkout from './views/Checkout'
 import MisPedidos from './views/MisPedidos'
+import MisPublicaciones from './views/MisPublicaciones'
 import Ingreso from './views/Ingreso'
 import Registro from './views/Registro'
 import PLATOS_EJEMPLO from './data/platosEjemplo'
+import MIS_PLATOS_EJEMPLO from './data/misPlatosEjemplo'
 
 // ---------------------------------------------------------------------------------------
 // PEDIDOS DE EJEMPLO (TEMPORAL, paso 11b). Tienen la forma de OrderResponse de la API
@@ -125,11 +127,12 @@ const rolDePrueba = (username) => {
 //  - onConfirmOrder: función (domicilioId) para confirmar el pedido; se reenvía a Checkout.
 //  - onAdd: función (platoId, cantidad) para agregar al carrito; se reenvía a Inicio, Catalogo (que se la pasan a PlatoCard) y DetallePlato.
 //  - pedidos / onCancelOrder: la lista de pedidos y la función (pedidoId) para cancelar uno; se reenvían a MisPedidos.
+//  - misPlatos: las publicaciones del chef; se reenvían a MisPublicaciones.
 //  - onLogin: función (datos) para iniciar sesión; se reenvía a Ingreso y Registro.
 //  - sesion / onLogout: la sesión actual (o null) y la función para cerrarla; se reenvían al Header.
 //    AppContent además usa sesion para proteger las rutas (RutaProtegida) y para decidir si se puede agregar al carrito.
 //  - onAviso: función (texto) para mostrar un Toast; AppContent la usa cuando un rol no puede comprar.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onConfirmOrder, pedidos, onCancelOrder, onLogin, sesion, onLogout, onAviso }) {
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onConfirmOrder, pedidos, onCancelOrder, misPlatos, onLogin, sesion, onLogout, onAviso }) {
   const location = useLocation()
 
   // useNavigate devuelve una función para cambiar de ruta desde el código. Se puede usar acá
@@ -208,8 +211,18 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
             }
           />
 
+          {/* Rutas del CHEF */}
+          <Route
+            path="/mis-publicaciones"
+            element={
+              <RutaProtegida sesion={sesion} rolesPermitidos={['CHEF']}>
+                <MisPublicaciones platos={misPlatos} />
+              </RutaProtegida>
+            }
+          />
+
           {/* LUGAR PREPARADO: estas rutas se agregan cuando existan sus vistas, con el mismo patrón.
-              /mis-publicaciones, /publicar, /publicar/:id (11b.10) -> rolesPermitidos={['CHEF']}
+              /publicar, /publicar/:id (11b.10c) -> rolesPermitidos={['CHEF']}
               /admin (paso 14)                          -> rolesPermitidos={['ADMIN']} */}
         </Routes>
       </main>
@@ -239,6 +252,15 @@ function App() {
   // hablar con el padre que tienen en común. Por eso el estado sube hasta App.
   // Arranca con los pedidos de ejemplo. En el paso 12 se reemplaza por GET /orders.
   const [pedidos, setPedidos] = useState(PEDIDOS_EJEMPLO)
+
+  // ESTADO DE LAS PUBLICACIONES DEL CHEF: sus platos en cualquier estado (BORRADOR, PUBLICADO,
+  // AGOTADO, PAUSADO), con la forma de PlatoResponse. Vive en App porque lo LEE MisPublicaciones
+  // y lo ESCRIBE PublicarPlato (y las acciones de la lista): vistas hermanas que solo pueden
+  // hablar con el padre común. Es el mismo razonamiento que el estado pedidos.
+  // MOCK: son siempre las del chef de prueba. En el paso 13 se piden al backend.
+  // Por ahora solo desestructuramos el primer valor: el setter (setMisPlatos) se agrega en 11b.10b,
+  // cuando existan las acciones que modifican los platos.
+  const [misPlatos] = useState(MIS_PLATOS_EJEMPLO)
 
   // Estado del aviso (Toast): el texto a mostrar, o null si no hay aviso.
   const [aviso, setAviso] = useState(null)
@@ -406,6 +428,7 @@ function App() {
         onConfirmOrder={confirmarPedido}
         pedidos={pedidos}
         onCancelOrder={cancelarPedido}
+        misPlatos={misPlatos}
         onLogin={iniciarSesion}
         sesion={sesion}
         onLogout={cerrarSesion}
