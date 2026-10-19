@@ -32,7 +32,7 @@ function PlatoCard({ dish, onAdd }) {
       </Link>
       <div className="mt-4 flex flex-1 flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
-          {/* TODO: la API no trae el nombre del chef; llega como chefNombre solo en el ejemplo */}
+          {/* TODO(backend): chefNombre en los platos (hoy solo existe en los datos de ejemplo) */}
           <span className="truncate text-label-md text-on-surface-variant">{chefNombre}</span>
         </div>
         <h3 className="dish__title font-display text-title-md text-primary">

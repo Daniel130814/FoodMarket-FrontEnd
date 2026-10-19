@@ -17,7 +17,7 @@ function CartItem({ item, onQuantityChange, onRemove }) {
 
   return (
     <li className="flex gap-4 py-5 first:pt-0 last:pb-0">
-      {/* TODO: la API no trae la imagen del plato en los ítems del carrito; usamos un placeholder.
+      {/* TODO(backend): imagenUrl, stockDisponible y chefNombre en los ítems del carrito; usamos un placeholder.
           En el paso 12 se puede buscar la foto con GET /platos/{platoId}. */}
       <div
         className="grid h-20 w-20 flex-none place-items-center rounded-md bg-surface-container text-on-surface-variant sm:h-[104px] sm:w-[104px]"

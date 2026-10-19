@@ -23,7 +23,7 @@ const PLATOS_EJEMPLO = [
     stockDisponible: 4,
     estado: 'PUBLICADO',
     chefId: 1,
-    // TODO: la API todavía no trae el nombre del chef (solo chefId). Se quita en el paso 12.
+    // TODO(backend): chefNombre en los platos (la API todavía solo trae chefId).
     chefNombre: 'Matteo Rossi',
     categorias: ['Pastas'],
     ingredientes: [
@@ -66,7 +66,7 @@ const PLATOS_EJEMPLO = [
     stockDisponible: 12,
     estado: 'PUBLICADO',
     chefId: 2,
-    // TODO: la API todavía no trae el nombre del chef (solo chefId). Se quita en el paso 12.
+    // TODO(backend): chefNombre en los platos (la API todavía solo trae chefId).
     chefNombre: 'Kenji Takahashi',
     categorias: ['Vegetariano'],
     ingredientes: [],
@@ -84,7 +84,7 @@ const PLATOS_EJEMPLO = [
     stockDisponible: 8,
     estado: 'PUBLICADO',
     chefId: 3,
-    // TODO: la API todavía no trae el nombre del chef (solo chefId). Se quita en el paso 12.
+    // TODO(backend): chefNombre en los platos (la API todavía solo trae chefId).
     chefNombre: 'Clara Méndez',
     categorias: ['Pastas'],
     ingredientes: [
@@ -108,7 +108,7 @@ const PLATOS_EJEMPLO = [
     stockDisponible: 15,
     estado: 'PUBLICADO',
     chefId: 4,
-    // TODO: la API todavía no trae el nombre del chef (solo chefId). Se quita en el paso 12.
+    // TODO(backend): chefNombre en los platos (la API todavía solo trae chefId).
     chefNombre: 'Elena y Tomás',
     categorias: ['Panadería'],
     ingredientes: [],
@@ -126,7 +126,7 @@ const PLATOS_EJEMPLO = [
     stockDisponible: 9,
     estado: 'PUBLICADO',
     chefId: 3,
-    // TODO: la API todavía no trae el nombre del chef (solo chefId). Se quita en el paso 12.
+    // TODO(backend): chefNombre en los platos (la API todavía solo trae chefId).
     chefNombre: 'Clara Méndez',
     categorias: ['Vegano'],
     ingredientes: [],
@@ -144,7 +144,7 @@ const PLATOS_EJEMPLO = [
     stockDisponible: 3,
     estado: 'PUBLICADO',
     chefId: 2,
-    // TODO: la API todavía no trae el nombre del chef (solo chefId). Se quita en el paso 12.
+    // TODO(backend): chefNombre en los platos (la API todavía solo trae chefId).
     chefNombre: 'Kenji Takahashi',
     categorias: ['Carnes'],
     ingredientes: [],
@@ -162,7 +162,7 @@ const PLATOS_EJEMPLO = [
     stockDisponible: 0,
     estado: 'AGOTADO',
     chefId: 1,
-    // TODO: la API todavía no trae el nombre del chef (solo chefId). Se quita en el paso 12.
+    // TODO(backend): chefNombre en los platos (la API todavía solo trae chefId).
     chefNombre: 'Matteo Rossi',
     categorias: ['Pastas'],
     ingredientes: [],
@@ -180,7 +180,7 @@ const PLATOS_EJEMPLO = [
     stockDisponible: 10,
     estado: 'PUBLICADO',
     chefId: 5,
-    // TODO: la API todavía no trae el nombre del chef (solo chefId). Se quita en el paso 12.
+    // TODO(backend): chefNombre en los platos (la API todavía solo trae chefId).
     chefNombre: 'Elena Rostand',
     categorias: ['Postres'],
     ingredientes: [],
@@ -198,7 +198,7 @@ const PLATOS_EJEMPLO = [
     stockDisponible: 7,
     estado: 'PUBLICADO',
     chefId: 6,
-    // TODO: la API todavía no trae el nombre del chef (solo chefId). Se quita en el paso 12.
+    // TODO(backend): chefNombre en los platos (la API todavía solo trae chefId).
     chefNombre: 'Camila Valenzuela',
     categorias: ['Carnes'],
     ingredientes: [],

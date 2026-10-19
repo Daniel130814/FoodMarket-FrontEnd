@@ -22,7 +22,7 @@ const MIS_PLATOS_EJEMPLO = [
     stockDisponible: 0,
     estado: 'BORRADOR',
     chefId: 1,
-    // TODO: la API todavía no trae el nombre del chef (solo chefId). Se quita en el paso 13.
+    // TODO(backend): chefNombre en los platos (la API todavía solo trae chefId).
     chefNombre: 'Matteo Rossi',
     categorias: ['Pastas'],
     ingredientes: [],
@@ -38,7 +38,7 @@ const MIS_PLATOS_EJEMPLO = [
     stockDisponible: 5,
     estado: 'PAUSADO',
     chefId: 1,
-    // TODO: la API todavía no trae el nombre del chef (solo chefId). Se quita en el paso 13.
+    // TODO(backend): chefNombre en los platos (la API todavía solo trae chefId).
     chefNombre: 'Matteo Rossi',
     categorias: ['Vegetariano'],
     ingredientes: [],

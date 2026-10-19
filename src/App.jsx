@@ -512,7 +512,7 @@ function App() {
       stockDisponible: datos.stockDisponible,
       estado,
       chefId: existente === undefined ? 1 : existente.chefId,
-      // TODO: la API todavía no trae el nombre del chef (solo chefId). Se quita en el paso 13.
+      // TODO(backend): chefNombre en los platos (la API todavía solo trae chefId).
       chefNombre: existente === undefined ? 'Matteo Rossi' : existente.chefNombre,
       // La API recibe ids pero devuelve los NOMBRES de las categorías y los datos del ingrediente.
       categorias: CATEGORIAS_EJEMPLO.filter((c) => datos.categoriasIds.includes(c.id)).map((c) => c.description),
