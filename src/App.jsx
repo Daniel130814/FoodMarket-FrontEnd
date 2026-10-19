@@ -114,15 +114,6 @@ const calcularCarrito = (id, items) => {
   return { id, items: itemsCalculados, totalEstimado: Math.round(totalEstimado * 100) / 100 }
 }
 
-// TEMPORAL (paso 11b.3, se ELIMINA en el paso 12): para poder probar los tres roles sin backend,
-// el ingreso asigna el rol según el username. Si es "cliente", "chef" o "admin" tiene ese rol;
-// cualquier otro username entra como CLIENTE. En el paso 12 el rol lo manda la API en el login.
-const rolDePrueba = (username) => {
-  if (username === 'chef') return 'CHEF'
-  if (username === 'admin') return 'ADMIN'
-  return 'CLIENTE'
-}
-
 // Componente interno que evalúa la ruta actual para decidir el diseño (layout)
 // Props:
 //  - cartCount: total de platos del carrito. AppContent NO lo usa: solo lo reenvía al Header.
@@ -134,7 +125,7 @@ const rolDePrueba = (username) => {
 //  - misPlatos y onStockChange / onTogglePause / onDiscount / onDeleteDish: las publicaciones del chef y
 //    las acciones sobre ellas; se reenvían a MisPublicaciones (misPlatos también a PublicarPlato).
 //  - onSavePlato: función (datos, platoId) para crear o editar un plato; se reenvía a PublicarPlato.
-//  - onLogin: función (datos) para iniciar sesión; se reenvía a Ingreso y Registro.
+//  - onLogin: función (sesion) para iniciar sesión; se reenvía a Ingreso y Registro.
 //  - sesion / onLogout: la sesión actual (o null) y la función para cerrarla; se reenvían al Header.
 //    AppContent además usa sesion para proteger las rutas (RutaProtegida) y para decidir si se puede agregar al carrito.
 //  - onAviso: función (texto) para mostrar un Toast; AppContent la usa cuando un rol no puede comprar.
@@ -399,19 +390,12 @@ function App() {
     setAviso('Pedido confirmado')
   }
 
-  // Inicia sesión. Ingreso y Registro la llaman con los datos del formulario.
-  // SIMULADA (paso 11b.3): no hay backend, así que armamos la sesión nosotros. En el paso 12 esta
-  // función hace POST /api/v1/auth/authenticate (o /register) y guarda lo que responde la API.
-  //  - Registro manda tipoCuenta (CLIENTE o CHEF): ese es el rol.
-  //  - Ingreso no manda tipoCuenta: el rol sale de rolDePrueba (TEMPORAL).
-  const iniciarSesion = (datos) => {
-    const esRegistro = datos.tipoCuenta !== undefined
-    const role = esRegistro ? datos.tipoCuenta : rolDePrueba(datos.username)
-    // ?? usa el valor de la derecha si el de la izquierda es undefined (el login no manda nombre).
-    const nombre = datos.nombre ?? datos.username
-
-    setSesion({ token: 'token-simulado', userId: 7, role, nombre })
-    setAviso(`Ingresaste como ${nombre}`)
+  // Inicia sesión: guarda la sesión que le pasan y avisa. Ingreso y Registro la llaman cuando el
+  // backend responde bien, con { token, userId, role, nombre } ya armado.
+  // TODO (12.1b): guardar también el token en localStorage con la clave jwtToken.
+  const iniciarSesion = (nuevaSesion) => {
+    setSesion(nuevaSesion)
+    setAviso(`Ingresaste como ${nuevaSesion.nombre}`)
   }
 
   // Cierra la sesión: vuelve a null. (Las rutas protegidas del paso 11b.4 sacan al usuario de las

@@ -5,9 +5,17 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/Logo'
 
+// TEMPORAL (se ELIMINA en el paso 12.1b, cuando el ingreso use la API real): para poder probar los
+// roles sin backend, el rol sale del username. "chef" y "admin" tienen ese rol; cualquier otro es CLIENTE.
+const rolDePrueba = (username) => {
+  if (username === 'chef') return 'CHEF'
+  if (username === 'admin') return 'ADMIN'
+  return 'CLIENTE'
+}
+
 // Props:
-//  - onLogin: función (datos) que viene de App (iniciarSesion). El formulario solo le avisa
-//    "este usuario quiere ingresar" con { username, password }; App decide qué pasa con la sesión.
+//  - onLogin: función (sesion) que viene de App (iniciarSesion). Le pasamos la sesión
+//    { token, userId, role, nombre }. Por ahora la armamos nosotros (simulada).
 function Ingreso({ onLogin }) {
   // useState nos permite guardar y actualizar datos que cambian con la interacción del usuario.
   // Un solo objeto guarda todos los campos del formulario ("componentes controlados"). Las claves
@@ -77,11 +85,13 @@ function Ingreso({ onLogin }) {
       return
     }
 
-    // Todo bien: limpiamos errores, le avisamos a App y redirigimos al inicio.
+    // Todo bien: limpiamos errores, le avisamos a App y redirigimos.
     // El backend normaliza el username (sin espacios y en minúsculas); lo hacemos igual acá.
+    // SIMULADO (hasta 12.1b): armamos la sesión nosotros; después la arma la respuesta de la API.
     setErrorGeneral(false)
     setErrores({})
-    onLogin({ username: datos.username.trim().toLowerCase(), password: datos.password })
+    const username = datos.username.trim().toLowerCase()
+    onLogin({ token: 'token-simulado', userId: 7, role: rolDePrueba(username), nombre: username })
     navigate(destino)
   }
 

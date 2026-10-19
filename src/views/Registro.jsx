@@ -1,14 +1,19 @@
-// Vista de registro (Crear cuenta) de Appetitos.
+// Vista de registro (Crear cuenta) de Appetitos (ruta /registro).
 // Permite a nuevos usuarios registrarse eligiendo si quieren comprar o vender comida.
+// Crea la cuenta en el backend con POST /api/v1/auth/register.
 
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/Logo'
 import RoleOption from '../components/RoleOption'
 
+// URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env;
+// solo se exponen las que empiezan con VITE_. Con la URL completa (con http://) armamos cada pedido.
+const API_URL = import.meta.env.VITE_API_URL
+
 // Props:
-//  - onLogin: función (datos) que viene de App (iniciarSesion). Al registrarse, el formulario le
-//    avisa con { username, nombre, apellido, email, password, tipoCuenta }.
+//  - onLogin: función (sesion) que viene de App (iniciarSesion). Cuando el backend crea la cuenta
+//    le pasamos la sesión { token, userId, role, nombre } con lo que respondió la API.
 function Registro({ onLogin }) {
   // useLocation devuelve la ruta actual: location.search es la parte de la URL que empieza con ?
   // (por ejemplo '?rol=vendedor' en /registro?rol=vendedor) y location.state es lo que nos mandaron
@@ -34,6 +39,10 @@ function Registro({ onLogin }) {
   // Estado para los mensajes de error por campo y error general (ej: usuario duplicado)
   const [errores, setErrores] = useState({})
   const [errorGeneral, setErrorGeneral] = useState('')
+
+  // Estado: true mientras esperamos la respuesta del backend. Sirve para deshabilitar el botón y
+  // evitar que un doble clic mande dos registros.
+  const [enviando, setEnviando] = useState(false)
 
   const navigate = useNavigate()
 
@@ -90,29 +99,60 @@ function Registro({ onLogin }) {
       return
     }
 
-    // El backend normaliza username e email (sin espacios y en minúsculas); lo hacemos igual acá.
-    const usernameNormalizado = datos.username.trim().toLowerCase()
-
-    // Disparador de demo según la guía: si el usuario es "clara.mendez", simulamos que ya existe.
-    // (La API responde 400 "El usuario que se intenta agregar ya existe").
-    if (usernameNormalizado === 'clara.mendez') {
-      setErrorGeneral('Ese nombre de usuario ya está en uso. Elegí otro.')
-      setErrores({ username: 'Ese nombre de usuario ya está en uso.' })
-      return
-    }
-
-    // Todo bien: limpiamos errores, le avisamos a App con los datos normalizados y vamos al inicio.
-    setErrores({})
-    setErrorGeneral('')
-    onLogin({
-      username: usernameNormalizado,
+    // El cuerpo del pedido: los mismos campos que pide POST /api/v1/auth/register. El backend
+    // normaliza username e email (sin espacios y en minúsculas); lo hacemos igual acá.
+    const cuerpoPedido = {
+      username: datos.username.trim().toLowerCase(),
       nombre: datos.nombre.trim(),
       apellido: datos.apellido.trim(),
       email: datos.email.trim().toLowerCase(),
       password: datos.password,
       tipoCuenta: datos.tipoCuenta,
+    }
+
+    setErrores({})
+    setErrorGeneral('')
+    setEnviando(true)
+
+    // POST al backend. Va dentro de este handler (se ejecuta una vez por envío) y NUNCA en un
+    // useEffect: un efecto puede correr más de una vez y crearía cuentas duplicadas.
+    // fetch devuelve una promesa: algo que se resuelve más tarde. Se encadena con .then()
+    // (cuando llega la respuesta), .catch() (si algo falla) y .finally() (pase lo que pase).
+    fetch(`${API_URL}/api/v1/auth/register`, {
+      method: 'POST',
+      // headers (en plural) avisa que mandamos JSON; JSON.stringify pasa el objeto a texto JSON.
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cuerpoPedido),
     })
-    navigate(destino)
+      .then((response) =>
+        // Leemos el cuerpo y recién ahí decidimos si fue éxito o error, porque fetch NO manda los
+        // errores HTTP (400, 401, 500...) al .catch(): hay que mirar response.ok nosotros.
+        response.json().then((respuesta) => {
+          if (!response.ok) {
+            const fallo = new Error(respuesta.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          // La API envuelve todo en { success, message, data }: lo que nos sirve está en data.
+          return respuesta.data
+        })
+      )
+      .then((data) => {
+        // data trae { access_token, userId, role } (ojo: access_token, no token). El nombre no
+        // viene en la respuesta, así que usamos el que escribió la persona en el formulario.
+        onLogin({ token: data.access_token, userId: data.userId, role: data.role, nombre: cuerpoPedido.nombre })
+        navigate(destino)
+      })
+      .catch((fallo) => {
+        // Un error con status viene del backend (por ejemplo el 400 "usuario ya existe"): mostramos
+        // su mensaje. Sin status, ni siquiera llegamos al servidor (está apagado o hay un bloqueo).
+        setErrorGeneral(
+          fallo.status === undefined
+            ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
+            : fallo.message
+        )
+      })
+      .finally(() => setEnviando(false))
   }
 
   return (
@@ -321,8 +361,8 @@ function Registro({ onLogin }) {
             </div>
 
             {/* Botón para enviar */}
-            <button type="submit" className="btn btn-primary btn-block !min-h-[54px]">
-              Crear cuenta
+            <button type="submit" className="btn btn-primary btn-block !min-h-[54px]" disabled={enviando}>
+              {enviando ? 'Creando cuenta...' : 'Crear cuenta'}
             </button>
           </form>
 
