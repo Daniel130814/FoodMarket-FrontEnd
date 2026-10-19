@@ -59,7 +59,7 @@ const PEDIDOS_ANTERIORES = [
   {
     id: 1018,
     when: '24 de septiembre',
-    chefs: 'Camila Valenzuela y Elena y Tomás',
+    chefs: 'Camila Valenzuela, Elena y Tomás',
     status: 'Entregado',
     message: 'Costillar ahumado, Focaccia con higos',
     delivery: null,
@@ -197,9 +197,11 @@ function App() {
     setItems(items.filter((item) => item.plato.id !== platoId))
   }
 
-  // Vacía el carrito con un array vacío nuevo.
+  // Vacía el carrito con un array vacío nuevo y avisa que el pedido se confirmó.
+  // Carrito la llama (como onClear) solo cuando la confirmación salió bien.
   const vaciar = () => {
     setItems([])
+    setAviso('¡Pedido confirmado! Cada taller ya empezó a preparar tus platos.')
   }
 
   // VALORES CALCULADOS: salen de items en cada render, no se guardan aparte.
