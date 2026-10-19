@@ -124,12 +124,12 @@ const rolDePrueba = (username) => {
 //  - carrito, onQuantityChange, onRemove: también solo se reenvían, a Carrito (y carrito a Checkout).
 //  - onConfirmOrder: función (domicilioId) para confirmar el pedido; se reenvía a Checkout.
 //  - onAdd: función (platoId, cantidad) para agregar al carrito; se reenvía a Inicio, Catalogo (que se la pasan a PlatoCard) y DetallePlato.
-//  - ordersInProgress / previousOrders: grupos de ejemplo que se reenvían a MisPedidos.
+//  - pedidos / onCancelOrder: la lista de pedidos y la función (pedidoId) para cancelar uno; se reenvían a MisPedidos.
 //  - onLogin: función (datos) para iniciar sesión; se reenvía a Ingreso y Registro.
 //  - sesion / onLogout: la sesión actual (o null) y la función para cerrarla; se reenvían al Header.
 //    AppContent además usa sesion para proteger las rutas (RutaProtegida) y para decidir si se puede agregar al carrito.
 //  - onAviso: función (texto) para mostrar un Toast; AppContent la usa cuando un rol no puede comprar.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onConfirmOrder, ordersInProgress, previousOrders, onLogin, sesion, onLogout, onAviso }) {
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onConfirmOrder, pedidos, onCancelOrder, onLogin, sesion, onLogout, onAviso }) {
   const location = useLocation()
 
   // useNavigate devuelve una función para cambiar de ruta desde el código. Se puede usar acá
@@ -203,7 +203,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
             path="/pedidos"
             element={
               <RutaProtegida sesion={sesion} rolesPermitidos={['CLIENTE']}>
-                <MisPedidos ordersInProgress={ordersInProgress} previousOrders={previousOrders} />
+                <MisPedidos pedidos={pedidos} onCancelOrder={onCancelOrder} />
               </RutaProtegida>
             }
           />
@@ -371,12 +371,27 @@ function App() {
     setAviso('Cerraste sesión')
   }
 
-  // VALORES CALCULADOS: salen del carrito y de los pedidos en cada render, no se guardan aparte.
+  // Cancela un pedido: lo pasa a CANCELADO (y a todos sus subpedidos) y avisa con un Toast.
+  // MisPedidos la llama cuando el cliente confirma el diálogo. Solo se cancelan los PENDIENTE.
+  // SIMULADA (paso 11b.8): en el paso 12 esto es PATCH /orders/{id}/cancelar, y el backend repone el stock.
+  // map devuelve un array NUEVO; solo reemplazamos el pedido que cambió.
+  const cancelarPedido = (pedidoId) => {
+    setPedidos(
+      pedidos.map((pedido) =>
+        pedido.id === pedidoId && pedido.estado === 'PENDIENTE'
+          ? {
+              ...pedido,
+              estado: 'CANCELADO',
+              subPedidos: pedido.subPedidos.map((subPedido) => ({ ...subPedido, estado: 'CANCELADO' })),
+            }
+          : pedido
+      )
+    )
+    setAviso(`Cancelaste el pedido n.º ${pedidoId}`)
+  }
+
+  // VALOR CALCULADO: sale del carrito en cada render, no se guarda aparte.
   const cantidadTotal = carrito.items.reduce((acumulado, item) => acumulado + item.cantidad, 0)
-  // Por ahora App separa los pedidos en dos grupos con filter. En el paso 11b.8 esa separación
-  // pasa a la vista de Mis pedidos (pestañas "En curso" y "Anteriores").
-  const pedidosEnCurso = pedidos.filter((pedido) => pedido.estado !== 'ENTREGADO' && pedido.estado !== 'CANCELADO')
-  const pedidosAnteriores = pedidos.filter((pedido) => pedido.estado === 'ENTREGADO' || pedido.estado === 'CANCELADO')
 
   return (
     <BrowserRouter>
@@ -389,8 +404,8 @@ function App() {
         onQuantityChange={cambiarCantidad}
         onRemove={quitar}
         onConfirmOrder={confirmarPedido}
-        ordersInProgress={pedidosEnCurso}
-        previousOrders={pedidosAnteriores}
+        pedidos={pedidos}
+        onCancelOrder={cancelarPedido}
         onLogin={iniciarSesion}
         sesion={sesion}
         onLogout={cerrarSesion}

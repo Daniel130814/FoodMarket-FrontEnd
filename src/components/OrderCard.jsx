@@ -1,10 +1,14 @@
-// Tarjeta de un pedido: datos, platos por chef y estado. Se usa en views/MisPedidos.
+// Tarjeta de un pedido: datos, seguimiento de estado y platos agrupados por chef. Se usa en views/MisPedidos.
+import OrderTrack from './OrderTrack'
 
 // Props:
 //  - order: pedido con la forma de OrderResponse de la API
 //    { id, fechaCreacion, estado, precioFinal, pagoBloqueado,
 //      subPedidos: [{ id, chefId, chefNombre, estado, subtotal, detalles: [{ id, platoId, platoNombre, cantidad, precioUnitario, subtotal }] }] }
-function OrderCard({ order }) {
+//  - steps: pasos del seguimiento [{ estado, etiqueta }] (los arma el padre con los textos amigables)
+//  - onCancel: función del padre (pedidoId); se llama al tocar "Cancelar pedido". La tarjeta no
+//    cancela nada: solo avisa "quiero cancelar este pedido".
+function OrderCard({ order, steps, onCancel }) {
   // Formatea el importe en pesos con separadores argentinos, igual que en el carrito.
   const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
 
@@ -16,11 +20,6 @@ function OrderCard({ order }) {
   const cantidadTotal = order.subPedidos
     .flatMap((subPedido) => subPedido.detalles)
     .reduce((acumulado, detalle) => acumulado + detalle.cantidad, 0)
-
-  // TEMPORAL: el estado se muestra tal cual lo manda la API, sin guion bajo. En el paso 11b.8 se
-  // reemplaza por el mapeo a textos amigables (Cocinando, En camino...).
-  const nombreEstado = order.estado.replace('_', ' ')
-  const claseBadge = order.estado === 'ENTREGADO' ? 'badge-leaf' : order.estado === 'CANCELADO' ? 'badge-dark' : 'badge-sand'
 
   return (
     <article className="rounded-xl bg-surface-container-lowest p-5 shadow-ambient sm:p-7" aria-labelledby={`pedido-${order.id}`}>
@@ -35,28 +34,40 @@ function OrderCard({ order }) {
         </div>
       </header>
 
-      <div className="mt-7 border-t border-hairline pt-5">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <p className="text-label-lg text-primary">Estado del pedido</p>
-          <span className={`badge ${claseBadge}`}>{nombreEstado}</span>
-        </div>
-        {/* Un bloque por chef (subpedido), con sus platos. key = id del subpedido / del detalle */}
-        <ul className="mt-4 space-y-4">
-          {order.subPedidos.map((subPedido) => (
-            <li key={subPedido.id}>
-              <p className="text-label-md text-on-surface-variant">{subPedido.chefNombre}</p>
-              <ul className="mt-1">
-                {subPedido.detalles.map((detalle) => (
-                  <li key={detalle.id} className="flex justify-between gap-4 text-body-sm text-primary">
-                    <span>{detalle.cantidad} × {detalle.platoNombre}</span>
-                    <span className="tabular">{formatear(detalle.subtotal)}</span>
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
+      {/* Renderizado condicional: un pedido cancelado no tiene seguimiento, solo su badge */}
+      <div className="mt-7">
+        {order.estado === 'CANCELADO' ? (
+          <span className="badge badge-terra">Cancelado</span>
+        ) : (
+          <OrderTrack steps={steps} currentState={order.estado} />
+        )}
       </div>
+
+      {/* Un bloque por chef (subpedido), con sus platos. key = id del subpedido / del detalle */}
+      <ul className="mt-7 space-y-4 border-t border-hairline pt-5">
+        {order.subPedidos.map((subPedido) => (
+          <li key={subPedido.id}>
+            <p className="text-label-md text-on-surface-variant">{subPedido.chefNombre}</p>
+            <ul className="mt-1">
+              {subPedido.detalles.map((detalle) => (
+                <li key={detalle.id} className="flex justify-between gap-4 text-body-sm text-primary">
+                  <span>{detalle.cantidad} × {detalle.platoNombre}</span>
+                  <span className="tabular">{formatear(detalle.subtotal)}</span>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
+
+      {/* Solo se puede cancelar mientras el pedido está pendiente de confirmación (regla de la API) */}
+      {order.estado === 'PENDIENTE' && (
+        <div className="mt-5 flex justify-end">
+          <button type="button" className="btn btn-quiet btn-sm text-error" onClick={() => onCancel(order.id)}>
+            Cancelar pedido
+          </button>
+        </div>
+      )}
     </article>
   )
 }
