@@ -290,7 +290,7 @@ Componentes compartidos: `Header`, `Footer`, `Logo`, `Button`, `PlatoCard`, `Sea
 Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y checkout, gestión de productos del vendedor, administración de cuentas) antes que los extras.
 
 - [x] **1–10** Proyecto Vite, estructura, Tailwind + tokens, Logo/Button, PlatoCard, Header/Footer/rutas, Home + Catálogo, Detalle, Cesta (primero con `CartContext`, ya migrada a estado en `App.jsx` por props: si todavía existe `src/context/`, hay que borrarla), Ingreso + Registro.
-- [x] **11** Mis pedidos (interfaz con datos de ejemplo): Tabs, OrderCard, OrderTrack, Dialog controlado por estado.
+- [ ] **11** Mis pedidos (interfaz con datos de ejemplo): Tabs, OrderCard, OrderTrack, Dialog controlado por estado.
 - [ ] **11b (recortado por la fecha)** Solo esto, con datos de ejemplo: (a) Registro e Ingreso con los campos reales, (b) `RutaProtegida` por rol con `useLocation`, (c) `LoadingState` y `ErrorState` en las vistas, (d) vista `Checkout` con `DomicilioPicker` y `DomicilioForm`. Todo lo demás (forma de los datos, filtros, estados de pedido, vistas del chef) se hace directamente contra la API real.
 - [ ] **12 Conexión con el backend.** Cada sub-paso termina probado en el navegador:
   - 12.1 `.env` + CORS funcionando; login y registro reales; guardar el JWT; restaurar sesión; logout.
