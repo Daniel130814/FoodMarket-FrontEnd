@@ -1,9 +1,10 @@
-// Selector de cantidad (− 1 +). Se usa en views/DetallePlato.
+// Selector de cantidad (− 1 +). Se usa en views/DetallePlato (cantidad a pedir), components/CartItem
+// (cantidad en la cesta) y components/PublicationRow (stock de un plato del chef).
 // No guarda la cantidad: la recibe del padre y le avisa cuando el usuario la cambia.
 
 // Props:
 //  - value: cantidad actual (la maneja el padre con useState)
-//  - min / max: límites permitidos (en el detalle: 1 y el stock del plato)
+//  - min / max: límites permitidos (en el detalle: 1 y el stock del plato; en el stock del chef: 0 y 99)
 //  - onChange: función del padre; la llamamos con la nueva cantidad
 function QuantityStepper({ value, min = 1, max, onChange }) {
   return (

@@ -1,3 +1,4 @@
+// Vista de inicio (ruta /). Muestra la portada, las categorías, los platos de hoy y los chefs.
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import PlatoCard from '../components/PlatoCard'
@@ -10,7 +11,7 @@ import CATEGORIAS_EJEMPLO from '../data/categoriasEjemplo'
 import CHEFS_EJEMPLO from '../data/chefsEjemplo'
 
 // Props:
-//  - onAdd: función (plato, cantidad) de App. Inicio no la usa: solo la reenvía a cada PlatoCard.
+//  - onAdd: función (platoId, cantidad) de App. Inicio no la usa: solo la reenvía a cada PlatoCard.
 function Inicio({ onAdd }) {
   // ESTADOS de carga y error. Todavía no hay pedidos al backend, así que quedan fijos en
   // "no cargando" y "sin error". Solo desestructuramos el primer valor: el setter (setCargando /
@@ -29,6 +30,7 @@ function Inicio({ onAdd }) {
     return <ErrorState message={error} />
   }
 
+  // slice(0, 4) devuelve una copia con los primeros 4 platos (sin modificar la lista original).
   const platosDeHoy = PLATOS_EJEMPLO.slice(0, 4)
 
   return (

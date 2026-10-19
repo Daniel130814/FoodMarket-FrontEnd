@@ -1,4 +1,5 @@
-// Pantalla de "no hay nada para mostrar" con un botón de salida. Se usa en views/Carrito.
+// Pantalla de "no hay nada para mostrar" con un botón de salida.
+// Se usa en views/Carrito, Catalogo, Checkout, DetallePlato y PublicarPlato.
 import Button from './Button'
 
 // Props:

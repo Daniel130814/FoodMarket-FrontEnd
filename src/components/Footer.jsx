@@ -1,5 +1,7 @@
+// Pie de página de la app. Se muestra en todas las vistas menos Ingreso y Registro (lo dibuja App.jsx).
 import Logo from './Logo'
 
+// No recibe props: es contenido fijo.
 function Footer() {
   return (
     <footer className="mt-20 border-t border-hairline bg-surface-container-low lg:mt-28">
