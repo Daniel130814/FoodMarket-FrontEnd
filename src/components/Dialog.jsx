@@ -1,15 +1,18 @@
 // Ventana de confirmación (diálogo modal) hecha con estado. Reemplaza a confirm(), que está prohibido.
-// Se usa en views/MisPedidos para confirmar la cancelación de un pedido.
+// Se usa en views/MisPedidos (cancelar un pedido) y views/MisPublicaciones (eliminar plato y aplicar descuento).
 // Componente "tonto": el padre decide cuándo se muestra (open) y qué pasa al confirmar o cancelar.
 
 // Props:
 //  - open: true para mostrarlo, false para esconderlo (lo guarda el padre con useState)
 //  - title / message: textos del diálogo
-//  - confirmLabel: texto del botón que confirma (el rojo)
+//  - confirmLabel: texto del botón que confirma
+//  - confirmVariant: color del botón que confirma: 'danger' (rojo, por defecto) o 'primary'
+//  - children: contenido extra entre el mensaje y los botones (por ejemplo, un campo de texto).
+//    children es la prop especial con todo lo que se escribe ENTRE las etiquetas <Dialog>...</Dialog>.
 //  - cancelLabel: texto del botón que cierra sin hacer nada
 //  - onConfirm: función del padre; se llama al tocar el botón que confirma
 //  - onCancel: función del padre; se llama al tocar el otro botón o el fondo oscuro
-function Dialog({ open, title, message, confirmLabel, cancelLabel, onConfirm, onCancel }) {
+function Dialog({ open, title, message, confirmLabel, confirmVariant = 'danger', cancelLabel, onConfirm, onCancel, children }) {
   // Si no está abierto no dibujamos nada. null es "no mostrar nada" en React.
   if (!open) {
     return null
@@ -32,9 +35,10 @@ function Dialog({ open, title, message, confirmLabel, cancelLabel, onConfirm, on
       >
         <h2 id="dialog-titulo" className="font-display text-headline-md text-primary">{title}</h2>
         <p className="mt-2 text-body-md text-on-surface-variant">{message}</p>
+        {children}
         <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button type="button" className="btn btn-secondary" onClick={onCancel}>{cancelLabel}</button>
-          <button type="button" className="btn btn-danger" onClick={onConfirm}>{confirmLabel}</button>
+          <button type="button" className={`btn btn-${confirmVariant}`} onClick={onConfirm}>{confirmLabel}</button>
         </div>
       </div>
     </div>

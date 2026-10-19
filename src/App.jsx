@@ -17,6 +17,7 @@ import Ingreso from './views/Ingreso'
 import Registro from './views/Registro'
 import PLATOS_EJEMPLO from './data/platosEjemplo'
 import MIS_PLATOS_EJEMPLO from './data/misPlatosEjemplo'
+import RESENAS_EJEMPLO from './data/resenasEjemplo'
 
 // ---------------------------------------------------------------------------------------
 // PEDIDOS DE EJEMPLO (TEMPORAL, paso 11b). Tienen la forma de OrderResponse de la API
@@ -127,12 +128,13 @@ const rolDePrueba = (username) => {
 //  - onConfirmOrder: función (domicilioId) para confirmar el pedido; se reenvía a Checkout.
 //  - onAdd: función (platoId, cantidad) para agregar al carrito; se reenvía a Inicio, Catalogo (que se la pasan a PlatoCard) y DetallePlato.
 //  - pedidos / onCancelOrder: la lista de pedidos y la función (pedidoId) para cancelar uno; se reenvían a MisPedidos.
-//  - misPlatos: las publicaciones del chef; se reenvían a MisPublicaciones.
+//  - misPlatos y onStockChange / onTogglePause / onDiscount / onDeleteDish: las publicaciones del chef y
+//    las acciones sobre ellas; se reenvían a MisPublicaciones.
 //  - onLogin: función (datos) para iniciar sesión; se reenvía a Ingreso y Registro.
 //  - sesion / onLogout: la sesión actual (o null) y la función para cerrarla; se reenvían al Header.
 //    AppContent además usa sesion para proteger las rutas (RutaProtegida) y para decidir si se puede agregar al carrito.
 //  - onAviso: función (texto) para mostrar un Toast; AppContent la usa cuando un rol no puede comprar.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onConfirmOrder, pedidos, onCancelOrder, misPlatos, onLogin, sesion, onLogout, onAviso }) {
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onConfirmOrder, pedidos, onCancelOrder, misPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onLogin, sesion, onLogout, onAviso }) {
   const location = useLocation()
 
   // useNavigate devuelve una función para cambiar de ruta desde el código. Se puede usar acá
@@ -216,7 +218,13 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
             path="/mis-publicaciones"
             element={
               <RutaProtegida sesion={sesion} rolesPermitidos={['CHEF']}>
-                <MisPublicaciones platos={misPlatos} />
+                <MisPublicaciones
+                  platos={misPlatos}
+                  onStockChange={onStockChange}
+                  onTogglePause={onTogglePause}
+                  onDiscount={onDiscount}
+                  onDelete={onDeleteDish}
+                />
               </RutaProtegida>
             }
           />
@@ -258,9 +266,7 @@ function App() {
   // y lo ESCRIBE PublicarPlato (y las acciones de la lista): vistas hermanas que solo pueden
   // hablar con el padre común. Es el mismo razonamiento que el estado pedidos.
   // MOCK: son siempre las del chef de prueba. En el paso 13 se piden al backend.
-  // Por ahora solo desestructuramos el primer valor: el setter (setMisPlatos) se agrega en 11b.10b,
-  // cuando existan las acciones que modifican los platos.
-  const [misPlatos] = useState(MIS_PLATOS_EJEMPLO)
+  const [misPlatos, setMisPlatos] = useState(MIS_PLATOS_EJEMPLO)
 
   // Estado del aviso (Toast): el texto a mostrar, o null si no hay aviso.
   const [aviso, setAviso] = useState(null)
@@ -412,6 +418,70 @@ function App() {
     setAviso(`Cancelaste el pedido n.º ${pedidoId}`)
   }
 
+  // ACCIONES DEL CHEF sobre sus publicaciones. MisPublicaciones las llama; App cambia el estado
+  // misPlatos y avisa con un Toast. SIMULADAS (paso 11b.10b): en el paso 13 cada una es una
+  // llamada a la API (la mayoría es PUT /platos/{id}, que reemplaza el plato entero).
+
+  // Cambia solo algunos campos de UN plato. map devuelve un array NUEVO y reemplaza únicamente el
+  // plato con ese id; {...plato, ...cambios} copia el plato y pisa los campos que cambiaron.
+  const actualizarPlato = (platoId, cambios) => {
+    setMisPlatos(misPlatos.map((plato) => (plato.id === platoId ? { ...plato, ...cambios } : plato)))
+  }
+
+  // Ajusta el stock. Regla de la API: un plato PUBLICADO o AGOTADO pasa a AGOTADO si el stock es 0
+  // y vuelve a PUBLICADO si tiene stock; BORRADOR y PAUSADO conservan su estado.
+  const ajustarStock = (platoId, stock) => {
+    const plato = misPlatos.find((p) => p.id === platoId)
+    const seCalculaEstado = plato.estado === 'PUBLICADO' || plato.estado === 'AGOTADO'
+    const estado = seCalculaEstado ? (stock === 0 ? 'AGOTADO' : 'PUBLICADO') : plato.estado
+    actualizarPlato(platoId, { stockDisponible: stock, estado })
+    setAviso(`Stock de ${plato.nombre}: ${stock}`)
+  }
+
+  // Pausa un plato publicado o reactiva uno pausado.
+  const pausarOReactivar = (platoId) => {
+    const plato = misPlatos.find((p) => p.id === platoId)
+
+    if (plato.estado !== 'PAUSADO') {
+      actualizarPlato(platoId, { estado: 'PAUSADO' })
+      setAviso(`${plato.nombre} quedó pausado`)
+      return
+    }
+    // Reactivar = publicar, y la API exige al menos una imagen para publicar.
+    if (plato.imagenesUrls.length === 0) {
+      setAviso('Un plato publicado debe tener al menos una imagen')
+      return
+    }
+    actualizarPlato(platoId, { estado: plato.stockDisponible === 0 ? 'AGOTADO' : 'PUBLICADO' })
+    setAviso(`${plato.nombre} se reactivó`)
+  }
+
+  // Aplica un descuento (0 a 99,99 %). El precio base no cambia; el precio con descuento es
+  // precio x (100 - porcentaje) / 100, con 2 decimales. Con 0 se quita el descuento.
+  const aplicarDescuento = (platoId, porcentaje) => {
+    const plato = misPlatos.find((p) => p.id === platoId)
+    const precioConDescuento = Math.round(plato.precio * (100 - porcentaje)) / 100
+    actualizarPlato(platoId, { descuentoPorcentaje: porcentaje, precioConDescuento })
+    setAviso(porcentaje === 0 ? `Quitaste el descuento de ${plato.nombre}` : `${plato.nombre} ahora tiene ${porcentaje} % de descuento`)
+  }
+
+  // Elimina un plato. Igual que la API: si el plato tiene historial (aparece en algún pedido o
+  // tiene reseñas) NO se borra, queda PAUSADO; si no, se borra de verdad. El mensaje es el mismo
+  // en los dos casos porque la API no avisa cuál de las dos pasó.
+  const eliminarPlato = (platoId) => {
+    const tienePedidos = pedidos.some((pedido) =>
+      pedido.subPedidos.some((subPedido) => subPedido.detalles.some((detalle) => detalle.platoId === platoId))
+    )
+    const tieneResenas = RESENAS_EJEMPLO.some((resena) => resena.platoId === platoId)
+
+    if (tienePedidos || tieneResenas) {
+      actualizarPlato(platoId, { estado: 'PAUSADO' })
+    } else {
+      setMisPlatos(misPlatos.filter((plato) => plato.id !== platoId))
+    }
+    setAviso('Plato eliminado o pausado correctamente')
+  }
+
   // VALOR CALCULADO: sale del carrito en cada render, no se guarda aparte.
   const cantidadTotal = carrito.items.reduce((acumulado, item) => acumulado + item.cantidad, 0)
 
@@ -429,6 +499,10 @@ function App() {
         pedidos={pedidos}
         onCancelOrder={cancelarPedido}
         misPlatos={misPlatos}
+        onStockChange={ajustarStock}
+        onTogglePause={pausarOReactivar}
+        onDiscount={aplicarDescuento}
+        onDeleteDish={eliminarPlato}
         onLogin={iniciarSesion}
         sesion={sesion}
         onLogout={cerrarSesion}
