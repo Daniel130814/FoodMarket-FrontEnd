@@ -117,7 +117,8 @@ const calcularCarrito = (id, items) => {
 //  - carrito, onQuantityChange, onRemove, onClear: también solo se reenvían, a Carrito.
 //  - onAdd: función (platoId, cantidad) para agregar al carrito; se reenvía a Inicio, Catalogo (que se la pasan a PlatoCard) y DetallePlato.
 //  - ordersInProgress / previousOrders: grupos de ejemplo que se reenvían a MisPedidos.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, ordersInProgress, previousOrders }) {
+//  - onLogin: función (datos) para iniciar sesión; se reenvía a Ingreso y Registro.
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, ordersInProgress, previousOrders, onLogin }) {
   const location = useLocation()
 
   // Las vistas de autenticación ocupan toda la pantalla y traen su propio encabezado
@@ -126,8 +127,8 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
   if (esPantallaAuth) {
     return (
       <Routes>
-        <Route path="/ingreso" element={<Ingreso />} />
-        <Route path="/registro" element={<Registro />} />
+        <Route path="/ingreso" element={<Ingreso onLogin={onLogin} />} />
+        <Route path="/registro" element={<Registro onLogin={onLogin} />} />
       </Routes>
     )
   }
@@ -256,6 +257,13 @@ function App() {
     setAviso('¡Pedido confirmado! Cada taller ya empezó a preparar tus platos.')
   }
 
+  // Inicia sesión. Ingreso y Registro la llaman con los datos del formulario.
+  // PROVISORIO (paso 11b.2): todavía no guarda ninguna sesión, solo muestra un aviso para poder
+  // probar los formularios. En el paso 11b.3 se reemplaza por el estado de sesión real.
+  const iniciarSesion = (datos) => {
+    setAviso(`Ingresaste como ${datos.username}`)
+  }
+
   // VALOR CALCULADO: sale del carrito en cada render, no se guarda aparte.
   const cantidadTotal = carrito.items.reduce((acumulado, item) => acumulado + item.cantidad, 0)
 
@@ -272,6 +280,7 @@ function App() {
         onClear={vaciar}
         ordersInProgress={PEDIDOS_EN_CURSO}
         previousOrders={PEDIDOS_ANTERIORES}
+        onLogin={iniciarSesion}
       />
       {/* Toast: se dibuja una sola vez para toda la app; al cerrarlo el aviso vuelve a null */}
       <Toast message={aviso ?? ''} visible={aviso !== null} onClose={() => setAviso(null)} />

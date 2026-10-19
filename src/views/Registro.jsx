@@ -4,19 +4,26 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Logo from '../components/Logo'
+import RoleOption from '../components/RoleOption'
 
-function Registro() {
+// Props:
+//  - onLogin: función (datos) que viene de App (iniciarSesion). Al registrarse, el formulario le
+//    avisa con { username, nombre, apellido, email, password, tipoCuenta }.
+function Registro({ onLogin }) {
   // useSearchParams nos permite leer los parámetros que vienen en la URL (por ejemplo: /registro?rol=vendedor)
   const [searchParams] = useSearchParams()
-  const rolPorDefecto = searchParams.get('rol') === 'vendedor' ? 'vendedor' : 'comprador'
+  const tipoCuentaPorDefecto = searchParams.get('rol') === 'vendedor' ? 'CHEF' : 'CLIENTE'
 
-  // Estados locales para cada campo del formulario
-  const [rol, setRol] = useState(rolPorDefecto)
-  const [nombre, setNombre] = useState('')
-  const [apellido, setApellido] = useState('')
-  const [usuario, setUsuario] = useState('')
-  const [correo, setCorreo] = useState('')
-  const [clave, setClave] = useState('')
+  // Un solo objeto guarda todos los campos. Las claves son los mismos nombres que pide la API
+  // en POST /api/v1/auth/register. tipoCuenta solo puede ser "CLIENTE" o "CHEF".
+  const [datos, setDatos] = useState({
+    tipoCuenta: tipoCuentaPorDefecto,
+    nombre: '',
+    apellido: '',
+    username: '',
+    email: '',
+    password: '',
+  })
 
   // Estado para mostrar u ocultar la clave
   const [mostrarClave, setMostrarClave] = useState(false)
@@ -27,36 +34,50 @@ function Registro() {
 
   const navigate = useNavigate()
 
-  // Validación y envío del formulario
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  // Un único handler para todos los inputs y radios. event.target es el campo que cambió:
+  // name dice cuál es ('nombre', 'email', 'tipoCuenta'...) y value es lo que tiene ahora.
+  // [name]: value es una "clave calculada": usa el valor de name como clave del objeto.
+  // ...datos copia los campos anteriores (el estado no se modifica, se reemplaza por uno nuevo).
+  const handleChange = (event) => {
+    const { name, value } = event.target
+    setDatos({ ...datos, [name]: value })
+    // Si el usuario corrige un campo, limpiamos su error
+    if (errores[name]) {
+      setErrores({ ...errores, [name]: null })
+    }
+  }
+
+  // Validación y envío del formulario. Las reglas son las de la API (ENDPOINTS.md, sección 2).
+  const handleSubmit = (event) => {
+    event.preventDefault()
 
     const nuevosErrores = {}
 
-    // Validamos campos obligatorios
-    if (!nombre.trim()) nuevosErrores.nombre = 'Escribí tu nombre.'
-    if (!apellido.trim()) nuevosErrores.apellido = 'Escribí tu apellido.'
+    // nombre y apellido: obligatorios (@NotBlank)
+    if (datos.nombre.trim() === '') nuevosErrores.nombre = 'Escribí tu nombre.'
+    if (datos.apellido.trim() === '') nuevosErrores.apellido = 'Escribí tu apellido.'
 
-    // Validación de formato de usuario (entre 4 y 20 caracteres alfanuméricos, puntos o guiones)
-    const regexUsuario = /^[A-Za-z0-9._]{4,20}$/
-    if (!usuario.trim()) {
-      nuevosErrores.usuario = 'Escribí tu nombre de usuario.'
-    } else if (!regexUsuario.test(usuario)) {
-      nuevosErrores.usuario = 'Usá entre 4 y 20 letras, números, puntos o guiones bajos.'
+    // username: obligatorio y de 3 a 50 caracteres
+    const largoUsername = datos.username.trim().length
+    if (largoUsername === 0) {
+      nuevosErrores.username = 'Escribí tu nombre de usuario.'
+    } else if (largoUsername < 3 || largoUsername > 50) {
+      nuevosErrores.username = 'Usá entre 3 y 50 caracteres.'
     }
 
-    // Validación básica de correo
-    if (!correo.trim()) {
-      nuevosErrores.correo = 'Escribí tu correo electrónico.'
-    } else if (!correo.includes('@') || !correo.includes('.')) {
-      nuevosErrores.correo = 'Escribí un correo válido, por ejemplo nombre@correo.com.'
+    // email: obligatorio y con formato válido. La expresión regular pide texto, una @, texto,
+    // un punto y texto, sin espacios.
+    if (datos.email.trim() === '') {
+      nuevosErrores.email = 'Escribí tu correo electrónico.'
+    } else if (!/^\S+@\S+\.\S+$/.test(datos.email.trim())) {
+      nuevosErrores.email = 'Escribí un correo válido, por ejemplo nombre@correo.com.'
     }
 
-    // Validación de longitud de contraseña
-    if (!clave) {
-      nuevosErrores.clave = 'Escribí una contraseña.'
-    } else if (clave.length < 8) {
-      nuevosErrores.clave = 'Usá al menos 8 caracteres.'
+    // password: obligatoria y de mínimo 8 caracteres
+    if (datos.password === '') {
+      nuevosErrores.password = 'Escribí una contraseña.'
+    } else if (datos.password.length < 8) {
+      nuevosErrores.password = 'Usá al menos 8 caracteres.'
     }
 
     // Si hay errores de formato, los mostramos y no continuamos
@@ -66,16 +87,28 @@ function Registro() {
       return
     }
 
-    // Disparador de demo según la guía: si el usuario es "clara.mendez", simulamos conflicto 409
-    if (usuario.toLowerCase() === 'clara.mendez') {
+    // El backend normaliza username e email (sin espacios y en minúsculas); lo hacemos igual acá.
+    const usernameNormalizado = datos.username.trim().toLowerCase()
+
+    // Disparador de demo según la guía: si el usuario es "clara.mendez", simulamos que ya existe.
+    // (La API responde 400 "El usuario que se intenta agregar ya existe").
+    if (usernameNormalizado === 'clara.mendez') {
       setErrorGeneral('Ese nombre de usuario ya está en uso. Elegí otro.')
-      setErrores({ usuario: 'Ese nombre de usuario ya está en uso.' })
+      setErrores({ username: 'Ese nombre de usuario ya está en uso.' })
       return
     }
 
-    // Si todo es válido, limpiamos errores y redirigimos al inicio
+    // Todo bien: limpiamos errores, le avisamos a App con los datos normalizados y vamos al inicio.
     setErrores({})
     setErrorGeneral('')
+    onLogin({
+      username: usernameNormalizado,
+      nombre: datos.nombre.trim(),
+      apellido: datos.apellido.trim(),
+      email: datos.email.trim().toLowerCase(),
+      password: datos.password,
+      tipoCuenta: datos.tipoCuenta,
+    })
     navigate('/')
   }
 
@@ -120,55 +153,27 @@ function Registro() {
 
           {/* Formulario */}
           <form className="mt-8 space-y-5" onSubmit={handleSubmit} noValidate>
-            {/* Selección de rol: Comprador o Vendedor */}
+            {/* Tipo de cuenta: CLIENTE (comprador) o CHEF (vendedor) */}
             <fieldset>
               <legend className="label">¿Para qué usás Appetitos?</legend>
               <div className="grid gap-3 sm:grid-cols-2">
-                {/* Opción Comprador */}
-                <label className="option">
-                  <input
-                    type="radio"
-                    name="rol"
-                    value="comprador"
-                    className="radio mt-0.5"
-                    checked={rol === 'comprador'}
-                    onChange={() => setRol('comprador')}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2 text-label-lg text-primary">
-                      <span className="material-symbols-outlined text-[20px] text-surface-tint" aria-hidden="true">
-                        shopping_bag
-                      </span>
-                      Quiero comprar
-                    </span>
-                    <span className="mt-0.5 block text-body-sm text-on-surface-variant">
-                      Pedís platos de chefs de tu barrio.
-                    </span>
-                  </span>
-                </label>
-
-                {/* Opción Vendedor */}
-                <label className="option">
-                  <input
-                    type="radio"
-                    name="rol"
-                    value="vendedor"
-                    className="radio mt-0.5"
-                    checked={rol === 'vendedor'}
-                    onChange={() => setRol('vendedor')}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2 text-label-lg text-primary">
-                      <span className="material-symbols-outlined text-[20px] text-surface-tint" aria-hidden="true">
-                        soup_kitchen
-                      </span>
-                      Quiero vender
-                    </span>
-                    <span className="mt-0.5 block text-body-sm text-on-surface-variant">
-                      Publicás tus platos y manejás tu stock.
-                    </span>
-                  </span>
-                </label>
+                {/* Cada opción es un RoleOption; ambas comparten el mismo handleChange */}
+                <RoleOption
+                  value="CLIENTE"
+                  checked={datos.tipoCuenta === 'CLIENTE'}
+                  onChange={handleChange}
+                  icon="shopping_bag"
+                  title="Quiero comprar"
+                  description="Pedís platos de chefs de tu barrio."
+                />
+                <RoleOption
+                  value="CHEF"
+                  checked={datos.tipoCuenta === 'CHEF'}
+                  onChange={handleChange}
+                  icon="soup_kitchen"
+                  title="Quiero vender"
+                  description="Publicás tus platos y manejás tu stock."
+                />
               </div>
             </fieldset>
 
@@ -184,11 +189,8 @@ function Registro() {
                   type="text"
                   className="field"
                   autoComplete="given-name"
-                  value={nombre}
-                  onChange={(e) => {
-                    setNombre(e.target.value)
-                    if (errores.nombre) setErrores({ ...errores, nombre: null })
-                  }}
+                  value={datos.nombre}
+                  onChange={handleChange}
                   aria-invalid={errores.nombre ? 'true' : 'false'}
                 />
                 {errores.nombre && (
@@ -211,11 +213,8 @@ function Registro() {
                   type="text"
                   className="field"
                   autoComplete="family-name"
-                  value={apellido}
-                  onChange={(e) => {
-                    setApellido(e.target.value)
-                    if (errores.apellido) setErrores({ ...errores, apellido: null })
-                  }}
+                  value={datos.apellido}
+                  onChange={handleChange}
                   aria-invalid={errores.apellido ? 'true' : 'false'}
                 />
                 {errores.apellido && (
@@ -231,98 +230,89 @@ function Registro() {
 
             {/* Nombre de usuario */}
             <div>
-              <label className="label" htmlFor="usuario">
+              <label className="label" htmlFor="username">
                 Nombre de usuario
               </label>
               <input
-                id="usuario"
-                name="usuario"
+                id="username"
+                name="username"
                 type="text"
                 className="field"
                 autoComplete="username"
                 placeholder="clara.mendez"
-                value={usuario}
-                onChange={(e) => {
-                  setUsuario(e.target.value)
-                  if (errores.usuario) setErrores({ ...errores, usuario: null })
-                }}
-                aria-invalid={errores.usuario ? 'true' : 'false'}
+                value={datos.username}
+                onChange={handleChange}
+                aria-invalid={errores.username ? 'true' : 'false'}
               />
-              <p className="hint">Es el nombre que ven los demás. Entre 4 y 20 caracteres.</p>
-              {errores.usuario && (
+              <p className="hint">Es el nombre con el que vas a ingresar. Entre 3 y 50 caracteres.</p>
+              {errores.username && (
                 <p className="hint hint--error">
                   <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
                     error
                   </span>
-                  <span>{errores.usuario}</span>
+                  <span>{errores.username}</span>
                 </p>
               )}
             </div>
 
             {/* Correo electrónico */}
             <div>
-              <label className="label" htmlFor="correo">
+              <label className="label" htmlFor="email">
                 Correo electrónico
               </label>
               <input
-                id="correo"
-                name="correo"
+                id="email"
+                name="email"
                 type="email"
                 className="field"
                 autoComplete="email"
                 placeholder="nombre@correo.com"
-                value={correo}
-                onChange={(e) => {
-                  setCorreo(e.target.value)
-                  if (errores.correo) setErrores({ ...errores, correo: null })
-                }}
-                aria-invalid={errores.correo ? 'true' : 'false'}
+                value={datos.email}
+                onChange={handleChange}
+                aria-invalid={errores.email ? 'true' : 'false'}
               />
-              {errores.correo && (
+              {errores.email && (
                 <p className="hint hint--error">
                   <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
                     error
                   </span>
-                  <span>{errores.correo}</span>
+                  <span>{errores.email}</span>
                 </p>
               )}
             </div>
 
             {/* Contraseña con botón para mostrar u ocultar */}
             <div>
-              <label className="label" htmlFor="clave">
+              <label className="label" htmlFor="password">
                 Contraseña
               </label>
               <div className="relative">
                 <input
-                  id="clave"
-                  name="clave"
+                  id="password"
+                  name="password"
                   type={mostrarClave ? 'text' : 'password'}
                   className="field pr-24"
                   autoComplete="new-password"
-                  value={clave}
-                  onChange={(e) => {
-                    setClave(e.target.value)
-                    if (errores.clave) setErrores({ ...errores, clave: null })
-                  }}
-                  aria-invalid={errores.clave ? 'true' : 'false'}
+                  value={datos.password}
+                  onChange={handleChange}
+                  aria-invalid={errores.password ? 'true' : 'false'}
                 />
                 <button
                   type="button"
                   className="btn btn-quiet btn-sm absolute right-1.5 top-1/2 -translate-y-1/2"
                   onClick={() => setMostrarClave(!mostrarClave)}
-                  aria-controls="clave"
+                  aria-controls="password"
                 >
                   {mostrarClave ? 'Ocultar' : 'Mostrar'}
                 </button>
               </div>
               <p className="hint">Mínimo 8 caracteres.</p>
-              {errores.clave && (
+              {errores.password && (
                 <p className="hint hint--error">
                   <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
                     error
                   </span>
-                  <span>{errores.clave}</span>
+                  <span>{errores.password}</span>
                 </p>
               )}
             </div>
