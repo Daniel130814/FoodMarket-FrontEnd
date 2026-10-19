@@ -27,7 +27,7 @@ function PlatoCard({ dish, onAdd }) {
       >
         <img src={imagenesUrls[0]} alt={nombre} className="h-full w-full object-cover" />
         {state === 'soldout' && (
-          <span className="badge badge-dark absolute left-3 top-3">Agotado hoy</span>
+          <span className="badge badge-dark absolute left-3 top-3">Agotado</span>
         )}
       </Link>
       <div className="mt-4 flex flex-1 flex-col gap-2">
