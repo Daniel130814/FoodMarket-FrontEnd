@@ -10,6 +10,7 @@ import Inicio from './views/Inicio'
 import Catalogo from './views/Catalogo'
 import DetallePlato from './views/DetallePlato'
 import Carrito from './views/Carrito'
+import Checkout from './views/Checkout'
 import MisPedidos from './views/MisPedidos'
 import Ingreso from './views/Ingreso'
 import Registro from './views/Registro'
@@ -51,10 +52,11 @@ const crearSubPedido = (id, chefId, estado, detalles) => {
 }
 
 // Arma un pedido completo. precioFinal es la suma de los subtotales de sus subPedidos.
-const crearPedido = (id, fechaCreacion, estado, subPedidos) => ({
+// domicilioEntregaId es opcional: si no se pasa, usa el domicilio 5 de los pedidos de ejemplo.
+const crearPedido = (id, fechaCreacion, estado, subPedidos, domicilioEntregaId = 5) => ({
   id,
   userId: 7,
-  domicilioEntregaId: 5,
+  domicilioEntregaId,
   fechaCreacion,
   estado,
   precioFinal: subPedidos.reduce((acumulado, subPedido) => acumulado + subPedido.subtotal, 0),
@@ -89,14 +91,9 @@ const PEDIDOS_EJEMPLO = [
   ]),
 ]
 
-// Por ahora App separa los pedidos en dos grupos con filter. En el paso 11b.8 esa separación
-// pasa a la vista de Mis pedidos (pestañas "En curso" y "Anteriores").
-const PEDIDOS_EN_CURSO = PEDIDOS_EJEMPLO.filter(
-  (pedido) => pedido.estado !== 'ENTREGADO' && pedido.estado !== 'CANCELADO'
-)
-const PEDIDOS_ANTERIORES = PEDIDOS_EJEMPLO.filter(
-  (pedido) => pedido.estado === 'ENTREGADO' || pedido.estado === 'CANCELADO'
-)
+// Devuelve el id del chef dueño del plato de un ítem del carrito. El ítem no lo trae (la API no
+// manda el chef en los ítems), así que lo buscamos en los platos por platoId.
+const chefIdDelItem = (item) => PLATOS_EJEMPLO.find((plato) => plato.id === item.platoId).chefId
 
 // Recalcula el carrito completo a partir de sus ítems. Es la ÚNICA función que calcula
 // subtotales y total: así nunca quedan desincronizados (en producción lo calcula el backend).
@@ -124,14 +121,15 @@ const rolDePrueba = (username) => {
 // Props:
 //  - cartCount: total de platos del carrito. AppContent NO lo usa: solo lo reenvía al Header.
 //    Eso es "prop drilling": pasar un dato por un componente intermedio hasta quien lo necesita.
-//  - carrito, onQuantityChange, onRemove, onClear: también solo se reenvían, a Carrito.
+//  - carrito, onQuantityChange, onRemove: también solo se reenvían, a Carrito (y carrito a Checkout).
+//  - onConfirmOrder: función (domicilioId) para confirmar el pedido; se reenvía a Checkout.
 //  - onAdd: función (platoId, cantidad) para agregar al carrito; se reenvía a Inicio, Catalogo (que se la pasan a PlatoCard) y DetallePlato.
 //  - ordersInProgress / previousOrders: grupos de ejemplo que se reenvían a MisPedidos.
 //  - onLogin: función (datos) para iniciar sesión; se reenvía a Ingreso y Registro.
 //  - sesion / onLogout: la sesión actual (o null) y la función para cerrarla; se reenvían al Header.
 //    AppContent además usa sesion para proteger las rutas (RutaProtegida) y para decidir si se puede agregar al carrito.
 //  - onAviso: función (texto) para mostrar un Toast; AppContent la usa cuando un rol no puede comprar.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, ordersInProgress, previousOrders, onLogin, sesion, onLogout, onAviso }) {
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onConfirmOrder, ordersInProgress, previousOrders, onLogin, sesion, onLogout, onAviso }) {
   const location = useLocation()
 
   // useNavigate devuelve una función para cambiar de ruta desde el código. Se puede usar acá
@@ -189,8 +187,15 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
                   cartCount={cartCount}
                   onQuantityChange={onQuantityChange}
                   onRemove={onRemove}
-                  onClear={onClear}
                 />
+              </RutaProtegida>
+            }
+          />
+          <Route
+            path="/checkout"
+            element={
+              <RutaProtegida sesion={sesion} rolesPermitidos={['CLIENTE']}>
+                <Checkout carrito={carrito} cartCount={cartCount} onConfirm={onConfirmOrder} />
               </RutaProtegida>
             }
           />
@@ -204,7 +209,6 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
           />
 
           {/* LUGAR PREPARADO: estas rutas se agregan cuando existan sus vistas, con el mismo patrón.
-              /checkout (11b.7)                         -> rolesPermitidos={['CLIENTE']}
               /mis-publicaciones, /publicar, /publicar/:id (11b.10) -> rolesPermitidos={['CHEF']}
               /admin (paso 14)                          -> rolesPermitidos={['ADMIN']} */}
         </Routes>
@@ -228,6 +232,13 @@ function App() {
   // Vive acá, en el padre, porque el Header y las rutas protegidas necesitan saber quién es.
   // Sin localStorage: al recargar la página la sesión se pierde (todavía no hay persistencia).
   const [sesion, setSesion] = useState(null)
+
+  // ESTADO DE LOS PEDIDOS: la lista de pedidos del cliente, con la forma de OrderResponse.
+  // Vive en App (el padre común) porque lo ESCRIBE Checkout (al confirmar crea un pedido nuevo)
+  // y lo LEE Mis pedidos. Dos vistas hermanas no pueden pasarse datos entre sí: solo pueden
+  // hablar con el padre que tienen en común. Por eso el estado sube hasta App.
+  // Arranca con los pedidos de ejemplo. En el paso 12 se reemplaza por GET /orders.
+  const [pedidos, setPedidos] = useState(PEDIDOS_EJEMPLO)
 
   // Estado del aviso (Toast): el texto a mostrar, o null si no hay aviso.
   const [aviso, setAviso] = useState(null)
@@ -304,11 +315,38 @@ function App() {
     setCarrito(calcularCarrito(carrito.id, carrito.items.filter((item) => item.id !== itemId)))
   }
 
-  // Vacía el carrito (lista de ítems vacía) y avisa que el pedido se confirmó.
-  // Carrito la llama (como onClear) solo cuando la confirmación salió bien.
-  const vaciar = () => {
+  // Confirma el pedido: crea un pedido de ejemplo con estado PENDIENTE a partir de la cesta, la
+  // vacía y avisa. Checkout la llama con el id del domicilio elegido (onConfirm).
+  // SIMULADA (paso 11b.7): en el paso 12 esto es POST /carrito/checkout { domicilioEntregaId }, y
+  // el backend arma los subpedidos, descuenta el stock y devuelve el OrderResponse.
+  const confirmarPedido = (domicilioEntregaId) => {
+    // Id del pedido nuevo: el siguiente al más grande (lo asigna el backend en producción).
+    const idPedido = pedidos.reduce((mayor, pedido) => Math.max(mayor, pedido.id), 0) + 1
+
+    // Un subpedido POR CHEF. Primero sacamos los chefs distintos de la cesta:
+    // map pasa cada ítem a su chefId, y filter se queda con la primera aparición de cada uno
+    // (indexOf devuelve la primera posición donde está el valor).
+    const chefIds = carrito.items
+      .map(chefIdDelItem)
+      .filter((chefId, posicion, todos) => todos.indexOf(chefId) === posicion)
+
+    // Después, por cada chef, juntamos sus ítems y los pasamos a detalles del subpedido.
+    const subPedidos = chefIds.map((chefId, i) => {
+      const itemsDelChef = carrito.items.filter((item) => chefIdDelItem(item) === chefId)
+      const detalles = itemsDelChef.map((item, j) =>
+        crearDetalle(idPedido * 100 + i * 10 + j, item.platoId, item.cantidad)
+      )
+      return crearSubPedido(idPedido * 10 + i, chefId, 'PENDIENTE', detalles)
+    })
+
+    // ISO sin zona horaria, como manda la API: '2026-10-19T14:30:00'
+    const fechaCreacion = new Date().toISOString().slice(0, 19)
+    const pedidoNuevo = crearPedido(idPedido, fechaCreacion, 'PENDIENTE', subPedidos, domicilioEntregaId)
+
+    // Array nuevo con el pedido al principio (...pedidos copia los anteriores).
+    setPedidos([pedidoNuevo, ...pedidos])
     setCarrito(calcularCarrito(carrito.id, []))
-    setAviso('¡Pedido confirmado! Cada taller ya empezó a preparar tus platos.')
+    setAviso('Pedido confirmado')
   }
 
   // Inicia sesión. Ingreso y Registro la llaman con los datos del formulario.
@@ -333,8 +371,12 @@ function App() {
     setAviso('Cerraste sesión')
   }
 
-  // VALOR CALCULADO: sale del carrito en cada render, no se guarda aparte.
+  // VALORES CALCULADOS: salen del carrito y de los pedidos en cada render, no se guardan aparte.
   const cantidadTotal = carrito.items.reduce((acumulado, item) => acumulado + item.cantidad, 0)
+  // Por ahora App separa los pedidos en dos grupos con filter. En el paso 11b.8 esa separación
+  // pasa a la vista de Mis pedidos (pestañas "En curso" y "Anteriores").
+  const pedidosEnCurso = pedidos.filter((pedido) => pedido.estado !== 'ENTREGADO' && pedido.estado !== 'CANCELADO')
+  const pedidosAnteriores = pedidos.filter((pedido) => pedido.estado === 'ENTREGADO' || pedido.estado === 'CANCELADO')
 
   return (
     <BrowserRouter>
@@ -346,9 +388,9 @@ function App() {
         onAdd={agregar}
         onQuantityChange={cambiarCantidad}
         onRemove={quitar}
-        onClear={vaciar}
-        ordersInProgress={PEDIDOS_EN_CURSO}
-        previousOrders={PEDIDOS_ANTERIORES}
+        onConfirmOrder={confirmarPedido}
+        ordersInProgress={pedidosEnCurso}
+        previousOrders={pedidosAnteriores}
         onLogin={iniciarSesion}
         sesion={sesion}
         onLogout={cerrarSesion}
