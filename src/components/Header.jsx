@@ -13,7 +13,9 @@ const ENLACES = [
 // Props:
 //  - cartCount: cantidad total de platos en el carrito (el número de la insignia).
 //    Lo calcula App y llega por props: el Header solo lo muestra, no sabe de dónde sale.
-function Header({ cartCount }) {
+//  - sesion: null si no hay nadie ingresado, o { token, userId, role, nombre }. Decide qué se muestra.
+//  - onLogout: función sin argumentos de App para cerrar la sesión (el Header solo avisa "quiero salir").
+function Header({ cartCount, sesion, onLogout }) {
   // Estado local de UI: si el menú móvil está abierto. Solo le importa al Header,
   // por eso puede quedarse acá (la regla permite estado local de UI de un solo componente).
   const [menuOpen, setMenuOpen] = useState(false)
@@ -44,22 +46,41 @@ function Header({ cartCount }) {
               {enlace.texto}
             </NavLink>
           ))}
+          {/* Renderizado condicional: este enlace solo lo ve un chef con sesión iniciada */}
+          {sesion !== null && sesion.role === 'CHEF' && (
+            <NavLink to="/mis-publicaciones" className="nav-link">Mis publicaciones</NavLink>
+          )}
         </nav>
 
         {/* Accesos rápidos de la derecha: cuenta y carrito */}
         <div className="ml-auto flex items-center gap-1.5">
-          {/* Acceso a Ingreso / Cuenta */}
-          <Link
-            to="/ingreso"
-            className="icon-link"
-            aria-label="Ingresar a tu cuenta"
-            title="Ingresar"
-          >
-            <span className="material-symbols-outlined">person</span>
-          </Link>
+          {/* Renderizado condicional: sin sesión mostramos Ingresar / Registrarse; con sesión,
+              el nombre y el botón Salir. El ícono solo aparece en pantallas chicas (lg:hidden);
+              en las grandes van los dos enlaces con texto. */}
+          {sesion === null ? (
+            <>
+              <Link
+                to="/ingreso"
+                className="icon-link lg:hidden"
+                aria-label="Ingresar a tu cuenta"
+                title="Ingresar"
+              >
+                <span className="material-symbols-outlined">person</span>
+              </Link>
+              <div className="hidden items-center gap-2 lg:flex">
+                <Link to="/ingreso" className="btn btn-quiet btn-sm">Ingresar</Link>
+                <Link to="/registro" className="btn btn-primary btn-sm">Registrarse</Link>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="hidden max-w-[10rem] truncate text-label-md text-primary sm:inline">{sesion.nombre}</span>
+              <button type="button" className="btn btn-quiet btn-sm" onClick={onLogout}>Salir</button>
+            </div>
+          )}
 
           {/* Carrito con insignia de cantidad */}
-          <Link to="/carrito" className="icon-link" aria-label={`Carrito, ${cartCount} platos`}>
+          <Link to="/cesta" className="icon-link" aria-label={`Cesta, ${cartCount} platos`}>
             <span className="material-symbols-outlined">shopping_bag</span>
             <span className="count" aria-hidden="true">{cartCount}</span>
           </Link>
@@ -80,24 +101,51 @@ function Header({ cartCount }) {
                 {enlace.texto}
               </NavLink>
             ))}
+            {sesion !== null && sesion.role === 'CHEF' && (
+              <NavLink
+                to="/mis-publicaciones"
+                className="nav-link block !py-3"
+                onClick={() => setMenuOpen(false)}
+              >
+                Mis publicaciones
+              </NavLink>
+            )}
           </nav>
 
           {/* Sección de autenticación en el menú móvil */}
           <nav aria-label="Cuenta móvil" className="mt-2 flex flex-col border-t border-hairline pt-2">
-            <NavLink
-              to="/ingreso"
-              className="nav-link block !py-3"
-              onClick={() => setMenuOpen(false)}
-            >
-              Ingresar
-            </NavLink>
-            <NavLink
-              to="/registro"
-              className="nav-link block !py-3"
-              onClick={() => setMenuOpen(false)}
-            >
-              Crear cuenta
-            </NavLink>
+            {sesion === null ? (
+              <>
+                <NavLink
+                  to="/ingreso"
+                  className="nav-link block !py-3"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Ingresar
+                </NavLink>
+                <NavLink
+                  to="/registro"
+                  className="nav-link block !py-3"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Registrarse
+                </NavLink>
+              </>
+            ) : (
+              <>
+                <p className="px-3 py-2 text-label-md text-on-surface-variant">Hola, {sesion.nombre}</p>
+                <button
+                  type="button"
+                  className="nav-link block !py-3 text-left"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    onLogout()
+                  }}
+                >
+                  Salir
+                </button>
+              </>
+            )}
           </nav>
         </div>
       )}

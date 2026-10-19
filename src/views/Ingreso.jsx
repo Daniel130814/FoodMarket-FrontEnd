@@ -2,14 +2,17 @@
 // Se usa cuando el usuario quiere ingresar a su cuenta existente.
 
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/Logo'
 
-function Ingreso() {
+// Props:
+//  - onLogin: función (datos) que viene de App (iniciarSesion). El formulario solo le avisa
+//    "este usuario quiere ingresar" con { username, password }; App decide qué pasa con la sesión.
+function Ingreso({ onLogin }) {
   // useState nos permite guardar y actualizar datos que cambian con la interacción del usuario.
-  // Cada campo del formulario tiene su propio estado local ("componente controlado").
-  const [usuario, setUsuario] = useState('')
-  const [clave, setClave] = useState('')
+  // Un solo objeto guarda todos los campos del formulario ("componentes controlados"). Las claves
+  // son los mismos nombres que pide la API en POST /api/v1/auth/authenticate.
+  const [datos, setDatos] = useState({ username: '', password: '' })
 
   // Estado para alternar entre mostrar u ocultar los caracteres de la contraseña
   const [mostrarClave, setMostrarClave] = useState(false)
@@ -21,21 +24,42 @@ function Ingreso() {
   // useNavigate es un hook de React Router que nos permite redirigir al usuario por código
   const navigate = useNavigate()
 
+  // useLocation devuelve la ruta actual y el "state" con el que nos mandaron acá. Si venimos de
+  // una ruta protegida (o de agregar a la cesta sin sesión), location.state.from es esa ruta.
+  // Si entraron directo a /ingreso, location.state es null y el destino es el inicio.
+  // El signo ? evita un error cuando location.state es null.
+  const location = useLocation()
+  const destino = location.state?.from ?? '/'
+
+  // Un único handler para todos los inputs. event.target es el input que cambió:
+  //  - name: el atributo name del input ('username' o 'password')
+  //  - value: lo que escribió el usuario
+  // [name]: value es una "clave calculada": usa el valor de name como clave del objeto.
+  // ...datos copia los campos anteriores (el estado nunca se modifica, se reemplaza por uno nuevo).
+  const handleChange = (event) => {
+    const { name, value } = event.target
+    setDatos({ ...datos, [name]: value })
+    // Si el usuario empieza a escribir, limpiamos el error de ese campo
+    if (errores[name]) {
+      setErrores({ ...errores, [name]: null })
+    }
+  }
+
   // Manejamos el envío del formulario
-  const handleSubmit = (e) => {
+  const handleSubmit = (event) => {
     // Evitamos que el navegador recargue la página completa (comportamiento por defecto de HTML)
-    e.preventDefault()
+    event.preventDefault()
 
     const nuevosErrores = {}
 
-    // Validamos que los campos no estén vacíos
-    if (!usuario.trim()) {
-      nuevosErrores.usuario = 'Escribí tu usuario o tu correo.'
+    // La API pide username y password no vacíos (@NotBlank)
+    if (datos.username.trim() === '') {
+      nuevosErrores.username = 'Escribí tu nombre de usuario.'
     }
     // Solo verificamos que no esté vacía: la regla de longitud mínima vive en Registro
     // y las credenciales las valida el backend
-    if (!clave) {
-      nuevosErrores.clave = 'Escribí tu contraseña.'
+    if (datos.password === '') {
+      nuevosErrores.password = 'Escribí tu contraseña.'
     }
 
     // Si hay errores de validación en los campos, los guardamos y frenamos el envío
@@ -46,16 +70,19 @@ function Ingreso() {
     }
 
     // Disparador de demo según la guía: si la clave es "error1234", simulamos error de credenciales
-    if (clave === 'error1234') {
+    // (la API responde 401 cuando usuario o contraseña no coinciden).
+    if (datos.password === 'error1234') {
       setErrorGeneral(true)
       setErrores({})
       return
     }
 
-    // Si todo está bien, limpiamos errores y redirigimos al inicio
+    // Todo bien: limpiamos errores, le avisamos a App y redirigimos al inicio.
+    // El backend normaliza el username (sin espacios y en minúsculas); lo hacemos igual acá.
     setErrorGeneral(false)
     setErrores({})
-    navigate('/')
+    onLogin({ username: datos.username.trim().toLowerCase(), password: datos.password })
+    navigate(destino)
   }
 
   return (
@@ -101,34 +128,28 @@ function Ingreso() {
 
           {/* Formulario */}
           <form className="mt-8 space-y-5" onSubmit={handleSubmit} noValidate>
-            {/* Campo Usuario / Correo */}
+            {/* Campo Usuario: el login es por username, no por correo */}
             <div>
-              <label className="label" htmlFor="usuario">
-                Usuario o correo
+              <label className="label" htmlFor="username">
+                Nombre de usuario
               </label>
               <input
-                id="usuario"
-                name="usuario"
+                id="username"
+                name="username"
                 type="text"
                 className="field"
                 autoComplete="username"
                 placeholder="clara.mendez"
-                value={usuario}
-                onChange={(e) => {
-                  setUsuario(e.target.value)
-                  // Si el usuario empieza a escribir, limpiamos el error del campo
-                  if (errores.usuario) {
-                    setErrores({ ...errores, usuario: null })
-                  }
-                }}
-                aria-invalid={errores.usuario ? 'true' : 'false'}
+                value={datos.username}
+                onChange={handleChange}
+                aria-invalid={errores.username ? 'true' : 'false'}
               />
-              {errores.usuario && (
+              {errores.username && (
                 <p className="hint hint--error">
                   <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
                     error
                   </span>
-                  <span>{errores.usuario}</span>
+                  <span>{errores.username}</span>
                 </p>
               )}
             </div>
@@ -136,7 +157,7 @@ function Ingreso() {
             {/* Campo Contraseña */}
             <div>
               <div className="flex items-baseline justify-between">
-                <label className="label" htmlFor="clave">
+                <label className="label" htmlFor="password">
                   Contraseña
                 </label>
                 {/* TODO: reemplazar por <Link> cuando exista la pantalla de recuperación.
@@ -147,36 +168,31 @@ function Ingreso() {
               </div>
               <div className="relative">
                 <input
-                  id="clave"
-                  name="clave"
+                  id="password"
+                  name="password"
                   type={mostrarClave ? 'text' : 'password'}
                   className="field pr-24"
                   autoComplete="current-password"
-                  value={clave}
-                  onChange={(e) => {
-                    setClave(e.target.value)
-                    if (errores.clave) {
-                      setErrores({ ...errores, clave: null })
-                    }
-                  }}
-                  aria-invalid={errores.clave ? 'true' : 'false'}
+                  value={datos.password}
+                  onChange={handleChange}
+                  aria-invalid={errores.password ? 'true' : 'false'}
                 />
                 {/* Botón para alternar visibilidad de contraseña sin recargar ni tocar DOM */}
                 <button
                   type="button"
                   className="btn btn-quiet btn-sm absolute right-1.5 top-1/2 -translate-y-1/2"
                   onClick={() => setMostrarClave(!mostrarClave)}
-                  aria-controls="clave"
+                  aria-controls="password"
                 >
                   {mostrarClave ? 'Ocultar' : 'Mostrar'}
                 </button>
               </div>
-              {errores.clave && (
+              {errores.password && (
                 <p className="hint hint--error">
                   <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
                     error
                   </span>
-                  <span>{errores.clave}</span>
+                  <span>{errores.password}</span>
                 </p>
               )}
             </div>
@@ -190,7 +206,8 @@ function Ingreso() {
           {/* Enlace para ir a la pantalla de registro */}
           <p className="mt-8 text-center text-body-md text-on-surface-variant">
             ¿Todavía no tenés cuenta?{' '}
-            <Link to="/registro" className="link">
+            {/* Pasamos el mismo state para no perder la ruta de origen si se registra */}
+            <Link to="/registro" state={location.state} className="link">
               Crear cuenta
             </Link>
           </p>

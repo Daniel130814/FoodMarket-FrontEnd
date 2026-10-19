@@ -1,4 +1,4 @@
-// Aviso de error con una lista de mensajes (por ejemplo, conflictos de stock). Se usa en views/Carrito.
+// Aviso de error con una lista de mensajes (por ejemplo, conflictos de stock). Se usa en views/Checkout.
 
 // Props:
 //  - title: título del aviso

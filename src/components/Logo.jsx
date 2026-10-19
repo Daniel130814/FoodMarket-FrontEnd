@@ -1,4 +1,10 @@
+// Logo de Appetitos (texto con la manzana dibujada en SVG). Se usa en Header, Footer, Ingreso y Registro.
+
+// Props:
+//  - size: tamaño del logo: 'md' (por defecto) o 'lg'
+//  - onDark: true si se dibuja sobre un fondo oscuro (cambia los colores)
 function Logo({ size = 'md', onDark = false }) {
+  // Armamos la lista de clases CSS y la unimos con join(' '). push agrega un elemento a esta lista local.
   const clases = ['logo']
   if (size === 'lg') clases.push('logo--lg')
   if (onDark) clases.push('logo--on-dark')

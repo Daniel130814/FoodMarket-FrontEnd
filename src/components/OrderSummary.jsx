@@ -1,12 +1,14 @@
-// Resumen del pedido: platos, envío y total. Se usa en views/Carrito.
+// Resumen del pedido: platos, envío y total. Se usa en views/Carrito y views/Checkout.
 import Button from './Button'
 
 // Props:
 //  - units: cantidad total de porciones
 //  - subtotal: suma de los platos
 //  - shipping: costo de envío
-//  - onConfirm: función que se llama al tocar "Confirmar pedido"
-function OrderSummary({ units, subtotal, shipping, onConfirm }) {
+//  - onConfirm: función que se llama al tocar el botón de acción
+//  - buttonLabel: texto del botón ("Continuar con la compra" en la Cesta, "Confirmar pedido" en el Checkout)
+//  - disabled: true para deshabilitar el botón (por ejemplo, si falta elegir un domicilio)
+function OrderSummary({ units, subtotal, shipping, onConfirm, buttonLabel = 'Confirmar pedido', disabled = false }) {
   const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
 
   // El total se calcula acá a partir de lo que recibe; no se guarda en ningún estado
@@ -34,7 +36,7 @@ function OrderSummary({ units, subtotal, shipping, onConfirm }) {
           <p className="font-display text-price-lg tabular text-primary">{formatear(total)}</p>
         </div>
         <div className="mt-7">
-          <Button onClick={onConfirm}>Confirmar pedido · {formatear(total)}</Button>
+          <Button onClick={onConfirm} disabled={disabled}>{buttonLabel} · {formatear(total)}</Button>
         </div>
       </div>
     </aside>

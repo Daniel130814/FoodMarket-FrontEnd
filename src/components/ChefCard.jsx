@@ -1,4 +1,9 @@
+// Tarjeta de un chef (foto, taller, especialidades y una cita). Se usa en views/Inicio, en la sección "Quiénes cocinan".
+
+// Props:
+//  - chef: datos del chef { name, avatarUrl, verified, workshop, neighborhood, rating, yearsOfCraft, quote, specialties }
 function ChefCard({ chef }) {
+  // Desestructuración: sacamos del chef solo los campos que usa la tarjeta.
   const { name, avatarUrl, verified, workshop, neighborhood, rating, yearsOfCraft, quote, specialties } = chef
 
   return (
@@ -32,6 +37,7 @@ function ChefCard({ chef }) {
       </div>
       <blockquote className="flex-1 font-display text-[20px] italic leading-[30px] text-on-surface">{quote}</blockquote>
       <ul className="flex flex-wrap gap-2">
+        {/* map: un <li> por especialidad. key = el propio texto, que no se repite dentro de un chef */}
         {specialties.map((especialidad) => (
           <li key={especialidad} className="badge badge-mute">
             {especialidad}
