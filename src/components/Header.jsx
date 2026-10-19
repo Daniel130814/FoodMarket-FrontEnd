@@ -46,7 +46,10 @@ function Header({ cartCount, sesion, onLogout }) {
               {enlace.texto}
             </NavLink>
           ))}
-          {/* Renderizado condicional: este enlace solo lo ve un chef con sesión iniciada */}
+          {/* Renderizado condicional: cada enlace solo lo ve el rol que corresponde, con sesión iniciada */}
+          {sesion !== null && sesion.role === 'CLIENTE' && (
+            <NavLink to="/pedidos" className="nav-link">Mis pedidos</NavLink>
+          )}
           {sesion !== null && sesion.role === 'CHEF' && (
             <NavLink to="/mis-publicaciones" className="nav-link">Mis publicaciones</NavLink>
           )}
@@ -101,6 +104,15 @@ function Header({ cartCount, sesion, onLogout }) {
                 {enlace.texto}
               </NavLink>
             ))}
+            {sesion !== null && sesion.role === 'CLIENTE' && (
+              <NavLink
+                to="/pedidos"
+                className="nav-link block !py-3"
+                onClick={() => setMenuOpen(false)}
+              >
+                Mis pedidos
+              </NavLink>
+            )}
             {sesion !== null && sesion.role === 'CHEF' && (
               <NavLink
                 to="/mis-publicaciones"
