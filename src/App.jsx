@@ -143,6 +143,14 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
   // porque AppContent está DENTRO del BrowserRouter (App, que está afuera, no podría).
   const navigate = useNavigate()
 
+  // "Salir": cierra la sesión (App) y vuelve al inicio. Se hace acá y no en App porque App está
+  // afuera del router y no puede navegar. Sin el navigate, quien sale estando en una ruta privada
+  // quedaría en /ingreso, porque RutaProtegida lo redirige al ver que ya no hay sesión.
+  const salir = () => {
+    onLogout()
+    navigate('/')
+  }
+
   // Agregar a la cesta según la sesión. Las tarjetas y el detalle reciben ESTA función en lugar de
   // onAdd, así no saben nada de sesiones: siguen avisando "quiero agregar este plato".
   //  - Sin sesión: lo mandamos a ingresar (y después vuelve a esta misma página).
@@ -176,7 +184,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
   return (
     <>
       <a className="skip-link" href="#contenido">Ir al contenido</a>
-      <Header cartCount={cartCount} sesion={sesion} onLogout={onLogout} />
+      <Header cartCount={cartCount} sesion={sesion} onLogout={salir} />
       <main id="contenido" className="mx-auto max-w-shell px-5 py-10 lg:px-12">
         <Routes>
           {/* Rutas públicas: las puede ver cualquiera, con o sin sesión */}
@@ -457,12 +465,15 @@ function App() {
     setAviso(`Ingresaste como ${nuevaSesion.nombre}`)
   }
 
-  // Cierra la sesión: vuelve a null. (Las rutas protegidas del paso 11b.4 sacan al usuario de las
-  // páginas que ya no puede ver.)
+  // Cierra la sesión. Hay que limpiar TODO lo que pertenece al usuario que se va:
+  //  - la sesión (vuelve a null),
+  //  - el token guardado en localStorage (el tercer punto donde se usa: BORRAR al cerrar sesión),
+  //  - la cesta, para que la siguiente persona que use este navegador no herede sus platos.
   const cerrarSesion = () => {
     setSesion(null)
     // removeItem borra SOLO esta clave. Nunca localStorage.clear(), que borraría todo lo demás.
     localStorage.removeItem(CLAVE_TOKEN)
+    setCarrito(calcularCarrito(carrito.id, []))
     setAviso('Cerraste sesión')
   }
 
