@@ -26,6 +26,22 @@ const RESENAS_EJEMPLO = [
     fechaCreacion: '2026-10-12T15:00:00',
     clienteId: 12,
   },
+  {
+    id: 4,
+    platoId: 3,
+    calificacion: 4,
+    comentario: 'El ragú tiene muy buen sabor y la pasta llegó en su punto. Para mí le faltaba un poco de sal, pero lo recalenté y quedó perfecto.',
+    fechaCreacion: '2026-10-12T20:30:00',
+    clienteId: 11,
+  },
+  {
+    id: 5,
+    platoId: 3,
+    calificacion: 5,
+    comentario: 'Una de las mejores pastas que pedí. Se nota que el vino reduce despacio.',
+    fechaCreacion: '2026-10-14T13:10:00',
+    clienteId: 14,
+  },
 ]
 
 export default RESENAS_EJEMPLO

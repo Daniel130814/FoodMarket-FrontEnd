@@ -82,13 +82,35 @@ function DetallePlato({ onAdd }) {
   const tieneIngredientes = plato.ingredientes.length > 0
   const tieneResenas = resenas.length > 0
 
+  // PROMEDIO de las calificaciones. La API NO lo manda: se calcula acá a partir de las reseñas.
+  // reduce suma todas las calificaciones y se divide por la cantidad. Math.round(x * 10) / 10 lo
+  // redondea a 1 decimal; toLocaleString lo muestra con coma (4,5), como en Argentina.
+  // Si no hay reseñas no dividimos (dividir por 0 daría NaN): el promedio queda en null.
+  const promedio = tieneResenas
+    ? resenas.reduce((acumulado, resena) => acumulado + resena.calificacion, 0) / resenas.length
+    : null
+  const promedioTexto = promedio === null
+    ? ''
+    : (Math.round(promedio * 10) / 10).toLocaleString('es-AR', { minimumFractionDigits: 1 })
+
   return (
     <>
     <div className="grid gap-10 lg:grid-cols-2 lg:gap-12">
       {/* Gallery recibe las fotos y el título por props; el estado vive adentro suyo */}
       <Gallery images={plato.imagenesUrls} title={plato.nombre} />
       <div>
+        {/* Un plato agotado se indica arriba de todo con un badge, además del mensaje y el botón */}
+        {agotado && <span className="badge badge-dark mb-3">Agotado</span>}
         <h1 className="font-display text-headline-lg text-primary">{plato.nombre}</h1>
+        {/* Renderizado condicional: el promedio solo aparece si hay reseñas */}
+        {tieneResenas && (
+          <p className="mt-2 text-label-md text-primary">
+            ★ {promedioTexto}{' '}
+            <span className="font-normal text-on-surface-variant">
+              ({resenas.length} {resenas.length === 1 ? 'reseña' : 'reseñas'})
+            </span>
+          </p>
+        )}
         <p className="mt-3 max-w-xl text-body-md text-on-surface-variant">{plato.descripcion}</p>
 
         {/* Precio con descuento destacado; el precio base tachado y el badge solo si hay descuento */}
@@ -106,7 +128,9 @@ function DetallePlato({ onAdd }) {
         </div>
 
         {agotado ? (
-          <p className="mt-6 text-label-lg text-on-surface-variant">Agotado hoy</p>
+          <p className="mt-6 text-label-lg text-on-surface-variant">
+            Este plato está agotado por hoy. Volvé más tarde o mirá otros platos del catálogo.
+          </p>
         ) : (
           <div className="mt-6 flex flex-wrap items-center gap-4">
             {/* Props hacia abajo: value y max. Función hacia arriba: onChange.
@@ -124,7 +148,7 @@ function DetallePlato({ onAdd }) {
             disabled={agotado}
             onClick={() => onAdd(plato.id, cantidad)}
           >
-            Agregar al carrito · {formatear(total)}
+            {agotado ? 'Agotado' : `Agregar a la cesta · ${formatear(total)}`}
           </Button>
         </div>
       </div>

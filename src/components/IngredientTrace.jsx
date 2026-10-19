@@ -23,9 +23,9 @@ function IngredientTrace({ items }) {
         {items.map((ingrediente) => (
           <li key={ingrediente.ingredienteId} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
             <h3 className="text-label-lg text-primary">{ingrediente.nombre}</h3>
-            {/* TODO: el diseño mostraba origen y distancia de cada ingrediente; la API no los tiene */}
+            {/* toLocaleString('es-AR') muestra los decimales con coma (0,5). TODO: el diseño mostraba origen y distancia de cada ingrediente; la API no los tiene */}
             <p className="flex-none text-label-md tabular text-secondary">
-              {ingrediente.cantidad} {UNIDADES[ingrediente.unidadMedida]}
+              {ingrediente.cantidad.toLocaleString('es-AR')} {UNIDADES[ingrediente.unidadMedida]}
             </p>
           </li>
         ))}

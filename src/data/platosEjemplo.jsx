@@ -87,7 +87,13 @@ const PLATOS_EJEMPLO = [
     // TODO: la API todavía no trae el nombre del chef (solo chefId). Se quita en el paso 12.
     chefNombre: 'Clara Méndez',
     categorias: ['Pastas'],
-    ingredientes: [],
+    ingredientes: [
+      { ingredienteId: 1, nombre: 'Harina orgánica de molino de piedra', cantidad: 0.5, unidadMedida: 'KILOGRAMOS' },
+      { ingredienteId: 5, nombre: 'Huevos de campo', cantidad: 3, unidadMedida: 'UNIDAD' },
+      { ingredienteId: 6, nombre: 'Falda de manzo', cantidad: 400, unidadMedida: 'GRAMOS' },
+      { ingredienteId: 7, nombre: 'Vino tinto', cantidad: 250, unidadMedida: 'MILILITROS' },
+      { ingredienteId: 8, nombre: 'Caldo de hueso', cantidad: 1, unidadMedida: 'LITROS' },
+    ],
   },
   {
     id: 4,
