@@ -459,6 +459,38 @@ function App() {
       .finally(() => setCargandoSesion(false))
   }, [])
 
+  // CARGAR LA CESTA DEL SERVIDOR (paso 12.3a). Es un GET, así que va en un efecto. La dependencia es
+  // [sesion]: corre cuando alguien ingresa o cuando se restaura la sesión con F5. No hay bucle porque
+  // el efecto modifica "carrito", no "sesion". Solo el CLIENTE tiene cesta (el resto recibiría 403).
+  // GET /carrito es privada: lleva el token. El backend la crea vacía si no existía.
+  useEffect(() => {
+    if (sesion === null || sesion.role !== 'CLIENTE') {
+      return
+    }
+
+    fetch(`${API_URL}/carrito`, { headers: { Authorization: `Bearer ${sesion.token}` } })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.data
+        })
+      )
+      // Guardamos tal cual lo que manda el servidor (él calcula subtotales y total).
+      .then((carritoServidor) => setCarrito(carritoServidor))
+      .catch((fallo) => {
+        // 401 en ruta privada: el token ya no sirve, cerramos la sesión.
+        if (fallo.status === 401) {
+          setSesion(null)
+          localStorage.removeItem(CLAVE_TOKEN)
+        }
+        setAviso(fallo.message)
+      })
+  }, [sesion])
+
   // Inicia sesión: guarda la sesión que le pasan y avisa. Ingreso y Registro la llaman cuando el
   // backend responde bien, con { token, userId, role, nombre } ya armado.
   // El token se guarda en DOS lugares:
