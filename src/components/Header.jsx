@@ -53,6 +53,9 @@ function Header({ cartCount, sesion, onLogout }) {
           {sesion !== null && sesion.role === 'CHEF' && (
             <NavLink to="/mis-publicaciones" className="nav-link">Mis publicaciones</NavLink>
           )}
+          {sesion !== null && sesion.role === 'ADMIN' && (
+            <NavLink to="/admin" className="nav-link">Administración</NavLink>
+          )}
         </nav>
 
         {/* Accesos rápidos de la derecha: cuenta y carrito */}
@@ -120,6 +123,15 @@ function Header({ cartCount, sesion, onLogout }) {
                 onClick={() => setMenuOpen(false)}
               >
                 Mis publicaciones
+              </NavLink>
+            )}
+            {sesion !== null && sesion.role === 'ADMIN' && (
+              <NavLink
+                to="/admin"
+                className="nav-link block !py-3"
+                onClick={() => setMenuOpen(false)}
+              >
+                Administración
               </NavLink>
             )}
           </nav>

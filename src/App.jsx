@@ -16,6 +16,7 @@ import MisPublicaciones from './views/MisPublicaciones'
 import PublicarPlato from './views/PublicarPlato'
 import Ingreso from './views/Ingreso'
 import Registro from './views/Registro'
+import Admin from './views/Admin'
 
 // URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
 const API_URL = import.meta.env.VITE_API_URL
@@ -211,8 +212,15 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
             }
           />
 
-          {/* LUGAR PREPARADO: esta ruta se agrega cuando exista su vista, con el mismo patrón.
-              /admin (paso 14)                          -> rolesPermitidos={['ADMIN']} */}
+          {/* Ruta del ADMIN (paso 14b): aprobar pagos de los clientes */}
+          <Route
+            path="/admin"
+            element={
+              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['ADMIN']}>
+                <Admin token={sesion?.token} onSesionVencida={onSesionVencida} onAviso={onAviso} />
+              </RutaProtegida>
+            }
+          />
         </Routes>
       </main>
       <Footer />
