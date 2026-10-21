@@ -14,6 +14,14 @@ import FormField from '../components/FormField'
 // URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL
 
+// Texto de un error de fetch para mostrárselo al usuario. Si el servidor RESPONDIÓ con un error (400, 403...)
+// usamos su "message". Si ni siquiera llegamos al servidor (apagado, sin red), fetch rechaza la promesa con
+// un error SIN status y el texto del navegador ("Failed to fetch") no le sirve a nadie: damos uno claro.
+const mensajeDe = (fallo) =>
+  fallo.status === undefined
+    ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
+    : fallo.message
+
 // Estados del pago de la API -> texto y color del badge. Es un objeto usado como "diccionario".
 const ETIQUETAS_PAGO = {
   PENDIENTE: { texto: 'Pendiente', clase: 'badge-sand' },
@@ -140,7 +148,7 @@ function Admin({ token, onSesionVencida, onAviso }) {
           onSesionVencida()
           return
         }
-        setError(fallo.message)
+        setError(mensajeDe(fallo))
       })
       .finally(() => setCargando(false))
     // onSesionVencida queda afuera de las dependencias a propósito (App la crea de nuevo en cada render
@@ -192,7 +200,7 @@ function Admin({ token, onSesionVencida, onAviso }) {
           return
         }
         // 409 (transición inválida), 403, 404: mostramos el mensaje del backend.
-        onAviso(fallo.message)
+        onAviso(mensajeDe(fallo))
       })
   }
 
@@ -264,7 +272,7 @@ function Admin({ token, onSesionVencida, onAviso }) {
           return
         }
         // 400 (usuario o correo ya existe, datos inválidos), 403: mostramos el mensaje del backend.
-        setErrorCrear(fallo.message)
+        setErrorCrear(mensajeDe(fallo))
       })
   }
 

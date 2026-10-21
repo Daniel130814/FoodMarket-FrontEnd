@@ -13,13 +13,23 @@ import ErrorState from '../components/ErrorState'
 // URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL
 
+// Texto de un error de fetch para mostrárselo al usuario. Si el servidor RESPONDIÓ con un error (400, 403...)
+// usamos su "message". Si ni siquiera llegamos al servidor (apagado, sin red), fetch rechaza la promesa con
+// un error SIN status y el texto del navegador ("Failed to fetch") no le sirve a nadie: damos uno claro.
+const mensajeDe = (fallo) =>
+  fallo.status === undefined
+    ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
+    : fallo.message
+
 // GET de un catálogo público (categorías o ingredientes): no lleva token. Devuelve una promesa con la
 // lista (las listas vacías llegan como null, por eso el ?? []). Es una función común, no un hook.
 const pedirCatalogo = (ruta) =>
   fetch(`${API_URL}${ruta}`).then((response) =>
     response.json().then((cuerpo) => {
       if (!response.ok) {
-        throw new Error(cuerpo.message)
+        const fallo = new Error(cuerpo.message)
+        fallo.status = response.status
+        throw fallo
       }
       return cuerpo.data ?? []
     })
@@ -137,7 +147,7 @@ function PublicarPlato({ platos, cargandoPlatos, token, onSesionVencida, onPlato
         setCategorias(listaCategorias)
         setIngredientes(listaIngredientes)
       })
-      .catch((fallo) => setError(fallo.message))
+      .catch((fallo) => setError(mensajeDe(fallo)))
       .finally(() => setCargando(false))
   }, [])
 
@@ -272,7 +282,7 @@ function PublicarPlato({ platos, cargandoPlatos, token, onSesionVencida, onPlato
           return
         }
         // 400 (validación), 403 (no es tu plato), 404: mostramos el mensaje del backend.
-        setErrorGuardar(fallo.message)
+        setErrorGuardar(mensajeDe(fallo))
         setGuardando(false)
       })
   }

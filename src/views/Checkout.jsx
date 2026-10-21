@@ -15,6 +15,14 @@ const ENVIO = 3200
 // URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL
 
+// Texto de un error de fetch para mostrárselo al usuario. Si el servidor RESPONDIÓ con un error (400, 403...)
+// usamos su "message". Si ni siquiera llegamos al servidor (apagado, sin red), fetch rechaza la promesa con
+// un error SIN status y el texto del navegador ("Failed to fetch") no le sirve a nadie: damos uno claro.
+const mensajeDe = (fallo) =>
+  fallo.status === undefined
+    ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
+    : fallo.message
+
 // Formulario de domicilio vacío: todos los campos como texto vacío.
 const FORM_VACIO = {
   calle: '',
@@ -88,7 +96,7 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
           onSesionVencida()
           return
         }
-        setError(fallo.message)
+        setError(mensajeDe(fallo))
       })
       .finally(() => setCargando(false))
   // onSesionVencida queda afuera de las dependencias a propósito: App la crea de nuevo en cada render y
@@ -186,7 +194,7 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
           onSesionVencida()
           return
         }
-        setErrorDomicilio(fallo.message)
+        setErrorDomicilio(mensajeDe(fallo))
       })
   }
 
@@ -234,7 +242,7 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
           return
         }
         // 400 (stock insuficiente, carrito vacío...), 403, 404: mostramos el mensaje del backend.
-        setConflictos([fallo.message])
+        setConflictos([mensajeDe(fallo)])
         setConfirmando(false)
       })
   }

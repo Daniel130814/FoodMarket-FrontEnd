@@ -11,6 +11,14 @@ import ErrorState from '../components/ErrorState'
 // URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL
 
+// Texto de un error de fetch para mostrárselo al usuario. Si el servidor RESPONDIÓ con un error (400, 403...)
+// usamos su "message". Si ni siquiera llegamos al servidor (apagado, sin red), fetch rechaza la promesa con
+// un error SIN status y el texto del navegador ("Failed to fetch") no le sirve a nadie: damos uno claro.
+const mensajeDe = (fallo) =>
+  fallo.status === undefined
+    ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
+    : fallo.message
+
 // MAPEO de los estados de la API a los textos que se muestran (el mismo que ve el cliente).
 // CANCELADO no está acá a propósito: se muestra aparte, con su propio badge.
 const ETIQUETAS_ESTADO = {
@@ -77,7 +85,7 @@ function PedidosRecibidos({ token, userId, onSesionVencida, onAviso }) {
           onSesionVencida()
           return
         }
-        setError(fallo.message)
+        setError(mensajeDe(fallo))
       })
       .finally(() => setCargando(false))
     // onSesionVencida queda afuera de las dependencias a propósito (App la crea de nuevo en cada render
@@ -130,7 +138,7 @@ function PedidosRecibidos({ token, userId, onSesionVencida, onAviso }) {
           return
         }
         // 409 (transición inválida o pedido todavía sin pago aprobado), 403, 404: mensaje del backend.
-        onAviso(fallo.message)
+        onAviso(mensajeDe(fallo))
       })
   }
 

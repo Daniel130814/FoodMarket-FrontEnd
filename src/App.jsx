@@ -22,6 +22,14 @@ import PedidosRecibidos from './views/PedidosRecibidos'
 // URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
 const API_URL = import.meta.env.VITE_API_URL
 
+// Texto de un error de fetch para mostrárselo al usuario. Si el servidor RESPONDIÓ con un error (400, 403...)
+// usamos su "message". Si ni siquiera llegamos al servidor (apagado, sin red), fetch rechaza la promesa con
+// un error SIN status y el texto del navegador ("Failed to fetch") no le sirve a nadie: damos uno claro.
+const mensajeDe = (fallo) =>
+  fallo.status === undefined
+    ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
+    : fallo.message
+
 // Clave con la que se guarda el JWT en localStorage. Está en una constante para escribirla una sola vez.
 const CLAVE_TOKEN = 'jwtToken'
 
@@ -32,7 +40,9 @@ const pedirPublico = (ruta) =>
   fetch(`${API_URL}${ruta}`).then((response) =>
     response.json().then((cuerpo) => {
       if (!response.ok) {
-        throw new Error(cuerpo.message)
+        const fallo = new Error(cuerpo.message)
+        fallo.status = response.status
+        throw fallo
       }
       return cuerpo.data ?? []
     })
@@ -285,6 +295,19 @@ function App() {
   // Estado del aviso (Toast): el texto a mostrar, o null si no hay aviso.
   const [aviso, setAviso] = useState(null)
 
+  // Cierra la sesión porque el backend respondió 401 (token vencido o inválido). Las vistas que hacen
+  // sus propias llamadas (Checkout) la reciben por props. RutaProtegida las manda a /ingreso al ver sesion en null.
+  // Limpia lo mismo que cerrarSesion: la sesión, el token, la cesta y las publicaciones del usuario que se va.
+  const sesionVencida = () => {
+    setSesion(null)
+    localStorage.removeItem(CLAVE_TOKEN)
+    setCarrito((actual) => calcularCarrito(actual.id, []))
+    setMisPlatos([])
+    setCargandoMisPlatos(true)
+    setErrorMisPlatos(null)
+    setAviso('Tu sesión venció, ingresá de nuevo')
+  }
+
   // Agrega un plato a la cesta (paso 12.3b). Si el plato YA está, el backend SUMA la cantidad.
   // Es una ESCRITURA (POST), por eso va en el handler y nunca en un efecto.
   // Recibe el plato (tal como lo devolvió GET /platos) y la cantidad. Ya no validamos stock ni estado
@@ -314,12 +337,12 @@ function App() {
         setAviso(`Agregaste ${plato.nombre} a tu carrito`)
       })
       .catch((fallo) => {
-        // 401: el token ya no sirve, cerramos la sesión.
+        // 401: el token ya no sirve, cerramos la sesión (en un solo lugar: sesionVencida).
         if (fallo.status === 401) {
-          setSesion(null)
-          localStorage.removeItem(CLAVE_TOKEN)
+          sesionVencida()
+          return
         }
-        setAviso(fallo.message)
+        setAviso(mensajeDe(fallo))
       })
   }
 
@@ -351,12 +374,12 @@ function App() {
       )
       .then((carritoServidor) => setCarrito(carritoServidor))
       .catch((fallo) => {
-        // 401: el token ya no sirve, cerramos la sesión.
+        // 401: el token ya no sirve, cerramos la sesión (en un solo lugar: sesionVencida).
         if (fallo.status === 401) {
-          setSesion(null)
-          localStorage.removeItem(CLAVE_TOKEN)
+          sesionVencida()
+          return
         }
-        setAviso(fallo.message)
+        setAviso(mensajeDe(fallo))
       })
   }
 
@@ -383,12 +406,12 @@ function App() {
         setCarrito((actual) => calcularCarrito(actual.id, actual.items.filter((item) => item.id !== itemId)))
       )
       .catch((fallo) => {
-        // 401: el token ya no sirve, cerramos la sesión.
+        // 401: el token ya no sirve, cerramos la sesión (en un solo lugar: sesionVencida).
         if (fallo.status === 401) {
-          setSesion(null)
-          localStorage.removeItem(CLAVE_TOKEN)
+          sesionVencida()
+          return
         }
-        setAviso(fallo.message)
+        setAviso(mensajeDe(fallo))
       })
   }
 
@@ -414,12 +437,12 @@ function App() {
         setAviso('Vaciaste tu cesta')
       })
       .catch((fallo) => {
-        // 401: el token ya no sirve, cerramos la sesión.
+        // 401: el token ya no sirve, cerramos la sesión (en un solo lugar: sesionVencida).
         if (fallo.status === 401) {
-          setSesion(null)
-          localStorage.removeItem(CLAVE_TOKEN)
+          sesionVencida()
+          return
         }
-        setAviso(fallo.message)
+        setAviso(mensajeDe(fallo))
       })
   }
 
@@ -440,7 +463,7 @@ function App() {
         setMisPlatos(platos.filter((plato) => plato.chefId === sesion.userId))
         setCategorias(listaCategorias)
       })
-      .catch((fallo) => setErrorMisPlatos(fallo.message))
+      .catch((fallo) => setErrorMisPlatos(mensajeDe(fallo)))
       .finally(() => setCargandoMisPlatos(false))
   }, [sesion])
 
@@ -514,12 +537,12 @@ function App() {
       // Guardamos tal cual lo que manda el servidor (él calcula subtotales y total).
       .then((carritoServidor) => setCarrito(carritoServidor))
       .catch((fallo) => {
-        // 401 en ruta privada: el token ya no sirve, cerramos la sesión.
+        // 401 en ruta privada: el token ya no sirve, cerramos la sesión (en un solo lugar: sesionVencida).
         if (fallo.status === 401) {
-          setSesion(null)
-          localStorage.removeItem(CLAVE_TOKEN)
+          sesionVencida()
+          return
         }
-        setAviso(fallo.message)
+        setAviso(mensajeDe(fallo))
       })
   }, [sesion])
 
@@ -534,16 +557,6 @@ function App() {
     setSesion(nuevaSesion)
     localStorage.setItem(CLAVE_TOKEN, nuevaSesion.token)
     setAviso(`Ingresaste como ${nuevaSesion.nombre}`)
-  }
-
-  // Cierra la sesión porque el backend respondió 401 (token vencido o inválido). Las vistas que hacen
-  // sus propias llamadas (Checkout) la reciben por props. RutaProtegida las manda a /ingreso al ver sesion en null.
-  const sesionVencida = () => {
-    setSesion(null)
-    localStorage.removeItem(CLAVE_TOKEN)
-    setMisPlatos([])
-    setCargandoMisPlatos(true)
-    setAviso('Tu sesión venció, ingresá de nuevo')
   }
 
   // Cierra la sesión. Hay que limpiar TODO lo que pertenece al usuario que se va:
@@ -618,7 +631,7 @@ function App() {
           return
         }
         // 400 (por ejemplo, publicar sin imagen), 403 (no es tu plato), 404: mensaje del backend.
-        setAviso(fallo.message)
+        setAviso(mensajeDe(fallo))
       })
   }
 
@@ -681,7 +694,7 @@ function App() {
           return
         }
         // 400 (porcentaje fuera de rango), 403 (no es tu plato), 404: mensaje del backend.
-        setAviso(fallo.message)
+        setAviso(mensajeDe(fallo))
       })
   }
 
@@ -732,7 +745,7 @@ function App() {
           return
         }
         // 403 (no es tu plato), 404: mensaje del backend.
-        setAviso(fallo.message)
+        setAviso(mensajeDe(fallo))
       })
   }
 
