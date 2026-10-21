@@ -17,6 +17,7 @@ import PublicarPlato from './views/PublicarPlato'
 import Ingreso from './views/Ingreso'
 import Registro from './views/Registro'
 import Admin from './views/Admin'
+import PedidosRecibidos from './views/PedidosRecibidos'
 
 // URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
 const API_URL = import.meta.env.VITE_API_URL
@@ -175,6 +176,21 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
                   onTogglePause={onTogglePause}
                   onDiscount={onDiscount}
                   onDelete={onDeleteDish}
+                />
+              </RutaProtegida>
+            }
+          />
+
+          {/* Pedidos que le tocan al chef (paso 14c): ve sus subpedidos y los avanza */}
+          <Route
+            path="/pedidos-recibidos"
+            element={
+              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
+                <PedidosRecibidos
+                  token={sesion?.token}
+                  userId={sesion?.userId}
+                  onSesionVencida={onSesionVencida}
+                  onAviso={onAviso}
                 />
               </RutaProtegida>
             }
