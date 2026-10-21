@@ -60,7 +60,8 @@ function PublicationRow({ plato, onStockChange, onTogglePause, onOpenDiscount, o
         {/* Mismo selector de cantidad del detalle, pero con mínimo 0: se puede dejar sin stock */}
         <QuantityStepper value={stockDisponible} min={0} max={STOCK_MAXIMO} onChange={(nuevo) => onStockChange(id, nuevo)} />
       </div>
-      <div className="col-span-2 flex items-center justify-end gap-1 border-t border-hairline pt-3 md:col-span-1 md:border-0 md:pt-0">
+      {/* flex-wrap: en el celular los 4 botones no entran en una línea y, sin salto de línea, los de la izquierda quedaban fuera de la pantalla */}
+      <div className="col-span-2 flex flex-wrap items-center justify-end gap-1 border-t border-hairline pt-3 md:col-span-1 md:flex-nowrap md:border-0 md:pt-0">
         {/* Editar lleva al formulario con el id del plato en la URL */}
         <Link to={`/publicar/${id}`} className="btn btn-quiet btn-sm">
           <span className="material-symbols-outlined">edit</span>

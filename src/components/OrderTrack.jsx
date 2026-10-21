@@ -12,6 +12,7 @@ function OrderTrack({ steps, currentState }) {
     // El diseño trae 4 columnas fijas; con style ajustamos la cantidad real de pasos.
     <ol
       className="track"
+      lang="es"
       aria-label="Estado del pedido"
       style={{ gridTemplateColumns: `repeat(${steps.length}, 1fr)` }}
     >

@@ -276,3 +276,8 @@ dialog.dialog[open] { animation: settle 0.3s var(--ease) both; }
 .track li.is-done::after { background: var(--olive); }
 .track li.is-current { color: var(--ink); }
 .track li.is-current::before { background: var(--sand); border-color: var(--olive); box-shadow: 0 0 0 5px rgba(246, 222, 162, 0.55); }
+/* En pantallas angostas las 5 etiquetas del seguimiento no entran a 12px y se pegan entre sí: se achican y
+   se corta la palabra si hace falta. */
+@media (max-width: 480px) {
+  .track li { padding-inline: 1px; font-size: 10px; line-height: 13px; hyphens: auto; overflow-wrap: break-word; }
+}
