@@ -10,18 +10,13 @@ import ErrorState from '../components/ErrorState'
 // Props:
 //  - platos: las publicaciones del chef, con la forma de PlatoResponse de la API. Vienen de App,
 //    que es la dueña del estado.
+//  - cargando / error: si App todavía está pidiendo las publicaciones y el mensaje si falló (null si no)
 //  - onStockChange: función (platoId, nuevoStock) de App
 //  - onTogglePause: función (platoId) de App; pausa el plato o lo reactiva
 //  - onDiscount: función (platoId, porcentaje) de App; porcentaje 0 quita el descuento
 //  - onDelete: función (platoId) de App
 //  La vista solo avisa lo que el chef quiere hacer; App cambia los platos y muestra el Toast.
-function MisPublicaciones({ platos, onStockChange, onTogglePause, onDiscount, onDelete }) {
-  // ESTADOS de carga y error. Todavía no hay pedidos al backend, así que quedan fijos en
-  // "no cargando" y "sin error". Solo desestructuramos el primer valor: el setter (setCargando /
-  // setError) se agrega en el paso 13, cuando haya un fetch que los cambie.
-  const [cargando] = useState(false)
-  const [error] = useState(null)
-
+function MisPublicaciones({ platos, cargando, error, onStockChange, onTogglePause, onDiscount, onDelete }) {
   // ESTADO: el filtro activo. 'todas' o uno de los estados de la API (PUBLICADO, AGOTADO, ...).
   const [filtro, setFiltro] = useState('todas')
 

@@ -16,7 +16,6 @@ import MisPublicaciones from './views/MisPublicaciones'
 import PublicarPlato from './views/PublicarPlato'
 import Ingreso from './views/Ingreso'
 import Registro from './views/Registro'
-import MIS_PLATOS_EJEMPLO from './data/misPlatosEjemplo'
 import RESENAS_EJEMPLO from './data/resenasEjemplo'
 import CATEGORIAS_EJEMPLO from './data/categoriasEjemplo'
 import INGREDIENTES_EJEMPLO from './data/ingredientesEjemplo'
@@ -48,6 +47,7 @@ const calcularCarrito = (id, items) => {
 //  - onPedidoCreado: función (pedido) que registra el pedido ya creado por el backend; se reenvía a Checkout.
 //  - onAdd: función (plato, cantidad) para agregar al carrito; se reenvía a Inicio, Catalogo (que se la pasan a PlatoCard) y DetallePlato.
 //  - onSesionVencida / onAviso: también se reenvían a MisPedidos (que pide y cancela sus pedidos con el backend).
+//  - cargandoMisPlatos / errorMisPlatos: si se están cargando las publicaciones y el error si falló; se reenvían a MisPublicaciones.
 //  - misPlatos y onStockChange / onTogglePause / onDiscount / onDeleteDish: las publicaciones del chef y
 //    las acciones sobre ellas; se reenvían a MisPublicaciones (misPlatos también a PublicarPlato).
 //  - onSavePlato: función (datos, platoId) para crear o editar un plato; se reenvía a PublicarPlato.
@@ -56,7 +56,7 @@ const calcularCarrito = (id, items) => {
 //    y la función para cerrarla; se reenvían al Header.
 //    AppContent además usa sesion para proteger las rutas (RutaProtegida) y para decidir si se puede agregar al carrito.
 //  - onAviso: función (texto) para mostrar un Toast; AppContent la usa cuando un rol no puede comprar.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, onSesionVencida, onPedidoCreado, misPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onLogin, sesion, cargandoSesion, onLogout, onAviso }) {
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, onSesionVencida, onPedidoCreado, misPlatos, cargandoMisPlatos, errorMisPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onLogin, sesion, cargandoSesion, onLogout, onAviso }) {
   const location = useLocation()
 
   // useNavigate devuelve una función para cambiar de ruta desde el código. Se puede usar acá
@@ -158,6 +158,8 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
               <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
                 <MisPublicaciones
                   platos={misPlatos}
+                  cargando={cargandoMisPlatos}
+                  error={errorMisPlatos}
                   onStockChange={onStockChange}
                   onTogglePause={onTogglePause}
                   onDiscount={onDiscount}
@@ -221,8 +223,12 @@ function App() {
   // AGOTADO, PAUSADO), con la forma de PlatoResponse. Vive en App porque lo LEE MisPublicaciones
   // y lo ESCRIBE PublicarPlato (y las acciones de la lista): vistas hermanas que solo pueden
   // hablar con el padre común. Es el mismo razonamiento que el estado del carrito.
-  // MOCK: son siempre las del chef de prueba. En el paso 13 se piden al backend.
-  const [misPlatos, setMisPlatos] = useState(MIS_PLATOS_EJEMPLO)
+  // Arranca vacío y se llena con GET /platos cuando ingresa un CHEF (efecto de más abajo, paso 13a).
+  const [misPlatos, setMisPlatos] = useState([])
+
+  // ESTADOS de carga y error de ese GET. Arranca cargando; se vuelve a poner en true al cerrar sesión.
+  const [cargandoMisPlatos, setCargandoMisPlatos] = useState(true)
+  const [errorMisPlatos, setErrorMisPlatos] = useState(null)
 
   // Estado del aviso (Toast): el texto a mostrar, o null si no hay aviso.
   const [aviso, setAviso] = useState(null)
@@ -365,6 +371,31 @@ function App() {
       })
   }
 
+  // CARGAR LAS PUBLICACIONES DEL CHEF (paso 13a). Es un GET, va en un efecto con [sesion]: corre cuando
+  // ingresa alguien o se restaura la sesión. Solo para el CHEF.
+  // GET /platos es una ruta PÚBLICA: no se manda el token.
+  // TODO(backend): no existe "mis platos". GET /platos solo trae PUBLICADO y AGOTADO y no filtra por
+  // chef, así que filtramos acá por chefId (que es el userId del chef). Los BORRADOR y PAUSADO NO
+  // aparecen hasta que el backend los exponga (sección 5 del CLAUDE.md).
+  useEffect(() => {
+    if (sesion === null || sesion.role !== 'CHEF') {
+      return
+    }
+
+    fetch(`${API_URL}/platos`)
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            throw new Error(cuerpo.message)
+          }
+          return cuerpo.data
+        })
+      )
+      .then((data) => setMisPlatos((data ?? []).filter((plato) => plato.chefId === sesion.userId)))
+      .catch((fallo) => setErrorMisPlatos(fallo.message))
+      .finally(() => setCargandoMisPlatos(false))
+  }, [sesion])
+
   // Se llama cuando Checkout ya creó el pedido en el backend (POST /carrito/checkout). El backend ya
   // vació la cesta del servidor, así que dejamos vacía la copia local. El pedido nuevo lo pide
   // MisPedidos con GET /orders cuando se abre esa vista.
@@ -462,6 +493,8 @@ function App() {
   const sesionVencida = () => {
     setSesion(null)
     localStorage.removeItem(CLAVE_TOKEN)
+    setMisPlatos([])
+    setCargandoMisPlatos(true)
     setAviso('Tu sesión venció, ingresá de nuevo')
   }
 
@@ -474,6 +507,10 @@ function App() {
     // removeItem borra SOLO esta clave. Nunca localStorage.clear(), que borraría todo lo demás.
     localStorage.removeItem(CLAVE_TOKEN)
     setCarrito(calcularCarrito(carrito.id, []))
+    // Las publicaciones también son de ese usuario: las vaciamos y volvemos a "cargando".
+    setMisPlatos([])
+    setCargandoMisPlatos(true)
+    setErrorMisPlatos(null)
     setAviso('Cerraste sesión')
   }
 
@@ -609,6 +646,8 @@ function App() {
         onDiscount={aplicarDescuento}
         onDeleteDish={eliminarPlato}
         onSavePlato={guardarPlato}
+        cargandoMisPlatos={cargandoMisPlatos}
+        errorMisPlatos={errorMisPlatos}
         onLogin={iniciarSesion}
         sesion={sesion}
         cargandoSesion={cargandoSesion}
