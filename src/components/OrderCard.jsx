@@ -11,7 +11,10 @@ import OrderTrack from './OrderTrack'
 //  - onCancel: función del padre (pedidoId); se llama al tocar "Cancelar pedido". La tarjeta no
 //    cancela nada: solo avisa "quiero cancelar este pedido".
 //  - onPay: función del padre (pedidoId); se llama al tocar "Pagar". La tarjeta no paga nada: solo avisa.
-function OrderCard({ order, steps, payment, onCancel, onPay }) {
+//  - reviewedPlatoIds: ids de los platos que el cliente ya reseñó (los marca como "Reseñado" en vez de ofrecer el botón)
+//  - onReview: función del padre (detalle); se llama al tocar "Reseñar" en un plato. La tarjeta no guarda nada:
+//    solo avisa "quiero reseñar este plato" con su detalle { platoId, platoNombre, ... }.
+function OrderCard({ order, steps, payment, reviewedPlatoIds, onCancel, onPay, onReview }) {
   // Formatea el importe en pesos con separadores argentinos, igual que en el carrito.
   const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
 
@@ -68,9 +71,20 @@ function OrderCard({ order, steps, payment, onCancel, onPay }) {
             <p className="text-label-md text-on-surface-variant">{subPedido.chefNombre}</p>
             <ul className="mt-1">
               {subPedido.detalles.map((detalle) => (
-                <li key={detalle.id} className="flex justify-between gap-4 text-body-sm text-primary">
+                <li key={detalle.id} className="flex items-center justify-between gap-4 text-body-sm text-primary">
                   <span>{detalle.cantidad} × {detalle.platoNombre}</span>
-                  <span className="tabular">{formatear(detalle.subtotal)}</span>
+                  <span className="flex items-center gap-3">
+                    {/* Renderizado condicional: la API solo deja reseñar platos de un subpedido ENTREGADO */}
+                    {subPedido.estado === 'ENTREGADO' &&
+                      (reviewedPlatoIds.includes(detalle.platoId) ? (
+                        <span className="badge badge-leaf">Reseñado</span>
+                      ) : (
+                        <button type="button" className="btn btn-quiet btn-sm" onClick={() => onReview(detalle)}>
+                          Reseñar
+                        </button>
+                      ))}
+                    <span className="tabular">{formatear(detalle.subtotal)}</span>
+                  </span>
                 </li>
               ))}
             </ul>
