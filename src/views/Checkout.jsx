@@ -1,5 +1,5 @@
 // Vista de checkout (ruta /checkout). Se abre desde la Cesta: se elige el domicilio de entrega y se confirma el pedido.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import DomicilioPicker from '../components/DomicilioPicker'
 import DomicilioForm from '../components/DomicilioForm'
@@ -12,32 +12,8 @@ import ErrorState from '../components/ErrorState'
 // Costo de envío fijo de ejemplo (el mismo valor que en la Cesta). La API todavía no lo calcula.
 const ENVIO = 3200
 
-// DOMICILIOS DE EJEMPLO (TEMPORAL, paso 11b.7). Tienen la forma de DomicilioResponse de la API
-// (ENDPOINTS.md, sección 3.11). En el paso 12 se piden con GET /domicilios.
-const DOMICILIOS_EJEMPLO = [
-  {
-    id: 5,
-    calle: 'Av. Santa Fe',
-    numero: '3421',
-    piso: '4',
-    departamento: 'B',
-    ciudad: 'CABA',
-    provincia: 'Buenos Aires',
-    codigoPostal: '1425',
-    indicacionesEntrega: 'Timbre 4B',
-  },
-  {
-    id: 6,
-    calle: 'Mendoza',
-    numero: '1850',
-    piso: null,
-    departamento: null,
-    ciudad: 'CABA',
-    provincia: 'Buenos Aires',
-    codigoPostal: '1428',
-    indicacionesEntrega: null,
-  },
-]
+// URL base del backend (se lee del archivo .env, igual que en App).
+const API_URL = import.meta.env.VITE_API_URL
 
 // Formulario de domicilio vacío: todos los campos como texto vacío.
 const FORM_VACIO = {
@@ -57,20 +33,24 @@ const CAMPOS_OBLIGATORIOS = ['calle', 'numero', 'ciudad', 'provincia', 'codigoPo
 // Props (vienen de App):
 //  - carrito: { id, items, totalEstimado } con la forma de CarritoResponse de la API
 //  - cartCount: total de unidades (ya calculado por App)
+//  - token: el JWT de la sesión, para las llamadas privadas (GET y POST de domicilios)
+//  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
 //  - onConfirm: función (domicilioId) de App. Crea el pedido, vacía la cesta y avisa. Checkout solo
 //    avisa "confirmé con este domicilio"; qué pasa con los pedidos lo decide App.
-function Checkout({ carrito, cartCount, onConfirm }) {
+function Checkout({ carrito, cartCount, token, onSesionVencida, onConfirm }) {
   const navigate = useNavigate()
   const { items, totalEstimado } = carrito
 
-  // ESTADOS de carga y error. Todavía no hay pedidos al backend, así que quedan fijos. El setter
-  // (setCargando / setError) se agrega en el paso 12.
-  const [cargando] = useState(false)
-  const [error] = useState(null)
+  // ESTADOS de carga y error del GET de domicilios. Arranca cargando.
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState(null)
 
   // ESTADO: los domicilios guardados. Viven acá porque esta vista es el padre de DomicilioPicker
   // y DomicilioForm (ellos solo reciben datos y avisan cambios).
-  const [domicilios, setDomicilios] = useState(DOMICILIOS_EJEMPLO)
+  const [domicilios, setDomicilios] = useState([])
+
+  // ESTADO: mensaje de error del POST de un domicilio nuevo (null si no hay).
+  const [errorDomicilio, setErrorDomicilio] = useState(null)
 
   // ESTADO: id del domicilio elegido, o null si todavía no eligió ninguno.
   const [domicilioElegidoId, setDomicilioElegidoId] = useState(null)
@@ -82,6 +62,35 @@ function Checkout({ carrito, cartCount, onConfirm }) {
 
   // ESTADO: mensajes de conflicto de stock al confirmar. Lista vacía = sin conflictos.
   const [conflictos, setConflictos] = useState([])
+
+  // GET /domicilios al abrir la vista (paso 12.4a). Es ruta privada: lleva el token.
+  // Dependencias [token]: solo se vuelve a ejecutar si cambia el token (el efecto no lo modifica).
+  useEffect(() => {
+    fetch(`${API_URL}/domicilios`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.data
+        })
+      )
+      .then((data) => setDomicilios(data ?? [])) // lista vacía llega como null
+      .catch((fallo) => {
+        // 401: el token ya no sirve; App cierra la sesión y la ruta protegida nos manda a /ingreso.
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        setError(fallo.message)
+      })
+      .finally(() => setCargando(false))
+  // onSesionVencida queda afuera de las dependencias a propósito: App la crea de nuevo en cada render y
+  // el GET se repetiría sin parar. (Se resuelve con useCallback cuando se vea en clase.)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
 
   // Renderizado condicional: si estamos cargando o hubo un error, mostramos eso y cortamos acá.
   // Los hooks (useState) siempre van ANTES de estos return.
@@ -126,13 +135,10 @@ function Checkout({ carrito, cartCount, onConfirm }) {
       return
     }
 
-    // Los opcionales vacíos se guardan como null, como los devuelve la API.
+    // Los opcionales vacíos se mandan como null, como los devuelve la API.
     const opcional = (valor) => (valor.trim() === '' ? null : valor.trim())
 
-    // TEMPORAL: el id lo inventamos (el siguiente al más grande). En el paso 12 lo asigna el backend
-    // al hacer POST /domicilios/createDomicilio.
-    const nuevo = {
-      id: domicilios.reduce((mayor, d) => Math.max(mayor, d.id), 0) + 1,
+    const datos = {
       calle: formDomicilio.calle.trim(),
       numero: formDomicilio.numero.trim(),
       piso: opcional(formDomicilio.piso),
@@ -143,14 +149,45 @@ function Checkout({ carrito, cartCount, onConfirm }) {
       indicacionesEntrega: opcional(formDomicilio.indicacionesEntrega),
     }
 
-    setDomicilios([...domicilios, nuevo])
-    setDomicilioElegidoId(nuevo.id)
-    setMostrarForm(false)
-    setFormDomicilio(FORM_VACIO)
-    setErroresForm({})
+    // POST /domicilios/createDomicilio (paso 12.4a): escritura dentro del handler del submit.
+    fetch(`${API_URL}/domicilios/createDomicilio`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`, // ruta privada
+      },
+      body: JSON.stringify(datos),
+    })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.data
+        })
+      )
+      // Sumamos el domicilio creado (con el id que asignó el backend) SIN volver a pedir la lista.
+      .then((creado) => {
+        setDomicilios((actuales) => [...actuales, creado])
+        setDomicilioElegidoId(creado.id)
+        setMostrarForm(false)
+        setFormDomicilio(FORM_VACIO)
+        setErroresForm({})
+        setErrorDomicilio(null)
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        setErrorDomicilio(fallo.message)
+      })
   }
 
   const cancelarForm = () => {
+    setErrorDomicilio(null)
     setMostrarForm(false)
     setFormDomicilio(FORM_VACIO)
     setErroresForm({})
@@ -211,6 +248,12 @@ function Checkout({ carrito, cartCount, onConfirm }) {
 
           {/* El formulario se muestra o se esconde según el estado mostrarForm (nada de DOM) */}
           {mostrarForm ? (
+            <>
+              {errorDomicilio !== null && (
+                <div className="mt-4">
+                  <Alert title="No pudimos guardar el domicilio" messages={[errorDomicilio]} />
+                </div>
+              )}
             <DomicilioForm
               datos={formDomicilio}
               errores={erroresForm}
@@ -218,6 +261,7 @@ function Checkout({ carrito, cartCount, onConfirm }) {
               onSubmit={guardarDomicilio}
               onCancel={cancelarForm}
             />
+            </>
           ) : (
             <div className="mt-4">
               <button type="button" className="btn btn-secondary" onClick={() => setMostrarForm(true)}>

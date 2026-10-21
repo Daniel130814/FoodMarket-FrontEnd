@@ -133,7 +133,7 @@ const calcularCarrito = (id, items) => {
 //    y la función para cerrarla; se reenvían al Header.
 //    AppContent además usa sesion para proteger las rutas (RutaProtegida) y para decidir si se puede agregar al carrito.
 //  - onAviso: función (texto) para mostrar un Toast; AppContent la usa cuando un rol no puede comprar.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, onConfirmOrder, pedidos, onCancelOrder, misPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onLogin, sesion, cargandoSesion, onLogout, onAviso }) {
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, onSesionVencida, onConfirmOrder, pedidos, onCancelOrder, misPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onLogin, sesion, cargandoSesion, onLogout, onAviso }) {
   const location = useLocation()
 
   // useNavigate devuelve una función para cambiar de ruta desde el código. Se puede usar acá
@@ -209,7 +209,13 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
             path="/checkout"
             element={
               <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE']}>
-                <Checkout carrito={carrito} cartCount={cartCount} onConfirm={onConfirmOrder} />
+                <Checkout
+                  carrito={carrito}
+                  cartCount={cartCount}
+                  token={sesion?.token}
+                  onSesionVencida={onSesionVencida}
+                  onConfirm={onConfirmOrder}
+                />
               </RutaProtegida>
             }
           />
@@ -569,6 +575,14 @@ function App() {
     setAviso(`Ingresaste como ${nuevaSesion.nombre}`)
   }
 
+  // Cierra la sesión porque el backend respondió 401 (token vencido o inválido). Las vistas que hacen
+  // sus propias llamadas (Checkout) la reciben por props. RutaProtegida las manda a /ingreso al ver sesion en null.
+  const sesionVencida = () => {
+    setSesion(null)
+    localStorage.removeItem(CLAVE_TOKEN)
+    setAviso('Tu sesión venció, ingresá de nuevo')
+  }
+
   // Cierra la sesión. Hay que limpiar TODO lo que pertenece al usuario que se va:
   //  - la sesión (vuelve a null),
   //  - el token guardado en localStorage (el tercer punto donde se usa: BORRAR al cerrar sesión),
@@ -725,6 +739,7 @@ function App() {
         onQuantityChange={cambiarCantidad}
         onRemove={quitar}
         onClear={vaciar}
+        onSesionVencida={sesionVencida}
         onConfirmOrder={confirmarPedido}
         pedidos={pedidos}
         onCancelOrder={cancelarPedido}
