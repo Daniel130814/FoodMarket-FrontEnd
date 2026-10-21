@@ -35,9 +35,9 @@ const CAMPOS_OBLIGATORIOS = ['calle', 'numero', 'ciudad', 'provincia', 'codigoPo
 //  - cartCount: total de unidades (ya calculado por App)
 //  - token: el JWT de la sesión, para las llamadas privadas (GET y POST de domicilios)
 //  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
-//  - onConfirm: función (domicilioId) de App. Crea el pedido, vacía la cesta y avisa. Checkout solo
-//    avisa "confirmé con este domicilio"; qué pasa con los pedidos lo decide App.
-function Checkout({ carrito, cartCount, token, onSesionVencida, onConfirm }) {
+//  - onPedidoCreado: función (pedido) de App. Checkout hace el POST /carrito/checkout y, cuando el backend
+//    responde bien, le entrega el pedido creado; App lo suma a los pedidos, vacía la cesta y avisa.
+function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }) {
   const navigate = useNavigate()
   const { items, totalEstimado } = carrito
 
@@ -60,8 +60,12 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onConfirm }) {
   const [formDomicilio, setFormDomicilio] = useState(FORM_VACIO)
   const [erroresForm, setErroresForm] = useState({})
 
-  // ESTADO: mensajes de conflicto de stock al confirmar. Lista vacía = sin conflictos.
+  // ESTADO: mensajes de error al confirmar (stock insuficiente, plato no publicado...). Lista vacía = sin errores.
   const [conflictos, setConflictos] = useState([])
+
+  // ESTADO: true mientras esperamos la respuesta del checkout. Deshabilita el botón para que un
+  // doble clic no cree dos pedidos.
+  const [confirmando, setConfirmando] = useState(false)
 
   // GET /domicilios al abrir la vista (paso 12.4a). Es ruta privada: lleva el token.
   // Dependencias [token]: solo se vuelve a ejecutar si cambia el token (el efecto no lo modifica).
@@ -193,38 +197,46 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onConfirm }) {
     setErroresForm({})
   }
 
-  // Confirmar pedido. Requiere un domicilio elegido (el botón ya está deshabilitado sin uno).
-  // TEMPORAL: en producción el backend valida el stock al hacer el checkout (responde 400 si no
-  // hay) y esta revisión en el front se elimina.
+  // Confirmar pedido (paso 12.4b). Requiere un domicilio elegido (el botón ya está deshabilitado sin uno).
+  // POST /carrito/checkout { domicilioEntregaId }: el backend valida el stock, descuenta, arma un subpedido
+  // por chef, vacía la cesta del servidor y devuelve el pedido (OrderResponse). Es una escritura: va acá
+  // en el handler del clic, nunca en un efecto.
   const confirmar = () => {
-    // La regla de la profe pide .map() para recorrer (nunca forEach), así que lo hacemos en 2 pasos:
-    //  1) .map() convierte CADA ítem en un mensaje de conflicto, o en null si está todo bien.
-    //  2) .filter() descarta los null y deja solo los conflictos reales.
-    // TEMPORAL: la API no manda el stock en los ítems del carrito, así que cada ítem lo guardó
-    // cuando se agregó (item.stockDisponible). Cuando la cesta sea real (12.3) esto desaparece.
-    const mensajes = items
-      .map((item) => {
-        if (item.stockDisponible === 0) {
-          return `${item.nombrePlato} se agotó.`
-        }
-        if (item.cantidad > item.stockDisponible) {
-          return `De ${item.nombrePlato} quedan ${item.stockDisponible} y pediste ${item.cantidad}.`
-        }
-        // Sin conflicto: devolvemos null para que el filter lo saque
-        return null
-      })
-      .filter((mensaje) => mensaje !== null)
-
-    if (mensajes.length > 0) {
-      // Hay conflicto: lo mostramos y NO confirmamos.
-      setConflictos(mensajes)
-      return
-    }
-
-    // Todo bien: App crea el pedido y vacía la cesta, y nosotros vamos a "Mis pedidos".
+    setConfirmando(true)
     setConflictos([])
-    onConfirm(domicilioElegidoId)
-    navigate('/pedidos')
+
+    fetch(`${API_URL}/carrito/checkout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`, // ruta privada
+      },
+      body: JSON.stringify({ domicilioEntregaId: domicilioElegidoId }),
+    })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.data
+        })
+      )
+      .then((pedido) => {
+        // App suma el pedido y vacía la cesta; nosotros vamos a "Mis pedidos".
+        onPedidoCreado(pedido)
+        navigate('/pedidos')
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        // 400 (stock insuficiente, carrito vacío...), 403, 404: mostramos el mensaje del backend.
+        setConflictos([fallo.message])
+        setConfirmando(false)
+      })
   }
 
   return (
@@ -282,7 +294,7 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onConfirm }) {
             shipping={ENVIO}
             onConfirm={confirmar}
             buttonLabel="Confirmar pedido"
-            disabled={domicilioElegidoId === null}
+            disabled={domicilioElegidoId === null || confirmando}
           />
         </div>
       </div>

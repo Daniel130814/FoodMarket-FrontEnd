@@ -122,7 +122,7 @@ const calcularCarrito = (id, items) => {
 //  - cartCount: total de platos del carrito. AppContent NO lo usa: solo lo reenvía al Header.
 //    Eso es "prop drilling": pasar un dato por un componente intermedio hasta quien lo necesita.
 //  - carrito, onQuantityChange, onRemove: también solo se reenvían, a Carrito (y carrito a Checkout).
-//  - onConfirmOrder: función (domicilioId) para confirmar el pedido; se reenvía a Checkout.
+//  - onPedidoCreado: función (pedido) que registra el pedido ya creado por el backend; se reenvía a Checkout.
 //  - onAdd: función (plato, cantidad) para agregar al carrito; se reenvía a Inicio, Catalogo (que se la pasan a PlatoCard) y DetallePlato.
 //  - pedidos / onCancelOrder: la lista de pedidos y la función (pedidoId) para cancelar uno; se reenvían a MisPedidos.
 //  - misPlatos y onStockChange / onTogglePause / onDiscount / onDeleteDish: las publicaciones del chef y
@@ -133,7 +133,7 @@ const calcularCarrito = (id, items) => {
 //    y la función para cerrarla; se reenvían al Header.
 //    AppContent además usa sesion para proteger las rutas (RutaProtegida) y para decidir si se puede agregar al carrito.
 //  - onAviso: función (texto) para mostrar un Toast; AppContent la usa cuando un rol no puede comprar.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, onSesionVencida, onConfirmOrder, pedidos, onCancelOrder, misPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onLogin, sesion, cargandoSesion, onLogout, onAviso }) {
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, onSesionVencida, onPedidoCreado, pedidos, onCancelOrder, misPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onLogin, sesion, cargandoSesion, onLogout, onAviso }) {
   const location = useLocation()
 
   // useNavigate devuelve una función para cambiar de ruta desde el código. Se puede usar acá
@@ -214,7 +214,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
                   cartCount={cartCount}
                   token={sesion?.token}
                   onSesionVencida={onSesionVencida}
-                  onConfirm={onConfirmOrder}
+                  onPedidoCreado={onPedidoCreado}
                 />
               </RutaProtegida>
             }
@@ -449,45 +449,13 @@ function App() {
       })
   }
 
-  // Confirma el pedido: crea un pedido de ejemplo con estado PENDIENTE a partir de la cesta, la
-  // vacía y avisa. Checkout la llama con el id del domicilio elegido (onConfirm).
-  // SIMULADA (paso 11b.7): en el paso 12 esto es POST /carrito/checkout { domicilioEntregaId }, y
-  // el backend arma los subpedidos, descuenta el stock y devuelve el OrderResponse.
-  const confirmarPedido = (domicilioEntregaId) => {
-    // Id del pedido nuevo: el siguiente al más grande (lo asigna el backend en producción).
-    const idPedido = pedidos.reduce((mayor, pedido) => Math.max(mayor, pedido.id), 0) + 1
-
-    // Un subpedido POR CHEF. Primero sacamos los chefs distintos de la cesta:
-    // map pasa cada ítem a su chefId, y filter se queda con la primera aparición de cada uno
-    // (indexOf devuelve la primera posición donde está el valor).
-    const chefIds = carrito.items
-      .map((item) => item.chefId)
-      .filter((chefId, posicion, todos) => todos.indexOf(chefId) === posicion)
-
-    // Después, por cada chef, juntamos sus ítems y los pasamos a detalles del subpedido.
-    // Los datos salen del propio ítem de la cesta (los platos son reales, no de PLATOS_EJEMPLO).
-    const subPedidos = chefIds.map((chefId, i) => {
-      const itemsDelChef = carrito.items.filter((item) => item.chefId === chefId)
-      const detalles = itemsDelChef.map((item, j) => ({
-        id: idPedido * 100 + i * 10 + j,
-        platoId: item.platoId,
-        platoNombre: item.nombrePlato,
-        cantidad: item.cantidad,
-        precioUnitario: item.precioUnitarioActual,
-        subtotal: item.subtotalEstimado,
-      }))
-      // TODO(backend): la API no trae el nombre del chef; mientras tanto mostramos "Chef n.º <id>".
-      const chefNombre = itemsDelChef[0].chefNombre ?? `Chef n.º ${chefId}`
-      return crearSubPedido(idPedido * 10 + i, chefId, 'PENDIENTE', detalles, chefNombre)
-    })
-
-    // ISO sin zona horaria, como manda la API: '2026-10-19T14:30:00'
-    const fechaCreacion = new Date().toISOString().slice(0, 19)
-    const pedidoNuevo = crearPedido(idPedido, fechaCreacion, 'PENDIENTE', subPedidos, domicilioEntregaId)
-
-    // Array nuevo con el pedido al principio (...pedidos copia los anteriores).
-    setPedidos([pedidoNuevo, ...pedidos])
-    setCarrito(calcularCarrito(carrito.id, []))
+  // Registra un pedido que el backend ya creó (paso 12.4b). Checkout la llama con el OrderResponse que
+  // devolvió POST /carrito/checkout. Sumamos el pedido a la lista (sin volver a pedirla) y dejamos vacía
+  // la copia local de la cesta: el backend ya vació la suya al hacer el checkout.
+  // (La lista de pedidos sigue siendo de ejemplo hasta el 12.5, donde se pide con GET /orders.)
+  const pedidoCreado = (pedido) => {
+    setPedidos((actuales) => [pedido, ...actuales])
+    setCarrito((actual) => calcularCarrito(actual.id, []))
     setAviso('Pedido confirmado')
   }
 
@@ -740,7 +708,7 @@ function App() {
         onRemove={quitar}
         onClear={vaciar}
         onSesionVencida={sesionVencida}
-        onConfirmOrder={confirmarPedido}
+        onPedidoCreado={pedidoCreado}
         pedidos={pedidos}
         onCancelOrder={cancelarPedido}
         misPlatos={misPlatos}
