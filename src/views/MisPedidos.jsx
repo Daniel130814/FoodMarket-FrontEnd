@@ -10,6 +10,14 @@ import ErrorState from '../components/ErrorState'
 // URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL
 
+// Texto de un error de fetch para mostrárselo al usuario. Si el servidor RESPONDIÓ con un error (400, 403...)
+// usamos su "message". Si ni siquiera llegamos al servidor (apagado, sin red), fetch rechaza la promesa con
+// un error SIN status y el texto del navegador ("Failed to fetch") no le sirve a nadie: damos uno claro.
+const mensajeDe = (fallo) =>
+  fallo.status === undefined
+    ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
+    : fallo.message
+
 // GET de una ruta PRIVADA: lleva el token. Devuelve una promesa con el "data" de la respuesta (las
 // listas vacías llegan como null, por eso el ?? []) o lanza un Error con el message del backend y el
 // status HTTP. Es una función común (no un hook): recibe datos y devuelve una promesa.
@@ -104,7 +112,7 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
           onSesionVencida()
           return
         }
-        setError(fallo.message)
+        setError(mensajeDe(fallo))
       })
       .finally(() => setCargando(false))
     // onSesionVencida queda afuera de las dependencias a propósito (App la crea de nuevo en cada render
@@ -177,7 +185,7 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
           return
         }
         // 409 (ya no está pendiente), 403, 404: mostramos el mensaje del backend.
-        onAviso(fallo.message)
+        onAviso(mensajeDe(fallo))
       })
   }
 
@@ -224,7 +232,7 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
           return
         }
         // 409 (ya hay un pago aprobado o el pedido está cancelado), 400 (pagos bloqueados), 403, 404.
-        onAviso(fallo.message)
+        onAviso(mensajeDe(fallo))
       })
   }
 
@@ -278,7 +286,7 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
         if (fallo.status === 409) {
           setPlatosResenados((actuales) => [...actuales, platoId])
         }
-        onAviso(fallo.message)
+        onAviso(mensajeDe(fallo))
       })
   }
 

@@ -22,6 +22,14 @@ import PedidosRecibidos from './views/PedidosRecibidos'
 // URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
 const API_URL = import.meta.env.VITE_API_URL
 
+// Texto de un error de fetch para mostrárselo al usuario. Si el servidor RESPONDIÓ con un error (400, 403...)
+// usamos su "message". Si ni siquiera llegamos al servidor (apagado, sin red), fetch rechaza la promesa con
+// un error SIN status y el texto del navegador ("Failed to fetch") no le sirve a nadie: damos uno claro.
+const mensajeDe = (fallo) =>
+  fallo.status === undefined
+    ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
+    : fallo.message
+
 // Clave con la que se guarda el JWT en localStorage. Está en una constante para escribirla una sola vez.
 const CLAVE_TOKEN = 'jwtToken'
 
@@ -32,7 +40,9 @@ const pedirPublico = (ruta) =>
   fetch(`${API_URL}${ruta}`).then((response) =>
     response.json().then((cuerpo) => {
       if (!response.ok) {
-        throw new Error(cuerpo.message)
+        const fallo = new Error(cuerpo.message)
+        fallo.status = response.status
+        throw fallo
       }
       return cuerpo.data ?? []
     })
@@ -332,7 +342,7 @@ function App() {
           sesionVencida()
           return
         }
-        setAviso(fallo.message)
+        setAviso(mensajeDe(fallo))
       })
   }
 
@@ -369,7 +379,7 @@ function App() {
           sesionVencida()
           return
         }
-        setAviso(fallo.message)
+        setAviso(mensajeDe(fallo))
       })
   }
 
@@ -401,7 +411,7 @@ function App() {
           sesionVencida()
           return
         }
-        setAviso(fallo.message)
+        setAviso(mensajeDe(fallo))
       })
   }
 
@@ -432,7 +442,7 @@ function App() {
           sesionVencida()
           return
         }
-        setAviso(fallo.message)
+        setAviso(mensajeDe(fallo))
       })
   }
 
@@ -453,7 +463,7 @@ function App() {
         setMisPlatos(platos.filter((plato) => plato.chefId === sesion.userId))
         setCategorias(listaCategorias)
       })
-      .catch((fallo) => setErrorMisPlatos(fallo.message))
+      .catch((fallo) => setErrorMisPlatos(mensajeDe(fallo)))
       .finally(() => setCargandoMisPlatos(false))
   }, [sesion])
 
@@ -532,7 +542,7 @@ function App() {
           sesionVencida()
           return
         }
-        setAviso(fallo.message)
+        setAviso(mensajeDe(fallo))
       })
   }, [sesion])
 
@@ -621,7 +631,7 @@ function App() {
           return
         }
         // 400 (por ejemplo, publicar sin imagen), 403 (no es tu plato), 404: mensaje del backend.
-        setAviso(fallo.message)
+        setAviso(mensajeDe(fallo))
       })
   }
 
@@ -684,7 +694,7 @@ function App() {
           return
         }
         // 400 (porcentaje fuera de rango), 403 (no es tu plato), 404: mensaje del backend.
-        setAviso(fallo.message)
+        setAviso(mensajeDe(fallo))
       })
   }
 
@@ -735,7 +745,7 @@ function App() {
           return
         }
         // 403 (no es tu plato), 404: mensaje del backend.
-        setAviso(fallo.message)
+        setAviso(mensajeDe(fallo))
       })
   }
 
