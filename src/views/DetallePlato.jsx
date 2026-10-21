@@ -1,5 +1,6 @@
-// Vista de detalle de un plato (ruta /plato/:id). Se abre desde las tarjetas del catálogo.
-import { useState } from 'react'
+// Vista de detalle de un plato (ruta /plato/:id). Se abre desde las tarjetas del catálogo y del inicio.
+// Pide el plato y sus reseñas al backend (GET /platos/{id} y GET /resenas/plato/{id}).
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import EmptyState from '../components/EmptyState'
@@ -9,8 +10,22 @@ import Gallery from '../components/Gallery'
 import QuantityStepper from '../components/QuantityStepper'
 import IngredientTrace from '../components/IngredientTrace'
 import ReviewList from '../components/ReviewList'
-import PLATOS_EJEMPLO from '../data/platosEjemplo'
-import RESENAS_EJEMPLO from '../data/resenasEjemplo'
+
+// URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
+const API_URL = import.meta.env.VITE_API_URL
+
+// Lee una respuesta del backend y devuelve lo que viene en "data". Si el servidor respondió con un
+// error (400, 404, 500...) lanza un Error con el "message" del backend y el código en "status".
+// Hace falta porque fetch NO manda los errores HTTP al .catch(): hay que mirar response.ok nosotros.
+const leerRespuesta = (response) =>
+  response.json().then((cuerpo) => {
+    if (!response.ok) {
+      const fallo = new Error(cuerpo.message)
+      fallo.status = response.status
+      throw fallo
+    }
+    return cuerpo.data
+  })
 
 // Props:
 //  - onAdd: función (plato, cantidad) que viene de App. La vista solo avisa "quiero agregar
@@ -31,18 +46,76 @@ function DetallePlato({ onAdd }) {
   // ejecuten en el mismo orden en cada render.
   const [cantidad, setCantidad] = useState(1)
 
-  // ESTADOS de carga y error. Todavía no hay pedidos al backend, así que quedan fijos en "no
-  // cargando" y "sin error". El setter (setCargando / setError) se agrega en el paso 12.
-  const [cargando] = useState(false)
-  const [error] = useState(null)
+  // ESTADOS de los datos que llegan del backend. Arrancan vacíos y se llenan cuando responde la API.
+  //  - plato: el plato (null hasta que llega)
+  //  - resenas: las reseñas de ese plato
+  //  - noDisponible: true si el backend respondió 404 (el plato no existe o está pausado)
+  const [plato, setPlato] = useState(null)
+  const [resenas, setResenas] = useState([])
+  const [noDisponible, setNoDisponible] = useState(false)
 
-  // .find() recorre el array y devuelve el PRIMER plato que cumple la condición
-  // (o undefined si ninguno). Number(id) pasa '3' a 3: con === '3' y 3 no son
-  // iguales porque tienen distinto tipo, y nunca encontraríamos el plato.
-  // TEMPORAL: cuando conectemos el backend, esto será un pedido a /plato/:id.
-  const plato = PLATOS_EJEMPLO.find((p) => p.id === Number(id))
+  // El id viene de la URL como texto. Si no es un número entero positivo (por ejemplo /plato/abc),
+  // ni siquiera le preguntamos al backend: respondería con un error 500 y no hay nada que mostrar.
+  const idValido = Number.isInteger(Number(id)) && Number(id) > 0
 
-  // Renderizado condicional: si estamos cargando o hubo un error, mostramos eso y cortamos acá.
+  // ESTADOS de carga y error. cargando arranca en true solo si vamos a pedir el plato (id válido).
+  //  - error: null si todo está bien, o el texto del error si la API falló.
+  const [cargando, setCargando] = useState(idValido)
+  const [error, setError] = useState(null)
+
+  // Pide el plato y sus reseñas al abrir la vista, y de nuevo si cambia el id. Es un GET, por eso va
+  // en un useEffect. Es una ruta pública: NO mandamos el token.
+  useEffect(() => {
+    // Con un id inválido no hay nada que pedir.
+    if (!idValido) {
+      return
+    }
+
+    // AbortController permite cancelar el pedido si salimos de la vista antes de que responda.
+    const controlador = new AbortController()
+
+    fetch(`${API_URL}/platos/${id}`, { signal: controlador.signal })
+      .then(leerRespuesta)
+      // Devolvemos la promesa del segundo fetch para que el siguiente .then() espere su resultado.
+      // Las reseñas se piden después porque, si el plato no existe, ya cortamos con el 404.
+      .then((platoApi) =>
+        fetch(`${API_URL}/resenas/plato/${id}`, { signal: controlador.signal })
+          .then(leerRespuesta)
+          .then((resenasApi) => ({ platoApi, resenasApi }))
+      )
+      .then(({ platoApi, resenasApi }) => {
+        setPlato(platoApi)
+        // La API devuelve data: null cuando no hay reseñas; ?? [] lo convierte en lista vacía.
+        setResenas(resenasApi ?? [])
+        setNoDisponible(false)
+        setError(null)
+        setCargando(false)
+      })
+      .catch((fallo) => {
+        // Un pedido cancelado por nosotros (AbortError) no es un error.
+        if (fallo.name === 'AbortError') {
+          return
+        }
+        // 404 = el plato no existe o no está publicado: no es una falla, es "no disponible".
+        if (fallo.status === 404) {
+          setNoDisponible(true)
+        } else {
+          // Sin status, ni siquiera llegamos al servidor (apagado o bloqueado).
+          setError(
+            fallo.status === undefined
+              ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
+              : fallo.message
+          )
+        }
+        setCargando(false)
+      })
+
+    // Función de limpieza: React la ejecuta al salir de la vista o antes de volver a correr el efecto.
+    return () => controlador.abort()
+  }, [id, idValido])
+
+  // Renderizado condicional: según el estado mostramos una cosa u otra y cortamos acá.
+  // Los hooks (useState, useEffect) siempre van ANTES de estos return.
   if (cargando) {
     return <LoadingState message="Cargando el plato..." />
   }
@@ -50,9 +123,8 @@ function DetallePlato({ onAdd }) {
     return <ErrorState message={error} />
   }
 
-  // Si el id no existe mostramos "Este plato no está disponible". Equivale al 404 de la API
-  // (GET /platos/{id} responde 404 si el plato no existe o está pausado).
-  if (plato === undefined) {
+  // Si el id no es válido o el backend dijo 404, mostramos "Este plato no está disponible".
+  if (!idValido || noDisponible || plato === null) {
     return (
       <EmptyState
         title="Este plato no está disponible"
@@ -72,11 +144,6 @@ function DetallePlato({ onAdd }) {
   const tieneDescuento = plato.descuentoPorcentaje > 0
   const total = plato.precioConDescuento * cantidad
   const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
-
-  // Las reseñas son un recurso aparte en la API (GET /resenas/plato/{id}); acá filtramos las de
-  // este plato. filter devuelve un array nuevo con las que cumplen la condición.
-  // TEMPORAL: en el paso 12 se piden al backend.
-  const resenas = RESENAS_EJEMPLO.filter((resena) => resena.platoId === plato.id)
 
   // Solo mostramos cada sección si hay datos (lista vacía -> no se dibuja).
   const tieneIngredientes = plato.ingredientes.length > 0
