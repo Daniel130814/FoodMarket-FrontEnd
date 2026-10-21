@@ -342,21 +342,41 @@ function App() {
       })
   }
 
-  // Cambia la cantidad de un ítem: la REEMPLAZA (no suma). Recibe el id del ÍTEM, no del plato.
-  // TEMPORAL: validamos contra el stock que el ítem guardó al agregarse; en producción lo valida el backend.
+  // Cambia la cantidad de un ítem (paso 12.3c): la REEMPLAZA (no suma). Recibe el id del ÍTEM, no del plato.
+  // Es una ESCRITURA (PUT), va en el handler. El stock lo valida el backend (400 "no tiene stock suficiente").
+  // La respuesta es la cesta completa ya actualizada: la guardamos sin volver a pedirla.
   const cambiarCantidad = (itemId, cantidad) => {
-    const item = carrito.items.find((i) => i.id === itemId)
-
     if (cantidad < 1) {
       return
     }
-    if (cantidad > item.stockDisponible) {
-      setAviso(`De ${item.nombrePlato} quedan ${item.stockDisponible} porciones`)
-      return
-    }
 
-    const itemsNuevos = carrito.items.map((i) => (i.id === itemId ? { ...i, cantidad } : i))
-    setCarrito(calcularCarrito(carrito.id, itemsNuevos))
+    fetch(`${API_URL}/carrito/items/${itemId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sesion.token}`, // ruta privada
+      },
+      body: JSON.stringify({ cantidad }),
+    })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.data
+        })
+      )
+      .then((carritoServidor) => setCarrito(carritoServidor))
+      .catch((fallo) => {
+        // 401: el token ya no sirve, cerramos la sesión.
+        if (fallo.status === 401) {
+          setSesion(null)
+          localStorage.removeItem(CLAVE_TOKEN)
+        }
+        setAviso(fallo.message)
+      })
   }
 
   // Quita un ítem: filter se queda con todos los que NO tienen ese id de ítem.
