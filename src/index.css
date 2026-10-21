@@ -229,9 +229,26 @@ details.faq summary::-webkit-details-marker { display: none; }
 .rise-3 { animation-delay: 0.16s; }
 .settle { animation: settle 0.9s var(--ease) 0.1s both; }
 
+/* ---------- Hero con 3D de CSS (paso 14f) ----------
+   Capas a distintas profundidades dentro de una escena con perspectiva. Cada nivel que contiene capas 3D
+   necesita transform-style: preserve-3d; si no, el navegador las aplana. Nada de JavaScript: es solo CSS. */
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0) rotateY(-5deg) rotateX(2deg); }
+  50% { transform: translateY(-10px) rotateY(5deg) rotateX(-2deg); }
+}
+.hero-3d { perspective: 1100px; }
+.hero-3d__float { transform-style: preserve-3d; animation: hero-float 9s ease-in-out infinite; }
+.hero-3d__scene { transform-style: preserve-3d; transition: transform 0.6s var(--ease); }
+.hero-3d:hover .hero-3d__scene { transform: rotateY(-9deg) rotateX(5deg); }
+.hero-3d__back { transform: translateZ(-70px) scale(1.06); }
+.hero-3d__orb { transform: translateZ(120px); }
+.hero-3d__front { transform: translateZ(80px); }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; }
+  .hero-3d__float { animation: none; }
+  .hero-3d:hover .hero-3d__scene { transform: none; }
 }
 
 /* ==========================================================================
