@@ -16,7 +16,6 @@ import MisPublicaciones from './views/MisPublicaciones'
 import PublicarPlato from './views/PublicarPlato'
 import Ingreso from './views/Ingreso'
 import Registro from './views/Registro'
-import RESENAS_EJEMPLO from './data/resenasEjemplo'
 
 // URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
 const API_URL = import.meta.env.VITE_API_URL
@@ -540,15 +539,8 @@ function App() {
   }
 
   // ACCIONES DEL CHEF sobre sus publicaciones. MisPublicaciones las llama; App las ejecuta contra la API
-  // y avisa con un Toast. Stock, pausar, reactivar (13d) y descuento (13e) son REALES. Eliminar sigue
-  // SIMULADO (paso 13f: eliminar).
-
-  // Cambia solo algunos campos de UN plato en el estado. map devuelve un array NUEVO y reemplaza
-  // únicamente el plato con ese id; {...plato, ...cambios} copia el plato y pisa los campos que cambiaron.
-  // Todavía lo usa el paso simulado (eliminar, 13f).
-  const actualizarPlato = (platoId, cambios) => {
-    setMisPlatos(misPlatos.map((plato) => (plato.id === platoId ? { ...plato, ...cambios } : plato)))
-  }
+  // y avisa con un Toast. Stock, pausar, reactivar (13d),
+  // descuento (13e) y eliminar (13f) son REALES.
 
   // Guarda un cambio en UN plato con PUT /platos/{id} (paso 13d). La API no tiene PATCH para el stock ni
   // para el estado, y el PUT REEMPLAZA el plato entero (lo que no se manda se borra). Por eso armamos el
@@ -685,20 +677,39 @@ function App() {
     setAviso(`Guardaste los cambios de ${plato.nombre}`)
   }
 
-  // Elimina un plato. Igual que la API: si el plato tiene historial (aparece en algún pedido o
-  // tiene reseñas) NO se borra, queda PAUSADO; si no, se borra de verdad. El mensaje es el mismo
-  // en los dos casos porque la API no avisa cuál de las dos pasó.
+  // Elimina un plato (paso 13f): DELETE /platos/{id}, que responde data: null. El backend decide: si el
+  // plato tiene historial (pedidos, reseñas o está en un carrito) NO se borra, queda PAUSADO; si no, se
+  // borra de verdad. Y NO avisa cuál de las dos pasó (TODO(backend): que lo informe).
+  // Da igual para la lista: un plato pausado tampoco vuelve en GET /platos. Por eso, después de confirmar
+  // el éxito, lo sacamos del estado con filter (sin volver a pedir la lista), igual que quedaría tras recargar.
+  // Es una escritura: la llama MisPublicaciones al confirmar el diálogo.
   const eliminarPlato = (platoId) => {
-    // TODO(paso 13): con la API real esto es DELETE /platos/{id} y el backend decide si borra o pausa.
-    // Mientras tanto la simulación solo mira las reseñas (los pedidos ahora son del backend).
-    const tieneResenas = RESENAS_EJEMPLO.some((resena) => resena.platoId === platoId)
-
-    if (tieneResenas) {
-      actualizarPlato(platoId, { estado: 'PAUSADO' })
-    } else {
-      setMisPlatos(misPlatos.filter((plato) => plato.id !== platoId))
-    }
-    setAviso('Plato eliminado o pausado correctamente')
+    fetch(`${API_URL}/platos/${platoId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${sesion.token}` }, // ruta privada
+    })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.message
+        })
+      )
+      .then((mensaje) => {
+        setMisPlatos((actuales) => actuales.filter((plato) => plato.id !== platoId))
+        setAviso(mensaje)
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          sesionVencida()
+          return
+        }
+        // 403 (no es tu plato), 404: mensaje del backend.
+        setAviso(fallo.message)
+      })
   }
 
   // VALOR CALCULADO: sale del carrito en cada render, no se guarda aparte.
