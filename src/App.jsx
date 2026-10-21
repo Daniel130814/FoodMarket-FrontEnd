@@ -285,6 +285,19 @@ function App() {
   // Estado del aviso (Toast): el texto a mostrar, o null si no hay aviso.
   const [aviso, setAviso] = useState(null)
 
+  // Cierra la sesión porque el backend respondió 401 (token vencido o inválido). Las vistas que hacen
+  // sus propias llamadas (Checkout) la reciben por props. RutaProtegida las manda a /ingreso al ver sesion en null.
+  // Limpia lo mismo que cerrarSesion: la sesión, el token, la cesta y las publicaciones del usuario que se va.
+  const sesionVencida = () => {
+    setSesion(null)
+    localStorage.removeItem(CLAVE_TOKEN)
+    setCarrito((actual) => calcularCarrito(actual.id, []))
+    setMisPlatos([])
+    setCargandoMisPlatos(true)
+    setErrorMisPlatos(null)
+    setAviso('Tu sesión venció, ingresá de nuevo')
+  }
+
   // Agrega un plato a la cesta (paso 12.3b). Si el plato YA está, el backend SUMA la cantidad.
   // Es una ESCRITURA (POST), por eso va en el handler y nunca en un efecto.
   // Recibe el plato (tal como lo devolvió GET /platos) y la cantidad. Ya no validamos stock ni estado
@@ -314,10 +327,10 @@ function App() {
         setAviso(`Agregaste ${plato.nombre} a tu carrito`)
       })
       .catch((fallo) => {
-        // 401: el token ya no sirve, cerramos la sesión.
+        // 401: el token ya no sirve, cerramos la sesión (en un solo lugar: sesionVencida).
         if (fallo.status === 401) {
-          setSesion(null)
-          localStorage.removeItem(CLAVE_TOKEN)
+          sesionVencida()
+          return
         }
         setAviso(fallo.message)
       })
@@ -351,10 +364,10 @@ function App() {
       )
       .then((carritoServidor) => setCarrito(carritoServidor))
       .catch((fallo) => {
-        // 401: el token ya no sirve, cerramos la sesión.
+        // 401: el token ya no sirve, cerramos la sesión (en un solo lugar: sesionVencida).
         if (fallo.status === 401) {
-          setSesion(null)
-          localStorage.removeItem(CLAVE_TOKEN)
+          sesionVencida()
+          return
         }
         setAviso(fallo.message)
       })
@@ -383,10 +396,10 @@ function App() {
         setCarrito((actual) => calcularCarrito(actual.id, actual.items.filter((item) => item.id !== itemId)))
       )
       .catch((fallo) => {
-        // 401: el token ya no sirve, cerramos la sesión.
+        // 401: el token ya no sirve, cerramos la sesión (en un solo lugar: sesionVencida).
         if (fallo.status === 401) {
-          setSesion(null)
-          localStorage.removeItem(CLAVE_TOKEN)
+          sesionVencida()
+          return
         }
         setAviso(fallo.message)
       })
@@ -414,10 +427,10 @@ function App() {
         setAviso('Vaciaste tu cesta')
       })
       .catch((fallo) => {
-        // 401: el token ya no sirve, cerramos la sesión.
+        // 401: el token ya no sirve, cerramos la sesión (en un solo lugar: sesionVencida).
         if (fallo.status === 401) {
-          setSesion(null)
-          localStorage.removeItem(CLAVE_TOKEN)
+          sesionVencida()
+          return
         }
         setAviso(fallo.message)
       })
@@ -514,10 +527,10 @@ function App() {
       // Guardamos tal cual lo que manda el servidor (él calcula subtotales y total).
       .then((carritoServidor) => setCarrito(carritoServidor))
       .catch((fallo) => {
-        // 401 en ruta privada: el token ya no sirve, cerramos la sesión.
+        // 401 en ruta privada: el token ya no sirve, cerramos la sesión (en un solo lugar: sesionVencida).
         if (fallo.status === 401) {
-          setSesion(null)
-          localStorage.removeItem(CLAVE_TOKEN)
+          sesionVencida()
+          return
         }
         setAviso(fallo.message)
       })
@@ -534,16 +547,6 @@ function App() {
     setSesion(nuevaSesion)
     localStorage.setItem(CLAVE_TOKEN, nuevaSesion.token)
     setAviso(`Ingresaste como ${nuevaSesion.nombre}`)
-  }
-
-  // Cierra la sesión porque el backend respondió 401 (token vencido o inválido). Las vistas que hacen
-  // sus propias llamadas (Checkout) la reciben por props. RutaProtegida las manda a /ingreso al ver sesion en null.
-  const sesionVencida = () => {
-    setSesion(null)
-    localStorage.removeItem(CLAVE_TOKEN)
-    setMisPlatos([])
-    setCargandoMisPlatos(true)
-    setAviso('Tu sesión venció, ingresá de nuevo')
   }
 
   // Cierra la sesión. Hay que limpiar TODO lo que pertenece al usuario que se va:
