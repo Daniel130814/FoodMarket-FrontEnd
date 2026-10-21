@@ -379,9 +379,36 @@ function App() {
       })
   }
 
-  // Quita un ítem: filter se queda con todos los que NO tienen ese id de ítem.
+  // Quita un ítem (paso 12.3d). Recibe el id del ÍTEM. Es una ESCRITURA (DELETE), va en el handler.
+  // A diferencia del POST y el PUT, el DELETE responde data: null (no devuelve la cesta), así que
+  // después de confirmar el éxito sacamos el ítem del estado local con filter (sin volver a pedir la cesta).
+  // calcularCarrito recalcula el total con los ítems que quedan.
   const quitar = (itemId) => {
-    setCarrito(calcularCarrito(carrito.id, carrito.items.filter((item) => item.id !== itemId)))
+    fetch(`${API_URL}/carrito/items/${itemId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${sesion.token}` }, // ruta privada
+    })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+        })
+      )
+      .then(() =>
+        // La forma con función evita usar un "carrito" viejo si cambió mientras esperábamos la respuesta.
+        setCarrito((actual) => calcularCarrito(actual.id, actual.items.filter((item) => item.id !== itemId)))
+      )
+      .catch((fallo) => {
+        // 401: el token ya no sirve, cerramos la sesión.
+        if (fallo.status === 401) {
+          setSesion(null)
+          localStorage.removeItem(CLAVE_TOKEN)
+        }
+        setAviso(fallo.message)
+      })
   }
 
   // Confirma el pedido: crea un pedido de ejemplo con estado PENDIENTE a partir de la cesta, la
