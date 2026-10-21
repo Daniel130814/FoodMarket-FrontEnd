@@ -1,49 +1,54 @@
-// Tarjeta de un chef (foto, taller, especialidades y una cita). Se usa en views/Inicio, en la sección "Quiénes cocinan".
+// Tarjeta de un chef (foto, especialidad, reputación y presentación). Se usa en views/Inicio, en la sección
+// "Quiénes cocinan".
+import { useState } from 'react'
 
 // Props:
-//  - chef: datos del chef { name, avatarUrl, verified, workshop, neighborhood, rating, yearsOfCraft, quote, specialties }
+//  - chef: perfil con la forma de ChefProfileResponse de la API
+//    { id, userId, biografia, especialidad, fotoUrl, descripcion, reputacion }
+//    Todos los textos son opcionales: la API no los valida y pueden venir vacíos o en null.
+//    TODO(backend): el perfil no trae el nombre del chef ni su taller; por eso no se muestran.
 function ChefCard({ chef }) {
   // Desestructuración: sacamos del chef solo los campos que usa la tarjeta.
-  const { name, avatarUrl, verified, workshop, neighborhood, rating, yearsOfCraft, quote, specialties } = chef
+  const { fotoUrl, especialidad, reputacion, biografia, descripcion } = chef
+
+  // ESTADO LOCAL de UI: true si la foto no se pudo cargar (por ejemplo, una URL rota). Es propio de esta
+  // tarjeta: el padre no necesita saberlo. Si falla, mostramos un ícono en lugar de la imagen.
+  const [fotoRota, setFotoRota] = useState(false)
 
   return (
     <li className="flex flex-col gap-5 py-8 first:pt-0 md:px-8 md:py-0 md:first:pl-0 md:last:pr-0">
       <div className="flex items-center gap-4">
-        <img
-          src={avatarUrl}
-          alt={`Retrato de ${name}`}
-          className="h-[72px] w-[72px] rounded-full object-cover ring-1 ring-hairline"
-        />
+        {/* Renderizado condicional: sin foto, o con la foto rota, dibujamos un ícono. onError de la imagen
+            se dispara cuando el navegador no logra cargarla. */}
+        {fotoUrl && !fotoRota ? (
+          <img
+            src={fotoUrl}
+            alt=""
+            onError={() => setFotoRota(true)}
+            className="h-[72px] w-[72px] flex-none rounded-full object-cover ring-1 ring-hairline"
+          />
+        ) : (
+          <span className="grid h-[72px] w-[72px] flex-none place-items-center rounded-full bg-surface-container-high text-primary ring-1 ring-hairline">
+            <span className="material-symbols-outlined text-[32px]" aria-hidden="true">restaurant</span>
+          </span>
+        )}
         <div className="min-w-0">
-          <h3 className="flex items-center gap-1.5 font-display text-headline-sm text-primary">
-            {name}
-            {verified && (
-              <span
-                className="material-symbols-outlined fill text-[20px] text-surface-tint"
-                title="Taller verificado"
-                aria-label="Taller verificado"
-              >
-                verified
-              </span>
-            )}
-          </h3>
-          <p className="text-body-sm text-on-surface-variant">
-            {workshop} · {neighborhood}
-          </p>
+          <h3 className="font-display text-headline-sm text-primary">{especialidad ?? 'Chef de Appetitos'}</h3>
+          {/* La API devuelve reputación 0 cuando el chef todavía no tiene reseñas */}
           <p className="mt-0.5 text-label-md text-primary">
-            ★ {rating} <span className="font-normal text-on-surface-variant">· {yearsOfCraft} años de oficio</span>
+            {reputacion > 0 ? (
+              <>★ {reputacion}</>
+            ) : (
+              <span className="font-normal text-on-surface-variant">Todavía sin reseñas</span>
+            )}
           </p>
         </div>
       </div>
-      <blockquote className="flex-1 font-display text-[20px] italic leading-[30px] text-on-surface">{quote}</blockquote>
-      <ul className="flex flex-wrap gap-2">
-        {/* map: un <li> por especialidad. key = el propio texto, que no se repite dentro de un chef */}
-        {specialties.map((especialidad) => (
-          <li key={especialidad} className="badge badge-mute">
-            {especialidad}
-          </li>
-        ))}
-      </ul>
+      {/* Renderizado condicional: la biografía y la descripción solo se dibujan si el chef las escribió */}
+      {biografia && (
+        <blockquote className="flex-1 font-display text-[20px] italic leading-[30px] text-on-surface">“{biografia}”</blockquote>
+      )}
+      {descripcion && <p className="text-body-sm text-on-surface-variant">{descripcion}</p>}
     </li>
   )
 }

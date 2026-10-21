@@ -305,10 +305,10 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
   - [x] 14b Administración en `/admin`: pagos (aprobar, rechazar, reembolsar) y usuarios (listar y crear con rol; la API todavía no cambia roles). Incluye el componente `FormField`.
   - [x] 14c Pedidos recibidos del chef (`GET /subpedidos/chef/{userId}`, `PATCH /subpedidos/{id}/estado`).
   - [x] 14d Reseñas del cliente (`POST /resenas/createResena`) en pedidos entregados.
-  - [ ] 14e Perfil del chef en Inicio (`GET /chef-profiles`) y borrar `src/data/`.
+  - [x] 14e Perfil del chef en Inicio (`GET /chef-profiles`) y `src/data/` borrada (ya no quedan datos de ejemplo).
   - [ ] 14f Hero con render 3D (último, solo si sobra tiempo).
 
-**`TODO(backend)` que quedan:** "mis platos" del chef en todos los estados; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; que `DELETE /platos/{id}` informe si borró o pausó; perfil del chef (la sección de chefs de Inicio usa `src/data/chefsEjemplo.jsx`, el único dato de ejemplo que queda: borrar `src/data/` cuando exista la API).
+**`TODO(backend)` que quedan:** "mis platos" del chef en todos los estados; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; que `DELETE /platos/{id}` informe si borró o pausó; nombre y taller del chef en `ChefProfileResponse` (la tarjeta de Inicio muestra solo especialidad, biografía, descripción, foto y reputación); `pedidoId`, fecha y cliente en los subpedidos; `clienteNombre` en las reseñas; que un ADMIN pueda cambiar el rol de un usuario.
 
 ## 10. Antes de dar un paso por terminado
 
