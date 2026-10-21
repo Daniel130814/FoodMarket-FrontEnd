@@ -53,6 +53,9 @@ function Header({ cartCount, sesion, onLogout }) {
           {sesion !== null && sesion.role === 'CHEF' && (
             <NavLink to="/mis-publicaciones" className="nav-link">Mis publicaciones</NavLink>
           )}
+          {sesion !== null && sesion.role === 'CHEF' && (
+            <NavLink to="/pedidos-recibidos" className="nav-link">Pedidos recibidos</NavLink>
+          )}
           {sesion !== null && sesion.role === 'ADMIN' && (
             <NavLink to="/admin" className="nav-link">Administración</NavLink>
           )}
@@ -123,6 +126,15 @@ function Header({ cartCount, sesion, onLogout }) {
                 onClick={() => setMenuOpen(false)}
               >
                 Mis publicaciones
+              </NavLink>
+            )}
+            {sesion !== null && sesion.role === 'CHEF' && (
+              <NavLink
+                to="/pedidos-recibidos"
+                className="nav-link block !py-3"
+                onClick={() => setMenuOpen(false)}
+              >
+                Pedidos recibidos
               </NavLink>
             )}
             {sesion !== null && sesion.role === 'ADMIN' && (
