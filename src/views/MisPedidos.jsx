@@ -10,6 +10,29 @@ import ErrorState from '../components/ErrorState'
 // URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL
 
+// GET de una ruta PRIVADA: lleva el token. Devuelve una promesa con el "data" de la respuesta (las
+// listas vacías llegan como null, por eso el ?? []) o lanza un Error con el message del backend y el
+// status HTTP. Es una función común (no un hook): recibe datos y devuelve una promesa.
+const pedirPrivado = (ruta, token) =>
+  fetch(`${API_URL}${ruta}`, { headers: { Authorization: `Bearer ${token}` } }).then((response) =>
+    response.json().then((cuerpo) => {
+      if (!response.ok) {
+        const fallo = new Error(cuerpo.message)
+        fallo.status = response.status
+        throw fallo
+      }
+      return cuerpo.data ?? []
+    })
+  )
+
+// Medios de pago de la API (enum MedioPago) con el texto que ve el cliente.
+const MEDIOS_PAGO = [
+  { valor: 'TARJETA_CREDITO', etiqueta: 'Tarjeta de crédito' },
+  { valor: 'TARJETA_DEBITO', etiqueta: 'Tarjeta de débito' },
+  { valor: 'TRANSFERENCIA', etiqueta: 'Transferencia' },
+  { valor: 'EFECTIVO', etiqueta: 'Efectivo' },
+]
+
 // MAPEO de los estados de la API a los textos que ve el cliente. Es un objeto usado como
 // "diccionario": ETIQUETAS_ESTADO['EN_PREPARACION'] devuelve 'Cocinando'.
 // CANCELADO no está acá a propósito: se muestra aparte, con su propio badge.
@@ -28,13 +51,17 @@ const ORDEN_ESTADOS = ['PENDIENTE', 'CONFIRMADO', 'EN_PREPARACION', 'ENVIADO', '
 const PASOS_SEGUIMIENTO = ORDEN_ESTADOS.map((estado) => ({ estado, etiqueta: ETIQUETAS_ESTADO[estado] }))
 
 // Props:
-//  - token: el JWT de la sesión, para las llamadas privadas (GET /orders y PATCH cancelar)
+//  - token: el JWT de la sesión, para las llamadas privadas (GET /orders y /pagos, PATCH cancelar, POST pago)
 //  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
 //  - onAviso: función (texto) de App para mostrar un Toast
 function MisPedidos({ token, onSesionVencida, onAviso }) {
   // ESTADO: los pedidos del cliente, con la forma de OrderResponse de la API. Viven acá porque solo
   // esta vista los usa: los pide al montarse y los actualiza al cancelar.
   const [pedidos, setPedidos] = useState([])
+
+  // ESTADO: los pagos del cliente (PagoResponse). Un pedido puede tener varios (por ejemplo uno rechazado
+  // y un reintento). Se piden junto con los pedidos y se actualizan al pagar.
+  const [pagos, setPagos] = useState([])
 
   // ESTADOS de carga y error del GET. Arranca cargando.
   const [cargando, setCargando] = useState(true)
@@ -47,21 +74,20 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
   // diálogo está cerrado. Un solo estado sirve para "¿está abierto?" y "¿cuál pedido?".
   const [pedidoACancelarId, setPedidoACancelarId] = useState(null)
 
-  // GET /orders al abrir la vista (paso 12.5). Ruta privada: lleva el token. Devuelve solo los pedidos
-  // de este cliente. Dependencias [token]: no se repite mientras no cambie la sesión.
+  // ESTADOS del diálogo de pago: el id del pedido que se quiere pagar (null = cerrado) y el medio de pago
+  // elegido en el selector.
+  const [pedidoAPagarId, setPedidoAPagarId] = useState(null)
+  const [medioPago, setMedioPago] = useState('TARJETA_CREDITO')
+
+  // GET /orders y GET /pagos al abrir la vista. Rutas privadas: llevan el token. Devuelven solo lo de este
+  // cliente. Promise.all espera a que lleguen LOS DOS y entrega los resultados juntos (mismo orden).
+  // Dependencias [token]: no se repite mientras no cambie la sesión.
   useEffect(() => {
-    fetch(`${API_URL}/orders`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
-      .then((data) => setPedidos(data ?? [])) // lista vacía llega como null
+    Promise.all([pedirPrivado('/orders', token), pedirPrivado('/pagos', token)])
+      .then(([listaPedidos, listaPagos]) => {
+        setPedidos(listaPedidos)
+        setPagos(listaPagos)
+      })
       .catch((fallo) => {
         // 401: el token ya no sirve; App cierra la sesión y la ruta protegida nos manda a /ingreso.
         if (fallo.status === 401) {
@@ -83,6 +109,16 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
   }
   if (error !== null) {
     return <ErrorState message={error} />
+  }
+
+  // Último pago de un pedido (el más nuevo por fecha) o null si no tiene. filter se queda con los pagos de
+  // ese pedido; sort los ordena del más nuevo al más viejo (sobre la copia que devolvió filter, que es un
+  // array nuevo) y [0] toma el primero. Las fechas ISO se pueden comparar como texto.
+  const ultimoPago = (pedidoId) => {
+    const delPedido = pagos
+      .filter((pago) => pago.pedidoId === pedidoId)
+      .sort((a, b) => b.fechaCreacion.localeCompare(a.fechaCreacion))
+    return delPedido.length === 0 ? null : delPedido[0]
   }
 
   // VALORES CALCULADOS a partir de la prop pedidos y del estado (no se guardan aparte):
@@ -135,6 +171,53 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
       })
   }
 
+  // Abre el diálogo de pago para ese pedido, con el medio de pago por defecto.
+  const abrirPago = (pedidoId) => {
+    setMedioPago('TARJETA_CREDITO')
+    setPedidoAPagarId(pedidoId)
+  }
+
+  // Al confirmar el diálogo: POST /pagos/createPago { medioPago, pedidoId } (paso 14a). Es una escritura:
+  // va en el handler. El monto lo fija el servidor (precioFinal del pedido) y el pago nace PENDIENTE: lo
+  // aprueba un ADMIN. Con el pago que devuelve el backend lo sumamos a la lista, SIN volver a pedir todo.
+  // Cerramos el diálogo ENSEGUIDA (antes del fetch): así el botón desaparece y un segundo clic no puede
+  // crear un pago duplicado.
+  const confirmarPago = () => {
+    const pedidoId = pedidoAPagarId
+    setPedidoAPagarId(null)
+
+    fetch(`${API_URL}/pagos/createPago`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`, // ruta privada
+      },
+      body: JSON.stringify({ medioPago, pedidoId }),
+    })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.data
+        })
+      )
+      .then((creado) => {
+        setPagos((actuales) => [...actuales, creado])
+        onAviso(`Registramos tu pago del pedido n.º ${pedidoId}. Falta que lo aprueben.`)
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        // 409 (ya hay un pago aprobado o el pedido está cancelado), 400 (pagos bloqueados), 403, 404.
+        onAviso(fallo.message)
+      })
+  }
+
   return (
     <>
       <h1 className="font-display text-display-lg-mobile text-primary lg:text-[52px] lg:leading-[56px]">Mis pedidos</h1>
@@ -158,7 +241,9 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
               key={pedido.id}
               order={pedido}
               steps={PASOS_SEGUIMIENTO}
+              payment={ultimoPago(pedido.id)}
               onCancel={setPedidoACancelarId}
+              onPay={abrirPago}
             />
           ))}
         </div>
@@ -174,6 +259,25 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
         onConfirm={confirmarCancelacion}
         onCancel={() => setPedidoACancelarId(null)}
       />
+
+      {/* Diálogo de pago: children = el selector del medio de pago. Controlado por estado (pedidoAPagarId). */}
+      <Dialog
+        open={pedidoAPagarId !== null}
+        title={`Pagar el pedido n.º ${pedidoAPagarId}`}
+        message="Elegí cómo vas a pagar. Registramos el pago y queda pendiente hasta que lo aprueben."
+        confirmLabel="Registrar pago"
+        confirmVariant="primary"
+        cancelLabel="Volver"
+        onConfirm={confirmarPago}
+        onCancel={() => setPedidoAPagarId(null)}
+      >
+        <label className="label mt-5" htmlFor="medioPago">Medio de pago</label>
+        <select id="medioPago" className="field" value={medioPago} onChange={(event) => setMedioPago(event.target.value)}>
+          {MEDIOS_PAGO.map((medio) => (
+            <option key={medio.valor} value={medio.valor}>{medio.etiqueta}</option>
+          ))}
+        </select>
+      </Dialog>
     </>
   )
 }
