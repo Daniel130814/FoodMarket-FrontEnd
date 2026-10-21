@@ -17,8 +17,6 @@ import PublicarPlato from './views/PublicarPlato'
 import Ingreso from './views/Ingreso'
 import Registro from './views/Registro'
 import RESENAS_EJEMPLO from './data/resenasEjemplo'
-import CATEGORIAS_EJEMPLO from './data/categoriasEjemplo'
-import INGREDIENTES_EJEMPLO from './data/ingredientesEjemplo'
 
 // URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
 const API_URL = import.meta.env.VITE_API_URL
@@ -50,13 +48,13 @@ const calcularCarrito = (id, items) => {
 //  - cargandoMisPlatos / errorMisPlatos: si se están cargando las publicaciones y el error si falló; se reenvían a MisPublicaciones.
 //  - misPlatos y onStockChange / onTogglePause / onDiscount / onDeleteDish: las publicaciones del chef y
 //    las acciones sobre ellas; se reenvían a MisPublicaciones (misPlatos también a PublicarPlato).
-//  - onSavePlato: función (datos, platoId) para crear o editar un plato; se reenvía a PublicarPlato.
+//  - onPlatoCreado / onPlatoEditado: funciones (plato) que registran un plato ya guardado por el backend; se reenvían a PublicarPlato.
 //  - onLogin: función (sesion) para iniciar sesión; se reenvía a Ingreso y Registro.
 //  - sesion / cargandoSesion / onLogout: la sesión actual (o null), si se está verificando el token guardado
 //    y la función para cerrarla; se reenvían al Header.
 //    AppContent además usa sesion para proteger las rutas (RutaProtegida) y para decidir si se puede agregar al carrito.
 //  - onAviso: función (texto) para mostrar un Toast; AppContent la usa cuando un rol no puede comprar.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, onSesionVencida, onPedidoCreado, misPlatos, cargandoMisPlatos, errorMisPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onPlatoCreado, onLogin, sesion, cargandoSesion, onLogout, onAviso }) {
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, onSesionVencida, onPedidoCreado, misPlatos, cargandoMisPlatos, errorMisPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onPlatoCreado, onPlatoEditado, onLogin, sesion, cargandoSesion, onLogout, onAviso }) {
   const location = useLocation()
 
   // useNavigate devuelve una función para cambiar de ruta desde el código. Se puede usar acá
@@ -176,10 +174,11 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
               <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
                 <PublicarPlato
                   platos={misPlatos}
+                  cargandoPlatos={cargandoMisPlatos}
                   token={sesion?.token}
                   onSesionVencida={onSesionVencida}
                   onPlatoCreado={onPlatoCreado}
-                  onSave={onSavePlato}
+                  onPlatoEditado={onPlatoEditado}
                 />
               </RutaProtegida>
             }
@@ -190,10 +189,11 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
               <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
                 <PublicarPlato
                   platos={misPlatos}
+                  cargandoPlatos={cargandoMisPlatos}
                   token={sesion?.token}
                   onSesionVencida={onSesionVencida}
                   onPlatoCreado={onPlatoCreado}
-                  onSave={onSavePlato}
+                  onPlatoEditado={onPlatoEditado}
                 />
               </RutaProtegida>
             }
@@ -581,51 +581,12 @@ function App() {
     setAviso(`Creaste ${plato.nombre}`)
   }
 
-  // Crea o edita un plato. PublicarPlato la llama con el cuerpo de PlatoRequest (datos) y el id del
-  // plato que se edita (null si es uno nuevo). Arma un plato con la forma de PlatoResponse.
-  // SIMULADA (paso 11b.10c): en el paso 13 es POST /platos/createPlato (nuevo) o PUT /platos/{id}
-  // (edición, que REEMPLAZA el plato entero), y el backend devuelve el plato ya armado.
-  const guardarPlato = (datos, platoId) => {
-    const existente = platoId === null ? undefined : misPlatos.find((plato) => plato.id === platoId)
-
-    // Regla de la API: si el estado pedido es PUBLICADO, el backend lo recalcula según el stock
-    // (stock 0 -> AGOTADO). BORRADOR y PAUSADO se respetan tal cual.
-    const estado = datos.estado === 'PUBLICADO' && datos.stockDisponible === 0 ? 'AGOTADO' : datos.estado
-
-    // PlatoRequest no trae el descuento (se maneja aparte): al editar se conserva el que tenía.
-    const descuentoPorcentaje = existente === undefined ? 0 : existente.descuentoPorcentaje
-
-    const plato = {
-      // id nuevo: el siguiente al más grande (lo asigna el backend en producción)
-      id: existente === undefined ? misPlatos.reduce((mayor, p) => Math.max(mayor, p.id), 0) + 1 : existente.id,
-      nombre: datos.nombre,
-      descripcion: datos.descripcion,
-      imagenesUrls: datos.imagenesUrls,
-      precio: datos.precio,
-      descuentoPorcentaje,
-      precioConDescuento: Math.round(datos.precio * (100 - descuentoPorcentaje)) / 100,
-      stockDisponible: datos.stockDisponible,
-      estado,
-      chefId: existente === undefined ? 1 : existente.chefId,
-      // TODO(backend): chefNombre en los platos (la API todavía solo trae chefId).
-      chefNombre: existente === undefined ? 'Matteo Rossi' : existente.chefNombre,
-      // La API recibe ids pero devuelve los NOMBRES de las categorías y los datos del ingrediente.
-      categorias: CATEGORIAS_EJEMPLO.filter((c) => datos.categoriasIds.includes(c.id)).map((c) => c.description),
-      ingredientes: datos.ingredientes.map((fila) => ({
-        ingredienteId: fila.ingredienteId,
-        nombre: INGREDIENTES_EJEMPLO.find((i) => i.id === fila.ingredienteId).nombre,
-        cantidad: fila.cantidad,
-        unidadMedida: fila.unidadMedida,
-      })),
-    }
-
-    // Editar: reemplaza el plato con ese id (map). Crear: lo agrega al final (...misPlatos copia los demás).
-    setMisPlatos(
-      existente === undefined
-        ? [...misPlatos, plato]
-        : misPlatos.map((p) => (p.id === existente.id ? plato : p))
-    )
-    setAviso(existente === undefined ? `Creaste ${plato.nombre}` : `Guardaste los cambios de ${plato.nombre}`)
+  // Registra un plato que el backend ya editó (paso 13c). PublicarPlato la llama con el PlatoResponse que
+  // devolvió PUT /platos/{id}. Reemplazamos el plato con ese id por el que devolvió el backend (map),
+  // SIN volver a pedir la lista.
+  const platoEditado = (plato) => {
+    setMisPlatos((actuales) => actuales.map((p) => (p.id === plato.id ? plato : p)))
+    setAviso(`Guardaste los cambios de ${plato.nombre}`)
   }
 
   // Elimina un plato. Igual que la API: si el plato tiene historial (aparece en algún pedido o
@@ -665,8 +626,8 @@ function App() {
         onTogglePause={pausarOReactivar}
         onDiscount={aplicarDescuento}
         onDeleteDish={eliminarPlato}
-        onSavePlato={guardarPlato}
         onPlatoCreado={platoCreado}
+        onPlatoEditado={platoEditado}
         cargandoMisPlatos={cargandoMisPlatos}
         errorMisPlatos={errorMisPlatos}
         onLogin={iniciarSesion}

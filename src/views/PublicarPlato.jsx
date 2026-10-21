@@ -87,12 +87,14 @@ const validar = (datos) => {
 
 // Props:
 //  - platos: las publicaciones del chef (vienen de App). Se usan para precargar el plato al editar.
-//  - token: el JWT de la sesión, para el POST de crear plato (ruta privada)
+//  - cargandoPlatos: true mientras App todavía está pidiendo las publicaciones (hace falta para editar)
+//  - token: el JWT de la sesión, para el POST y el PUT de platos (rutas privadas)
 //  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
 //  - onPlatoCreado: función (plato) de App. La vista hace el POST y, cuando el backend responde bien,
 //    le entrega el plato creado; App lo suma a las publicaciones y avisa.
-//  - onSave: función (datos, platoId) de App, SOLO para editar (todavía simulado, paso 13c).
-function PublicarPlato({ platos, token, onSesionVencida, onPlatoCreado, onSave }) {
+//  - onPlatoEditado: función (plato) de App. Igual, pero con el plato que devuelve el PUT; App reemplaza
+//    el que había.
+function PublicarPlato({ platos, cargandoPlatos, token, onSesionVencida, onPlatoCreado, onPlatoEditado }) {
   const navigate = useNavigate()
 
   // useParams devuelve los parámetros de la URL. En /publicar/10 devuelve { id: '10' } y en
@@ -103,9 +105,10 @@ function PublicarPlato({ platos, token, onSesionVencida, onPlatoCreado, onSave }
   // El plato a editar, o undefined si estamos creando (o si el id no existe).
   const platoAEditar = editando ? platos.find((plato) => plato.id === Number(id)) : undefined
 
-  // ESTADO: todos los campos del formulario en un solo objeto. Si editamos, arranca con los datos
-  // del plato; si no, vacío. Este valor inicial solo se usa la primera vez que se dibuja la vista.
-  const [datos, setDatos] = useState(platoAEditar === undefined ? FORM_VACIO : aFormulario(platoAEditar, []))
+  // ESTADO: lo que el chef fue escribiendo en el formulario (todos los campos en un solo objeto), o null
+  // mientras no tocó nada. No lo inicializamos con los datos del plato porque useState solo usa su valor
+  // inicial en el primer render, y en ese momento todavía pueden faltar el plato o las categorías.
+  const [edicion, setDatos] = useState(null)
 
   // ESTADO: un mensaje de error por campo (objeto vacío = sin errores).
   const [errores, setErrores] = useState({})
@@ -121,6 +124,11 @@ function PublicarPlato({ platos, token, onSesionVencida, onPlatoCreado, onSave }
   const [guardando, setGuardando] = useState(false)
   const [errorGuardar, setErrorGuardar] = useState(null)
 
+  // VALOR CALCULADO: los datos que muestra el formulario. Si el chef ya escribió algo, es su borrador;
+  // si no, sale del plato que se edita (o vacío si estamos creando). Se recalcula en cada render, así
+  // siempre usa el plato y las categorías más recientes, sin necesidad de un efecto.
+  const datos = edicion ?? (platoAEditar === undefined ? FORM_VACIO : aFormulario(platoAEditar, categorias))
+
   // GET de los dos catálogos al abrir la vista (paso 13b). Promise.all espera a que lleguen LOS DOS y
   // entrega los resultados juntos, en el mismo orden. Dependencias []: se piden una sola vez.
   useEffect(() => {
@@ -133,8 +141,8 @@ function PublicarPlato({ platos, token, onSesionVencida, onPlatoCreado, onSave }
       .finally(() => setCargando(false))
   }, [])
 
-  // Mientras cargan los catálogos (o si fallaron) no se puede armar el formulario.
-  if (cargando) {
+  // Mientras cargan los catálogos o las publicaciones (o si fallaron) no se puede armar el formulario.
+  if (cargando || cargandoPlatos) {
     return <LoadingState message="Cargando categorías e ingredientes..." />
   }
   if (error !== null) {
@@ -224,18 +232,15 @@ function PublicarPlato({ platos, token, onSesionVencida, onPlatoCreado, onSave }
       })),
     }
 
-    // Editar: TODAVÍA simulado (paso 13c lo conecta con PUT /platos/{id}).
-    if (editando) {
-      onSave(platoRequest, platoAEditar.id)
-      navigate('/mis-publicaciones')
-      return
-    }
-
-    // Crear: POST /platos/createPlato (paso 13b). Escritura dentro del handler del submit.
+    // Crear y editar comparten el fetch; cambian la URL y el método:
+    //  - crear:  POST /platos/createPlato   (paso 13b)
+    //  - editar: PUT  /platos/{id}          (paso 13c). El PUT REEMPLAZA el plato entero: por eso
+    //    platoRequest lleva siempre todos los campos (lo que no se manda se borra).
+    // Es una escritura: va dentro del handler del submit.
     setGuardando(true)
     setErrorGuardar(null)
-    fetch(`${API_URL}/platos/createPlato`, {
-      method: 'POST',
+    fetch(editando ? `${API_URL}/platos/${platoAEditar.id}` : `${API_URL}/platos/createPlato`, {
+      method: editando ? 'PUT' : 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`, // ruta privada
@@ -252,9 +257,13 @@ function PublicarPlato({ platos, token, onSesionVencida, onPlatoCreado, onSave }
           return cuerpo.data
         })
       )
-      .then((creado) => {
-        // App suma el plato que devolvió el backend (con su id real); nosotros volvemos a la lista.
-        onPlatoCreado(creado)
+      .then((guardado) => {
+        // App suma (crear) o reemplaza (editar) el plato que devolvió el backend; nosotros volvemos a la lista.
+        if (editando) {
+          onPlatoEditado(guardado)
+        } else {
+          onPlatoCreado(guardado)
+        }
         navigate('/mis-publicaciones')
       })
       .catch((fallo) => {
@@ -262,7 +271,7 @@ function PublicarPlato({ platos, token, onSesionVencida, onPlatoCreado, onSave }
           onSesionVencida()
           return
         }
-        // 400 (validación), 403, 404 (categoría o ingrediente inexistente): mostramos el mensaje del backend.
+        // 400 (validación), 403 (no es tu plato), 404: mostramos el mensaje del backend.
         setErrorGuardar(fallo.message)
         setGuardando(false)
       })
