@@ -1,13 +1,29 @@
 // Formulario para publicar un plato nuevo (ruta /publicar) o editar uno existente (ruta /publicar/:id).
 // Solo para el rol CHEF. Tiene los mismos campos que PlatoRequest, el cuerpo que pide la API.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import ImageUrlList from '../components/ImageUrlList'
 import CategoryPicker from '../components/CategoryPicker'
 import IngredientRows from '../components/IngredientRows'
 import EmptyState from '../components/EmptyState'
-import CATEGORIAS_EJEMPLO from '../data/categoriasEjemplo'
-import INGREDIENTES_EJEMPLO from '../data/ingredientesEjemplo'
+import Alert from '../components/Alert'
+import LoadingState from '../components/LoadingState'
+import ErrorState from '../components/ErrorState'
+
+// URL base del backend (se lee del archivo .env, igual que en App).
+const API_URL = import.meta.env.VITE_API_URL
+
+// GET de un catálogo público (categorías o ingredientes): no lleva token. Devuelve una promesa con la
+// lista (las listas vacías llegan como null, por eso el ?? []). Es una función común, no un hook.
+const pedirCatalogo = (ruta) =>
+  fetch(`${API_URL}${ruta}`).then((response) =>
+    response.json().then((cuerpo) => {
+      if (!response.ok) {
+        throw new Error(cuerpo.message)
+      }
+      return cuerpo.data ?? []
+    })
+  )
 
 // Formulario vacío para un plato nuevo. Los números se guardan como TEXTO porque vienen de
 // inputs; se pasan a número al enviar. Un plato nuevo arranca como borrador, con un campo de imagen.
@@ -23,7 +39,8 @@ const FORM_VACIO = {
 }
 
 // Pasa un plato (forma de PlatoResponse) a los valores del formulario, para editarlo.
-const aFormulario = (plato) => ({
+// categorias es el catálogo real (GET /categories), para pasar los nombres del plato a ids.
+const aFormulario = (plato, categorias) => ({
   nombre: plato.nombre,
   descripcion: plato.descripcion ?? '',
   precio: String(plato.precio),
@@ -33,7 +50,7 @@ const aFormulario = (plato) => ({
   estado: plato.estado === 'AGOTADO' ? 'PUBLICADO' : plato.estado,
   imagenesUrls: plato.imagenesUrls.length > 0 ? [...plato.imagenesUrls] : [''],
   // El plato guarda los NOMBRES de sus categorías; el formulario necesita los ids.
-  categoriasIds: CATEGORIAS_EJEMPLO.filter((c) => plato.categorias.includes(c.description)).map((c) => c.id),
+  categoriasIds: categorias.filter((c) => plato.categorias.includes(c.description)).map((c) => c.id),
   ingredientes: plato.ingredientes.map((i) => ({
     ingredienteId: String(i.ingredienteId),
     cantidad: String(i.cantidad),
@@ -70,10 +87,12 @@ const validar = (datos) => {
 
 // Props:
 //  - platos: las publicaciones del chef (vienen de App). Se usan para precargar el plato al editar.
-//  - onSave: función (datos, platoId) de App. datos tiene la forma de PlatoRequest; platoId es el
-//    id del plato que se edita, o null si es uno nuevo. La vista solo avisa "guardá esto"; App
-//    crea o reemplaza el plato.
-function PublicarPlato({ platos, onSave }) {
+//  - token: el JWT de la sesión, para el POST de crear plato (ruta privada)
+//  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
+//  - onPlatoCreado: función (plato) de App. La vista hace el POST y, cuando el backend responde bien,
+//    le entrega el plato creado; App lo suma a las publicaciones y avisa.
+//  - onSave: función (datos, platoId) de App, SOLO para editar (todavía simulado, paso 13c).
+function PublicarPlato({ platos, token, onSesionVencida, onPlatoCreado, onSave }) {
   const navigate = useNavigate()
 
   // useParams devuelve los parámetros de la URL. En /publicar/10 devuelve { id: '10' } y en
@@ -86,10 +105,41 @@ function PublicarPlato({ platos, onSave }) {
 
   // ESTADO: todos los campos del formulario en un solo objeto. Si editamos, arranca con los datos
   // del plato; si no, vacío. Este valor inicial solo se usa la primera vez que se dibuja la vista.
-  const [datos, setDatos] = useState(platoAEditar === undefined ? FORM_VACIO : aFormulario(platoAEditar))
+  const [datos, setDatos] = useState(platoAEditar === undefined ? FORM_VACIO : aFormulario(platoAEditar, []))
 
   // ESTADO: un mensaje de error por campo (objeto vacío = sin errores).
   const [errores, setErrores] = useState({})
+
+  // ESTADOS de los catálogos reales que el chef puede elegir (GET /categories y GET /ingredientes) y
+  // de su carga. Arranca cargando.
+  const [categorias, setCategorias] = useState([])
+  const [ingredientes, setIngredientes] = useState([])
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState(null)
+
+  // ESTADOS del POST: true mientras espera (evita doble envío) y el mensaje de error del backend.
+  const [guardando, setGuardando] = useState(false)
+  const [errorGuardar, setErrorGuardar] = useState(null)
+
+  // GET de los dos catálogos al abrir la vista (paso 13b). Promise.all espera a que lleguen LOS DOS y
+  // entrega los resultados juntos, en el mismo orden. Dependencias []: se piden una sola vez.
+  useEffect(() => {
+    Promise.all([pedirCatalogo('/categories'), pedirCatalogo('/ingredientes')])
+      .then(([listaCategorias, listaIngredientes]) => {
+        setCategorias(listaCategorias)
+        setIngredientes(listaIngredientes)
+      })
+      .catch((fallo) => setError(fallo.message))
+      .finally(() => setCargando(false))
+  }, [])
+
+  // Mientras cargan los catálogos (o si fallaron) no se puede armar el formulario.
+  if (cargando) {
+    return <LoadingState message="Cargando categorías e ingredientes..." />
+  }
+  if (error !== null) {
+    return <ErrorState message={error} />
+  }
 
   // Si piden editar un plato que no existe, lo decimos (los hooks ya se llamaron arriba).
   if (editando && platoAEditar === undefined) {
@@ -174,8 +224,48 @@ function PublicarPlato({ platos, onSave }) {
       })),
     }
 
-    onSave(platoRequest, editando ? platoAEditar.id : null)
-    navigate('/mis-publicaciones')
+    // Editar: TODAVÍA simulado (paso 13c lo conecta con PUT /platos/{id}).
+    if (editando) {
+      onSave(platoRequest, platoAEditar.id)
+      navigate('/mis-publicaciones')
+      return
+    }
+
+    // Crear: POST /platos/createPlato (paso 13b). Escritura dentro del handler del submit.
+    setGuardando(true)
+    setErrorGuardar(null)
+    fetch(`${API_URL}/platos/createPlato`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`, // ruta privada
+      },
+      body: JSON.stringify(platoRequest),
+    })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.data
+        })
+      )
+      .then((creado) => {
+        // App suma el plato que devolvió el backend (con su id real); nosotros volvemos a la lista.
+        onPlatoCreado(creado)
+        navigate('/mis-publicaciones')
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        // 400 (validación), 403, 404 (categoría o ingrediente inexistente): mostramos el mensaje del backend.
+        setErrorGuardar(fallo.message)
+        setGuardando(false)
+      })
   }
 
   return (
@@ -187,6 +277,13 @@ function PublicarPlato({ platos, onSave }) {
       <h1 className="mt-4 font-display text-display-lg-mobile text-primary lg:text-[52px] lg:leading-[56px]">
         {editando ? 'Editar plato' : 'Publicar un plato'}
       </h1>
+
+      {/* Error del backend al guardar (renderizado condicional) */}
+      {errorGuardar !== null && (
+        <div className="mt-6 max-w-3xl">
+          <Alert title="No pudimos guardar el plato" messages={[errorGuardar]} />
+        </div>
+      )}
 
       <form className="mt-10 max-w-3xl space-y-8" onSubmit={handleSubmit} noValidate>
         <div>
@@ -281,11 +378,11 @@ function PublicarPlato({ platos, onSave }) {
           error={errores.imagenesUrls ?? null}
         />
 
-        <CategoryPicker categories={CATEGORIAS_EJEMPLO} selectedIds={datos.categoriasIds} onToggle={alternarCategoria} />
+        <CategoryPicker categories={categorias} selectedIds={datos.categoriasIds} onToggle={alternarCategoria} />
 
         <IngredientRows
           rows={datos.ingredientes}
-          catalog={INGREDIENTES_EJEMPLO}
+          catalog={ingredientes}
           onChange={cambiarIngrediente}
           onAdd={agregarIngrediente}
           onRemove={quitarIngrediente}
@@ -293,7 +390,7 @@ function PublicarPlato({ platos, onSave }) {
         />
 
         <div className="flex flex-wrap gap-3 border-t border-hairline pt-6">
-          <button type="submit" className="btn btn-primary">{editando ? 'Guardar cambios' : 'Guardar plato'}</button>
+          <button type="submit" className="btn btn-primary" disabled={guardando}>{editando ? 'Guardar cambios' : 'Guardar plato'}</button>
           <Link to="/mis-publicaciones" className="btn btn-quiet">Cancelar</Link>
         </div>
       </form>

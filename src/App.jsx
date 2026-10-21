@@ -56,7 +56,7 @@ const calcularCarrito = (id, items) => {
 //    y la función para cerrarla; se reenvían al Header.
 //    AppContent además usa sesion para proteger las rutas (RutaProtegida) y para decidir si se puede agregar al carrito.
 //  - onAviso: función (texto) para mostrar un Toast; AppContent la usa cuando un rol no puede comprar.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, onSesionVencida, onPedidoCreado, misPlatos, cargandoMisPlatos, errorMisPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onLogin, sesion, cargandoSesion, onLogout, onAviso }) {
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, onSesionVencida, onPedidoCreado, misPlatos, cargandoMisPlatos, errorMisPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onPlatoCreado, onLogin, sesion, cargandoSesion, onLogout, onAviso }) {
   const location = useLocation()
 
   // useNavigate devuelve una función para cambiar de ruta desde el código. Se puede usar acá
@@ -174,7 +174,13 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
             path="/publicar"
             element={
               <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
-                <PublicarPlato platos={misPlatos} onSave={onSavePlato} />
+                <PublicarPlato
+                  platos={misPlatos}
+                  token={sesion?.token}
+                  onSesionVencida={onSesionVencida}
+                  onPlatoCreado={onPlatoCreado}
+                  onSave={onSavePlato}
+                />
               </RutaProtegida>
             }
           />
@@ -182,7 +188,13 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
             path="/publicar/:id"
             element={
               <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
-                <PublicarPlato platos={misPlatos} onSave={onSavePlato} />
+                <PublicarPlato
+                  platos={misPlatos}
+                  token={sesion?.token}
+                  onSesionVencida={onSesionVencida}
+                  onPlatoCreado={onPlatoCreado}
+                  onSave={onSavePlato}
+                />
               </RutaProtegida>
             }
           />
@@ -561,6 +573,14 @@ function App() {
     setAviso(porcentaje === 0 ? `Quitaste el descuento de ${plato.nombre}` : `${plato.nombre} ahora tiene ${porcentaje} % de descuento`)
   }
 
+  // Registra un plato que el backend ya creó (paso 13b). PublicarPlato la llama con el PlatoResponse que
+  // devolvió POST /platos/createPlato. Lo sumamos a las publicaciones SIN volver a pedir la lista.
+  // TODO(backend): si se creó como BORRADOR, al recargar no vuelve a aparecer (GET /platos no lo trae).
+  const platoCreado = (plato) => {
+    setMisPlatos((actuales) => [...actuales, plato])
+    setAviso(`Creaste ${plato.nombre}`)
+  }
+
   // Crea o edita un plato. PublicarPlato la llama con el cuerpo de PlatoRequest (datos) y el id del
   // plato que se edita (null si es uno nuevo). Arma un plato con la forma de PlatoResponse.
   // SIMULADA (paso 11b.10c): en el paso 13 es POST /platos/createPlato (nuevo) o PUT /platos/{id}
@@ -646,6 +666,7 @@ function App() {
         onDiscount={aplicarDescuento}
         onDeleteDish={eliminarPlato}
         onSavePlato={guardarPlato}
+        onPlatoCreado={platoCreado}
         cargandoMisPlatos={cargandoMisPlatos}
         errorMisPlatos={errorMisPlatos}
         onLogin={iniciarSesion}
