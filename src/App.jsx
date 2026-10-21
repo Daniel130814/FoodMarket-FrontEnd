@@ -24,6 +24,19 @@ const API_URL = import.meta.env.VITE_API_URL
 // Clave con la que se guarda el JWT en localStorage. Está en una constante para escribirla una sola vez.
 const CLAVE_TOKEN = 'jwtToken'
 
+// GET de una ruta PÚBLICA (no lleva token). Devuelve una promesa con el "data" de la respuesta, o lanza
+// un Error con el message del backend. Las listas vacías llegan como null, por eso el ?? [].
+// Es una función común (no un hook): recibe una ruta y devuelve una promesa.
+const pedirPublico = (ruta) =>
+  fetch(`${API_URL}${ruta}`).then((response) =>
+    response.json().then((cuerpo) => {
+      if (!response.ok) {
+        throw new Error(cuerpo.message)
+      }
+      return cuerpo.data ?? []
+    })
+  )
+
 // Recalcula el carrito completo a partir de sus ítems. Es la ÚNICA función que calcula
 // subtotales y total: así nunca quedan desincronizados (en producción lo calcula el backend).
 // Recibe el id del carrito y la lista de ítems; devuelve un carrito NUEVO { id, items, totalEstimado }.
@@ -238,6 +251,10 @@ function App() {
   // Arranca vacío y se llena con GET /platos cuando ingresa un CHEF (efecto de más abajo, paso 13a).
   const [misPlatos, setMisPlatos] = useState([])
 
+  // El catálogo de categorías (GET /categories). Lo necesitamos para editar un plato con PUT: la API
+  // devuelve las categorías de un plato por NOMBRE, pero el PUT las pide por ID.
+  const [categorias, setCategorias] = useState([])
+
   // ESTADOS de carga y error de ese GET. Arranca cargando; se vuelve a poner en true al cerrar sesión.
   const [cargandoMisPlatos, setCargandoMisPlatos] = useState(true)
   const [errorMisPlatos, setErrorMisPlatos] = useState(null)
@@ -394,16 +411,12 @@ function App() {
       return
     }
 
-    fetch(`${API_URL}/platos`)
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            throw new Error(cuerpo.message)
-          }
-          return cuerpo.data
-        })
-      )
-      .then((data) => setMisPlatos((data ?? []).filter((plato) => plato.chefId === sesion.userId)))
+    // Promise.all espera a que lleguen LOS DOS GET (platos y categorías) y entrega los resultados juntos.
+    Promise.all([pedirPublico('/platos'), pedirPublico('/categories')])
+      .then(([platos, listaCategorias]) => {
+        setMisPlatos(platos.filter((plato) => plato.chefId === sesion.userId))
+        setCategorias(listaCategorias)
+      })
       .catch((fallo) => setErrorMisPlatos(fallo.message))
       .finally(() => setCargandoMisPlatos(false))
   }, [sesion])
@@ -526,42 +539,92 @@ function App() {
     setAviso('Cerraste sesión')
   }
 
-  // ACCIONES DEL CHEF sobre sus publicaciones. MisPublicaciones las llama; App cambia el estado
-  // misPlatos y avisa con un Toast. SIMULADAS (paso 11b.10b): en el paso 13 cada una es una
-  // llamada a la API (la mayoría es PUT /platos/{id}, que reemplaza el plato entero).
+  // ACCIONES DEL CHEF sobre sus publicaciones. MisPublicaciones las llama; App las ejecuta contra la API
+  // y avisa con un Toast. Stock, pausar y reactivar (paso 13d) son REALES. Descuento y eliminar siguen
+  // SIMULADOS (pasos 13e y 13f).
 
-  // Cambia solo algunos campos de UN plato. map devuelve un array NUEVO y reemplaza únicamente el
-  // plato con ese id; {...plato, ...cambios} copia el plato y pisa los campos que cambiaron.
+  // Cambia solo algunos campos de UN plato en el estado. map devuelve un array NUEVO y reemplaza
+  // únicamente el plato con ese id; {...plato, ...cambios} copia el plato y pisa los campos que cambiaron.
+  // Todavía lo usan los pasos simulados (descuento y eliminar).
   const actualizarPlato = (platoId, cambios) => {
     setMisPlatos(misPlatos.map((plato) => (plato.id === platoId ? { ...plato, ...cambios } : plato)))
   }
 
-  // Ajusta el stock. Regla de la API: un plato PUBLICADO o AGOTADO pasa a AGOTADO si el stock es 0
-  // y vuelve a PUBLICADO si tiene stock; BORRADOR y PAUSADO conservan su estado.
-  const ajustarStock = (platoId, stock) => {
-    const plato = misPlatos.find((p) => p.id === platoId)
-    const seCalculaEstado = plato.estado === 'PUBLICADO' || plato.estado === 'AGOTADO'
-    const estado = seCalculaEstado ? (stock === 0 ? 'AGOTADO' : 'PUBLICADO') : plato.estado
-    actualizarPlato(platoId, { stockDisponible: stock, estado })
-    setAviso(`Stock de ${plato.nombre}: ${stock}`)
+  // Guarda un cambio en UN plato con PUT /platos/{id} (paso 13d). La API no tiene PATCH para el stock ni
+  // para el estado, y el PUT REEMPLAZA el plato entero (lo que no se manda se borra). Por eso armamos el
+  // PlatoRequest COMPLETO a partir del plato actual y le pisamos solo lo que cambia ("cambios").
+  // Es una escritura: la llaman los handlers de abajo, nunca un efecto. Con el plato que devuelve el
+  // backend reemplazamos el de la lista (map), sin volver a pedir todos los platos.
+  // mensaje: función (plato guardado) que arma el texto del Toast.
+  const guardarCambios = (plato, cambios, mensaje) => {
+    const platoRequest = {
+      nombre: plato.nombre,
+      descripcion: plato.descripcion,
+      precio: plato.precio,
+      stockDisponible: plato.stockDisponible,
+      estado: plato.estado,
+      imagenesUrls: plato.imagenesUrls,
+      // El plato trae los NOMBRES de sus categorías; el PUT necesita los ids (del catálogo).
+      categoriasIds: categorias.filter((categoria) => plato.categorias.includes(categoria.description)).map((categoria) => categoria.id),
+      ingredientes: plato.ingredientes.map((ingrediente) => ({
+        ingredienteId: ingrediente.ingredienteId,
+        cantidad: ingrediente.cantidad,
+        unidadMedida: ingrediente.unidadMedida,
+      })),
+      ...cambios,
+    }
+
+    fetch(`${API_URL}/platos/${plato.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sesion.token}`, // ruta privada
+      },
+      body: JSON.stringify(platoRequest),
+    })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.data
+        })
+      )
+      .then((guardado) => {
+        setMisPlatos((actuales) => actuales.map((p) => (p.id === guardado.id ? guardado : p)))
+        setAviso(mensaje(guardado))
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          sesionVencida()
+          return
+        }
+        // 400 (por ejemplo, publicar sin imagen), 403 (no es tu plato), 404: mensaje del backend.
+        setAviso(fallo.message)
+      })
   }
 
-  // Pausa un plato publicado o reactiva uno pausado.
+  // Ajusta el stock. NO mandamos "estado" (lo pisamos con undefined, que JSON.stringify omite): sin estado
+  // el backend aplica su regla: PUBLICADO con stock 0 pasa a AGOTADO, AGOTADO con stock > 0 vuelve a
+  // PUBLICADO, y BORRADOR y PAUSADO conservan el suyo.
+  const ajustarStock = (platoId, stock) => {
+    const plato = misPlatos.find((p) => p.id === platoId)
+    guardarCambios(plato, { stockDisponible: stock, estado: undefined }, (guardado) => `Stock de ${guardado.nombre}: ${guardado.stockDisponible}`)
+  }
+
+  // Pausa un plato publicado o reactiva uno pausado. Reactivar = mandar PUBLICADO; el backend lo pasa a
+  // AGOTADO si el stock es 0 y responde 400 si el plato no tiene imagen (lo mostramos en el Toast).
+  // TODO(backend): un plato PAUSADO no vuelve en GET /platos, así que tras recargar no se lo puede reactivar.
   const pausarOReactivar = (platoId) => {
     const plato = misPlatos.find((p) => p.id === platoId)
 
     if (plato.estado !== 'PAUSADO') {
-      actualizarPlato(platoId, { estado: 'PAUSADO' })
-      setAviso(`${plato.nombre} quedó pausado`)
+      guardarCambios(plato, { estado: 'PAUSADO' }, (guardado) => `${guardado.nombre} quedó pausado`)
       return
     }
-    // Reactivar = publicar, y la API exige al menos una imagen para publicar.
-    if (plato.imagenesUrls.length === 0) {
-      setAviso('Un plato publicado debe tener al menos una imagen')
-      return
-    }
-    actualizarPlato(platoId, { estado: plato.stockDisponible === 0 ? 'AGOTADO' : 'PUBLICADO' })
-    setAviso(`${plato.nombre} se reactivó`)
+    guardarCambios(plato, { estado: 'PUBLICADO' }, (guardado) => `${guardado.nombre} se reactivó`)
   }
 
   // Aplica un descuento (0 a 99,99 %). El precio base no cambia; el precio con descuento es
