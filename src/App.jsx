@@ -1,6 +1,6 @@
 // Raíz de la app: define las rutas y es DUEÑA del estado del carrito (carrito y aviso).
 // Se monta desde main.jsx.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
@@ -21,6 +21,12 @@ import MIS_PLATOS_EJEMPLO from './data/misPlatosEjemplo'
 import RESENAS_EJEMPLO from './data/resenasEjemplo'
 import CATEGORIAS_EJEMPLO from './data/categoriasEjemplo'
 import INGREDIENTES_EJEMPLO from './data/ingredientesEjemplo'
+
+// URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
+const API_URL = import.meta.env.VITE_API_URL
+
+// Clave con la que se guarda el JWT en localStorage. Está en una constante para escribirla una sola vez.
+const CLAVE_TOKEN = 'jwtToken'
 
 // ---------------------------------------------------------------------------------------
 // PEDIDOS DE EJEMPLO (TEMPORAL, paso 11b). Tienen la forma de OrderResponse de la API
@@ -114,15 +120,6 @@ const calcularCarrito = (id, items) => {
   return { id, items: itemsCalculados, totalEstimado: Math.round(totalEstimado * 100) / 100 }
 }
 
-// TEMPORAL (paso 11b.3, se ELIMINA en el paso 12): para poder probar los tres roles sin backend,
-// el ingreso asigna el rol según el username. Si es "cliente", "chef" o "admin" tiene ese rol;
-// cualquier otro username entra como CLIENTE. En el paso 12 el rol lo manda la API en el login.
-const rolDePrueba = (username) => {
-  if (username === 'chef') return 'CHEF'
-  if (username === 'admin') return 'ADMIN'
-  return 'CLIENTE'
-}
-
 // Componente interno que evalúa la ruta actual para decidir el diseño (layout)
 // Props:
 //  - cartCount: total de platos del carrito. AppContent NO lo usa: solo lo reenvía al Header.
@@ -134,16 +131,25 @@ const rolDePrueba = (username) => {
 //  - misPlatos y onStockChange / onTogglePause / onDiscount / onDeleteDish: las publicaciones del chef y
 //    las acciones sobre ellas; se reenvían a MisPublicaciones (misPlatos también a PublicarPlato).
 //  - onSavePlato: función (datos, platoId) para crear o editar un plato; se reenvía a PublicarPlato.
-//  - onLogin: función (datos) para iniciar sesión; se reenvía a Ingreso y Registro.
-//  - sesion / onLogout: la sesión actual (o null) y la función para cerrarla; se reenvían al Header.
+//  - onLogin: función (sesion) para iniciar sesión; se reenvía a Ingreso y Registro.
+//  - sesion / cargandoSesion / onLogout: la sesión actual (o null), si se está verificando el token guardado
+//    y la función para cerrarla; se reenvían al Header.
 //    AppContent además usa sesion para proteger las rutas (RutaProtegida) y para decidir si se puede agregar al carrito.
 //  - onAviso: función (texto) para mostrar un Toast; AppContent la usa cuando un rol no puede comprar.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onConfirmOrder, pedidos, onCancelOrder, misPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onLogin, sesion, onLogout, onAviso }) {
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onConfirmOrder, pedidos, onCancelOrder, misPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onLogin, sesion, cargandoSesion, onLogout, onAviso }) {
   const location = useLocation()
 
   // useNavigate devuelve una función para cambiar de ruta desde el código. Se puede usar acá
   // porque AppContent está DENTRO del BrowserRouter (App, que está afuera, no podría).
   const navigate = useNavigate()
+
+  // "Salir": cierra la sesión (App) y vuelve al inicio. Se hace acá y no en App porque App está
+  // afuera del router y no puede navegar. Sin el navigate, quien sale estando en una ruta privada
+  // quedaría en /ingreso, porque RutaProtegida lo redirige al ver que ya no hay sesión.
+  const salir = () => {
+    onLogout()
+    navigate('/')
+  }
 
   // Agregar a la cesta según la sesión. Las tarjetas y el detalle reciben ESTA función en lugar de
   // onAdd, así no saben nada de sesiones: siguen avisando "quiero agregar este plato".
@@ -178,7 +184,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
   return (
     <>
       <a className="skip-link" href="#contenido">Ir al contenido</a>
-      <Header cartCount={cartCount} sesion={sesion} onLogout={onLogout} />
+      <Header cartCount={cartCount} sesion={sesion} onLogout={salir} />
       <main id="contenido" className="mx-auto max-w-shell px-5 py-10 lg:px-12">
         <Routes>
           {/* Rutas públicas: las puede ver cualquiera, con o sin sesión */}
@@ -191,7 +197,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
           <Route
             path="/cesta"
             element={
-              <RutaProtegida sesion={sesion} rolesPermitidos={['CLIENTE']}>
+              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE']}>
                 <Carrito
                   carrito={carrito}
                   cartCount={cartCount}
@@ -204,7 +210,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
           <Route
             path="/checkout"
             element={
-              <RutaProtegida sesion={sesion} rolesPermitidos={['CLIENTE']}>
+              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE']}>
                 <Checkout carrito={carrito} cartCount={cartCount} onConfirm={onConfirmOrder} />
               </RutaProtegida>
             }
@@ -212,7 +218,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
           <Route
             path="/pedidos"
             element={
-              <RutaProtegida sesion={sesion} rolesPermitidos={['CLIENTE']}>
+              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE']}>
                 <MisPedidos pedidos={pedidos} onCancelOrder={onCancelOrder} />
               </RutaProtegida>
             }
@@ -222,7 +228,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
           <Route
             path="/mis-publicaciones"
             element={
-              <RutaProtegida sesion={sesion} rolesPermitidos={['CHEF']}>
+              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
                 <MisPublicaciones
                   platos={misPlatos}
                   onStockChange={onStockChange}
@@ -238,7 +244,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
           <Route
             path="/publicar"
             element={
-              <RutaProtegida sesion={sesion} rolesPermitidos={['CHEF']}>
+              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
                 <PublicarPlato platos={misPlatos} onSave={onSavePlato} />
               </RutaProtegida>
             }
@@ -246,7 +252,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
           <Route
             path="/publicar/:id"
             element={
-              <RutaProtegida sesion={sesion} rolesPermitidos={['CHEF']}>
+              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
                 <PublicarPlato platos={misPlatos} onSave={onSavePlato} />
               </RutaProtegida>
             }
@@ -275,6 +281,14 @@ function App() {
   // Vive acá, en el padre, porque el Header y las rutas protegidas necesitan saber quién es.
   // Sin localStorage: al recargar la página la sesión se pierde (todavía no hay persistencia).
   const [sesion, setSesion] = useState(null)
+
+  // ESTADO: true mientras verificamos el token guardado al abrir la app. Si hay un token guardado
+  // arranca en true, para que las rutas protegidas esperen en lugar de mandarte a /ingreso; si no
+  // hay token, arranca en false porque no hay nada que verificar.
+  // useState acepta una función como valor inicial: se ejecuta una sola vez, al crear el estado.
+  // Decidirlo acá evita llamar a setCargandoSesion de forma sincrónica dentro del efecto
+  // (React lo desaconseja: provoca un redibujado extra, y el lint lo marca).
+  const [cargandoSesion, setCargandoSesion] = useState(() => localStorage.getItem(CLAVE_TOKEN) !== null)
 
   // ESTADO DE LOS PEDIDOS: la lista de pedidos del cliente, con la forma de OrderResponse.
   // Vive en App (el padre común) porque lo ESCRIBE Checkout (al confirmar crea un pedido nuevo)
@@ -399,25 +413,67 @@ function App() {
     setAviso('Pedido confirmado')
   }
 
-  // Inicia sesión. Ingreso y Registro la llaman con los datos del formulario.
-  // SIMULADA (paso 11b.3): no hay backend, así que armamos la sesión nosotros. En el paso 12 esta
-  // función hace POST /api/v1/auth/authenticate (o /register) y guarda lo que responde la API.
-  //  - Registro manda tipoCuenta (CLIENTE o CHEF): ese es el rol.
-  //  - Ingreso no manda tipoCuenta: el rol sale de rolDePrueba (TEMPORAL).
-  const iniciarSesion = (datos) => {
-    const esRegistro = datos.tipoCuenta !== undefined
-    const role = esRegistro ? datos.tipoCuenta : rolDePrueba(datos.username)
-    // ?? usa el valor de la derecha si el de la izquierda es undefined (el login no manda nombre).
-    const nombre = datos.nombre ?? datos.username
+  // RESTAURAR LA SESIÓN al abrir la app (o al recargar con F5). useEffect ejecuta código DESPUÉS de
+  // dibujar la pantalla; con [] como segundo argumento corre una sola vez, al montarse App.
+  // Es el lugar correcto para un GET (leer datos). Los POST, PUT y DELETE nunca van en un efecto.
+  // En desarrollo React ejecuta los efectos dos veces (Strict Mode): para un GET es inofensivo.
+  // Este es el segundo punto donde se usa localStorage: LEER el token al iniciar.
+  useEffect(() => {
+    const token = localStorage.getItem(CLAVE_TOKEN)
 
-    setSesion({ token: 'token-simulado', userId: 7, role, nombre })
-    setAviso(`Ingresaste como ${nombre}`)
+    // Sin token guardado no hay nada que restaurar (y cargandoSesion ya arrancó en false).
+    if (token === null) {
+      return
+    }
+
+    // GET /users/me es una ruta privada: mandamos el token en la cabecera Authorization.
+    // El login no devuelve el rol dentro del JWT, por eso lo pedimos al backend.
+    fetch(`${API_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((response) =>
+        // fetch NO manda los errores HTTP al .catch(): revisamos response.ok nosotros.
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.data
+        })
+      )
+      .then((usuario) => setSesion({ token, userId: usuario.id, role: usuario.role, nombre: usuario.nombre }))
+      .catch((fallo) => {
+        // Si el servidor RESPONDIÓ con un error (401: token vencido o inválido), el token ya no sirve
+        // y lo borramos. Si ni siquiera llegamos al servidor (status undefined, por ejemplo el backend
+        // apagado), lo conservamos: en el próximo F5 puede servir.
+        if (fallo.status !== undefined) {
+          localStorage.removeItem(CLAVE_TOKEN)
+        }
+      })
+      .finally(() => setCargandoSesion(false))
+  }, [])
+
+  // Inicia sesión: guarda la sesión que le pasan y avisa. Ingreso y Registro la llaman cuando el
+  // backend responde bien, con { token, userId, role, nombre } ya armado.
+  // El token se guarda en DOS lugares:
+  //  - en el estado (sesion): para que React vuelva a dibujar la app con el usuario ingresado;
+  //  - en localStorage: el almacenamiento del navegador, que sobrevive a recargar la página (F5).
+  // localStorage solo se usa para el JWT y solo desde App.jsx: acá (guardar al ingresar), al
+  // iniciar la app (leer, paso 12.1c) y al cerrar sesión (borrar).
+  const iniciarSesion = (nuevaSesion) => {
+    setSesion(nuevaSesion)
+    localStorage.setItem(CLAVE_TOKEN, nuevaSesion.token)
+    setAviso(`Ingresaste como ${nuevaSesion.nombre}`)
   }
 
-  // Cierra la sesión: vuelve a null. (Las rutas protegidas del paso 11b.4 sacan al usuario de las
-  // páginas que ya no puede ver.)
+  // Cierra la sesión. Hay que limpiar TODO lo que pertenece al usuario que se va:
+  //  - la sesión (vuelve a null),
+  //  - el token guardado en localStorage (el tercer punto donde se usa: BORRAR al cerrar sesión),
+  //  - la cesta, para que la siguiente persona que use este navegador no herede sus platos.
   const cerrarSesion = () => {
     setSesion(null)
+    // removeItem borra SOLO esta clave. Nunca localStorage.clear(), que borraría todo lo demás.
+    localStorage.removeItem(CLAVE_TOKEN)
+    setCarrito(calcularCarrito(carrito.id, []))
     setAviso('Cerraste sesión')
   }
 
@@ -575,6 +631,7 @@ function App() {
         onSavePlato={guardarPlato}
         onLogin={iniciarSesion}
         sesion={sesion}
+        cargandoSesion={cargandoSesion}
         onLogout={cerrarSesion}
         onAviso={setAviso}
       />
