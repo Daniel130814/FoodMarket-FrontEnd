@@ -79,6 +79,16 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
   const [pedidoAPagarId, setPedidoAPagarId] = useState(null)
   const [medioPago, setMedioPago] = useState('TARJETA_CREDITO')
 
+  // ESTADOS del diálogo de reseña: el plato que se quiere reseñar (el detalle del pedido, o null = cerrado),
+  // la calificación y el comentario que escribe el cliente (todo texto: viene de inputs).
+  const [platoAResenar, setPlatoAResenar] = useState(null)
+  const [calificacion, setCalificacion] = useState('5')
+  const [comentario, setComentario] = useState('')
+
+  // ESTADO: ids de los platos que el cliente ya reseñó. La API no tiene "mis reseñas", así que anotamos los
+  // que reseñó en esta sesión (y los que la API avisó que ya tenían reseña, con un 409).
+  const [platosResenados, setPlatosResenados] = useState([])
+
   // GET /orders y GET /pagos al abrir la vista. Rutas privadas: llevan el token. Devuelven solo lo de este
   // cliente. Promise.all espera a que lleguen LOS DOS y entrega los resultados juntos (mismo orden).
   // Dependencias [token]: no se repite mientras no cambie la sesión.
@@ -218,6 +228,60 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
       })
   }
 
+  // Abre el diálogo de reseña para ese plato (detalle del pedido), con la calificación y el comentario en limpio.
+  const abrirResena = (detalle) => {
+    setCalificacion('5')
+    setComentario('')
+    setPlatoAResenar(detalle)
+  }
+
+  // Al confirmar el diálogo: POST /resenas/createResena { calificacion, comentario, platoId } (paso 14d).
+  // Es una escritura: va en el handler. Cerramos el diálogo ENSEGUIDA para que un segundo clic no cree
+  // una reseña duplicada. El comentario es opcional: vacío lo omitimos (JSON.stringify ignora undefined).
+  // Errores de la API: 400 (el plato no fue comprado en un subpedido entregado) y 409 (ya lo reseñaste).
+  const confirmarResena = () => {
+    const { platoId, platoNombre } = platoAResenar
+    setPlatoAResenar(null)
+
+    fetch(`${API_URL}/resenas/createResena`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`, // ruta privada
+      },
+      body: JSON.stringify({
+        calificacion: Number(calificacion),
+        comentario: comentario.trim() === '' ? undefined : comentario.trim(),
+        platoId,
+      }),
+    })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.data
+        })
+      )
+      .then(() => {
+        setPlatosResenados((actuales) => [...actuales, platoId])
+        onAviso(`Gracias por tu reseña de ${platoNombre}`)
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        // 409: ya existía una reseña de este plato; lo marcamos como reseñado para no ofrecer el botón de nuevo.
+        if (fallo.status === 409) {
+          setPlatosResenados((actuales) => [...actuales, platoId])
+        }
+        onAviso(fallo.message)
+      })
+  }
+
   return (
     <>
       <h1 className="font-display text-display-lg-mobile text-primary lg:text-[52px] lg:leading-[56px]">Mis pedidos</h1>
@@ -242,8 +306,10 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
               order={pedido}
               steps={PASOS_SEGUIMIENTO}
               payment={ultimoPago(pedido.id)}
+              reviewedPlatoIds={platosResenados}
               onCancel={setPedidoACancelarId}
               onPay={abrirPago}
+              onReview={abrirResena}
             />
           ))}
         </div>
@@ -259,6 +325,30 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
         onConfirm={confirmarCancelacion}
         onCancel={() => setPedidoACancelarId(null)}
       />
+
+      {/* Diálogo de reseña: children = la calificación (1 a 5) y el comentario. Controlado por estado
+          (platoAResenar). Mientras está cerrado pasamos un título vacío: Dialog no dibuja nada si open es false. */}
+      <Dialog
+        open={platoAResenar !== null}
+        title={platoAResenar === null ? '' : `Reseñar ${platoAResenar.platoNombre}`}
+        message="Contale a otros cómo estuvo. Solo podés dejar una reseña por plato."
+        confirmLabel="Publicar reseña"
+        confirmVariant="primary"
+        cancelLabel="Volver"
+        onConfirm={confirmarResena}
+        onCancel={() => setPlatoAResenar(null)}
+      >
+        <label className="label mt-5" htmlFor="calificacion">Calificación</label>
+        <select id="calificacion" className="field" value={calificacion} onChange={(event) => setCalificacion(event.target.value)}>
+          <option value="5">5 · Excelente</option>
+          <option value="4">4 · Muy bueno</option>
+          <option value="3">3 · Bueno</option>
+          <option value="2">2 · Regular</option>
+          <option value="1">1 · Malo</option>
+        </select>
+        <label className="label mt-4" htmlFor="comentario">Comentario (opcional)</label>
+        <textarea id="comentario" className="field" value={comentario} onChange={(event) => setComentario(event.target.value)} />
+      </Dialog>
 
       {/* Diálogo de pago: children = el selector del medio de pago. Controlado por estado (pedidoAPagarId). */}
       <Dialog
