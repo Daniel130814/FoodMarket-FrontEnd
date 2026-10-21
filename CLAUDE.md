@@ -284,7 +284,7 @@ export default RutaProtegida;
 | Admin (usuarios y pagos)            | `/admin`                     | ADMIN                |
 | PedidosRecibidos                    | `/pedidos-recibidos`         | CHEF                 |
 
-Componentes compartidos: `Header`, `Footer`, `Logo`, `Button`, `PlatoCard`, `SearchBar`, `CategoryChips`, `Pagination`, `Gallery`, `QuantityStepper` (controlado: el valor viene por props), `IngredientTrace`, `ReviewList`, `CartItem`, `OrderSummary`, `EmptyState`, `LoadingState`, `ErrorState`, `Toast`, `Dialog`, `FormField`, `RoleOption`, `Tabs`, `OrderCard`, `SubPedidoCard`, `OrderTrack`, `DomicilioPicker`, `DomicilioForm`, `PublicationRow`, `FilterChips`, `RutaProtegida`.
+Componentes compartidos: `Header`, `Footer`, `Logo`, `Button`, `PlatoCard`, `SearchBar`, `CategoryChips`, `Pagination`, `Gallery`, `QuantityStepper` (controlado: el valor viene por props), `IngredientTrace`, `ReviewList`, `CartItem`, `OrderSummary`, `EmptyState`, `LoadingState`, `ErrorState`, `Toast`, `Dialog`, `FormField`, `RoleOption`, `Tabs`, `OrderCard`, `SubPedidoCard`, `OrderTrack`, `Hero3D`, `DomicilioPicker`, `DomicilioForm`, `PublicationRow`, `FilterChips`, `RutaProtegida`.
 
 ## 9. Hoja de ruta
 
@@ -300,13 +300,13 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
   - [x] 12.4 Checkout con domicilio → pedido (`GET /domicilios`, `POST createDomicilio`, `POST /carrito/checkout`).
   - [x] 12.5 Mis pedidos reales + cancelar (`GET /orders`, `PATCH /orders/{id}/cancelar`).
 - [x] **13** Vistas del chef conectadas: Mis publicaciones, Publicar/editar (fotos como URLs, categorías e ingredientes desde los catálogos), eliminar, stock y descuento. Hecho con las limitaciones del backend: sin "mis platos" (la lista sale de `GET /platos` filtrado por `chefId`, así que los `BORRADOR` y `PAUSADO` no se recuperan tras recargar) y sin `PATCH` de stock ni de estado (se usa `PUT` con el plato completo).
-- [ ] **14** Flujo completo de compra y extras (en curso). Para que un pedido salga de PENDIENTE hacen falta el pago del cliente, la aprobación de un ADMIN y que el chef avance el subpedido:
+- [x] **14** Flujo completo de compra y extras (hecho). Para que un pedido salga de PENDIENTE hacen falta el pago del cliente, la aprobación de un ADMIN y que el chef avance el subpedido:
   - [x] 14a Pagos del cliente (`POST /pagos/createPago`, `GET /pagos`) en Mis pedidos.
   - [x] 14b Administración en `/admin`: pagos (aprobar, rechazar, reembolsar) y usuarios (listar y crear con rol; la API todavía no cambia roles). Incluye el componente `FormField`.
   - [x] 14c Pedidos recibidos del chef (`GET /subpedidos/chef/{userId}`, `PATCH /subpedidos/{id}/estado`).
   - [x] 14d Reseñas del cliente (`POST /resenas/createResena`) en pedidos entregados.
   - [x] 14e Perfil del chef en Inicio (`GET /chef-profiles`) y `src/data/` borrada (ya no quedan datos de ejemplo).
-  - [ ] 14f Hero con render 3D (último, solo si sobra tiempo).
+  - [x] 14f Hero de la home con 3D de CSS (`Hero3D`: perspectiva, capas y animación, sin librerías ni `useRef`; un render 3D real con three.js queda fuera de las reglas).
 
 **`TODO(backend)` que quedan:** "mis platos" del chef en todos los estados; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; que `DELETE /platos/{id}` informe si borró o pausó; nombre y taller del chef en `ChefProfileResponse` (la tarjeta de Inicio muestra solo especialidad, biografía, descripción, foto y reputación); `pedidoId`, fecha y cliente en los subpedidos; `clienteNombre` en las reseñas; que un ADMIN pueda cambiar el rol de un usuario.
 
