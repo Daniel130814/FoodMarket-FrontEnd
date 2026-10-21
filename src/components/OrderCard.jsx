@@ -6,9 +6,12 @@ import OrderTrack from './OrderTrack'
 //    { id, fechaCreacion, estado, precioFinal, pagoBloqueado,
 //      subPedidos: [{ id, chefId, chefNombre, estado, subtotal, detalles: [{ id, platoId, platoNombre, cantidad, precioUnitario, subtotal }] }] }
 //  - steps: pasos del seguimiento [{ estado, etiqueta }] (los arma el padre con los textos amigables)
+//  - payment: el ÚLTIMO pago de este pedido con la forma de PagoResponse de la API
+//    { id, pedidoId, monto, medioPago, estado, fechaCreacion, fechaPago }, o null si todavía no tiene ninguno
 //  - onCancel: función del padre (pedidoId); se llama al tocar "Cancelar pedido". La tarjeta no
 //    cancela nada: solo avisa "quiero cancelar este pedido".
-function OrderCard({ order, steps, onCancel }) {
+//  - onPay: función del padre (pedidoId); se llama al tocar "Pagar". La tarjeta no paga nada: solo avisa.
+function OrderCard({ order, steps, payment, onCancel, onPay }) {
   // Formatea el importe en pesos con separadores argentinos, igual que en el carrito.
   const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
 
@@ -20,6 +23,21 @@ function OrderCard({ order, steps, onCancel }) {
   const cantidadTotal = order.subPedidos
     .flatMap((subPedido) => subPedido.detalles)
     .reduce((acumulado, detalle) => acumulado + detalle.cantidad, 0)
+
+  // Estados del pago de la API -> texto y color del badge. Es un objeto usado como "diccionario".
+  const ETIQUETAS_PAGO = {
+    PENDIENTE: { texto: 'Pago pendiente de aprobación', clase: 'badge-sand' },
+    APROBADO: { texto: 'Pago aprobado', clase: 'badge-leaf' },
+    RECHAZADO: { texto: 'Pago rechazado', clase: 'badge-terra' },
+    REEMBOLSADO: { texto: 'Pago reembolsado', clase: 'badge-mute' },
+  }
+
+  // VALORES CALCULADOS (no se guardan aparte): cuándo se puede pagar.
+  //  - el pedido tiene que estar PENDIENTE (no cancelado ni avanzado);
+  //  - si la API bloqueó los pagos (5 rechazados), no se puede más;
+  //  - sin pago todavía, o con el último RECHAZADO, se puede (re)intentar.
+  const sePuedePagar =
+    order.estado === 'PENDIENTE' && !order.pagoBloqueado && (payment === null || payment.estado === 'RECHAZADO')
 
   return (
     <article className="rounded-xl bg-surface-container-lowest p-5 shadow-ambient sm:p-7" aria-labelledby={`pedido-${order.id}`}>
@@ -60,9 +78,25 @@ function OrderCard({ order, steps, onCancel }) {
         ))}
       </ul>
 
+      {/* Estado del pago: renderizado condicional. Un pedido cancelado no muestra pago. */}
+      {order.estado !== 'CANCELADO' && (
+        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
+          {payment !== null && <span className={`badge ${ETIQUETAS_PAGO[payment.estado].clase}`}>{ETIQUETAS_PAGO[payment.estado].texto}</span>}
+          {order.pagoBloqueado && <span className="badge badge-terra">Pagos bloqueados por demasiados rechazos</span>}
+          {payment === null && !order.pagoBloqueado && order.estado === 'PENDIENTE' && (
+            <span className="text-body-sm text-on-surface-variant">Todavía no pagaste este pedido.</span>
+          )}
+          {sePuedePagar && (
+            <button type="button" className="btn btn-primary btn-sm ml-auto" onClick={() => onPay(order.id)}>
+              {payment === null ? 'Pagar' : 'Pagar de nuevo'}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Solo se puede cancelar mientras el pedido está pendiente de confirmación (regla de la API) */}
       {order.estado === 'PENDIENTE' && (
-        <div className="mt-5 flex justify-end">
+        <div className="mt-3 flex justify-end">
           <button type="button" className="btn btn-quiet btn-sm text-error" onClick={() => onCancel(order.id)}>
             Cancelar pedido
           </button>
