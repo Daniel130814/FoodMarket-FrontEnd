@@ -1,9 +1,11 @@
 // Vista de la cesta (ruta /cesta). Lee la cesta que le pasa App y la muestra como una lista simple.
 // Desde acá se sigue al checkout (/checkout), donde se elige el domicilio y se confirma el pedido.
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import CartItem from '../components/CartItem'
 import OrderSummary from '../components/OrderSummary'
 import EmptyState from '../components/EmptyState'
+import Dialog from '../components/Dialog'
 
 // Costo de envío fijo de ejemplo (en el diseño es $3.200). Más adelante lo calcula el backend.
 const ENVIO = 3200
@@ -13,8 +15,13 @@ const ENVIO = 3200
 //  - cartCount: total de unidades (ya calculado por App)
 //  - onQuantityChange: función (itemId, nuevaCantidad); App aplica las reglas de stock
 //  - onRemove: función (itemId) para quitar un ítem
-function Carrito({ carrito, cartCount, onQuantityChange, onRemove }) {
+//  - onClear: función () para vaciar toda la cesta (DELETE /carrito); App la ejecuta al confirmar el diálogo
+function Carrito({ carrito, cartCount, onQuantityChange, onRemove, onClear }) {
   const navigate = useNavigate()
+
+  // Estado local de UI: si el diálogo de "Vaciar cesta" está abierto. Va ANTES del return de la
+  // cesta vacía porque los hooks no pueden quedar dentro de un condicional.
+  const [confirmandoVaciar, setConfirmandoVaciar] = useState(false)
 
   // Desestructuración: sacamos del carrito las dos partes que usa la vista.
   const { items, totalEstimado } = carrito
@@ -48,6 +55,11 @@ function Carrito({ carrito, cartCount, onQuantityChange, onRemove }) {
               <CartItem key={item.id} item={item} onQuantityChange={onQuantityChange} onRemove={onRemove} />
             ))}
           </ul>
+          {/* Vaciar toda la cesta: abre el diálogo de confirmación */}
+          <button type="button" className="btn btn-quiet mt-4" onClick={() => setConfirmandoVaciar(true)}>
+            <span className="material-symbols-outlined text-[20px]" aria-hidden="true">delete_sweep</span>
+            Vaciar cesta
+          </button>
         </div>
         <div className="lg:col-span-4">
           <OrderSummary
@@ -59,6 +71,20 @@ function Carrito({ carrito, cartCount, onQuantityChange, onRemove }) {
           />
         </div>
       </div>
+
+      {/* Diálogo de confirmación, controlado por estado. Al confirmar se vacía y se cierra. */}
+      <Dialog
+        open={confirmandoVaciar}
+        title="¿Vaciar tu cesta?"
+        message="Se van a quitar todos los platos que agregaste."
+        confirmLabel="Vaciar cesta"
+        cancelLabel="Mantener"
+        onConfirm={() => {
+          onClear()
+          setConfirmandoVaciar(false)
+        }}
+        onCancel={() => setConfirmandoVaciar(false)}
+      />
     </>
   )
 }

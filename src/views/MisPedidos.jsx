@@ -1,11 +1,14 @@
 // Vista de Mis pedidos (ruta /pedidos). Se abre al confirmar el pedido en el checkout.
 // Muestra los pedidos del cliente en dos pestañas (En curso / Anteriores) y permite cancelar los pendientes.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import OrderCard from '../components/OrderCard'
 import Tabs from '../components/Tabs'
 import Dialog from '../components/Dialog'
 import LoadingState from '../components/LoadingState'
 import ErrorState from '../components/ErrorState'
+
+// URL base del backend (se lee del archivo .env, igual que en App).
+const API_URL = import.meta.env.VITE_API_URL
 
 // MAPEO de los estados de la API a los textos que ve el cliente. Es un objeto usado como
 // "diccionario": ETIQUETAS_ESTADO['EN_PREPARACION'] devuelve 'Cocinando'.
@@ -25,15 +28,17 @@ const ORDEN_ESTADOS = ['PENDIENTE', 'CONFIRMADO', 'EN_PREPARACION', 'ENVIADO', '
 const PASOS_SEGUIMIENTO = ORDEN_ESTADOS.map((estado) => ({ estado, etiqueta: ETIQUETAS_ESTADO[estado] }))
 
 // Props:
-//  - pedidos: todos los pedidos del cliente, con la forma de OrderResponse de la API
-//  - onCancelOrder: función (pedidoId) de App. La vista solo avisa "confirmaron cancelar este
-//    pedido"; App cambia el estado del pedido a CANCELADO y muestra el aviso.
-function MisPedidos({ pedidos, onCancelOrder }) {
-  // ESTADOS de carga y error. Todavía no hay pedidos al backend, así que quedan fijos en
-  // "no cargando" y "sin error". Solo desestructuramos el primer valor: el setter (setCargando /
-  // setError) se agrega en el paso 12, cuando haya un fetch que los cambie.
-  const [cargando] = useState(false)
-  const [error] = useState(null)
+//  - token: el JWT de la sesión, para las llamadas privadas (GET /orders y PATCH cancelar)
+//  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
+//  - onAviso: función (texto) de App para mostrar un Toast
+function MisPedidos({ token, onSesionVencida, onAviso }) {
+  // ESTADO: los pedidos del cliente, con la forma de OrderResponse de la API. Viven acá porque solo
+  // esta vista los usa: los pide al montarse y los actualiza al cancelar.
+  const [pedidos, setPedidos] = useState([])
+
+  // ESTADOS de carga y error del GET. Arranca cargando.
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState(null)
 
   // ESTADO: pestaña activa. 'curso' o 'anteriores'.
   const [pestana, setPestana] = useState('curso')
@@ -41,6 +46,35 @@ function MisPedidos({ pedidos, onCancelOrder }) {
   // ESTADO del diálogo de cancelación: el id del pedido que se quiere cancelar, o null si el
   // diálogo está cerrado. Un solo estado sirve para "¿está abierto?" y "¿cuál pedido?".
   const [pedidoACancelarId, setPedidoACancelarId] = useState(null)
+
+  // GET /orders al abrir la vista (paso 12.5). Ruta privada: lleva el token. Devuelve solo los pedidos
+  // de este cliente. Dependencias [token]: no se repite mientras no cambie la sesión.
+  useEffect(() => {
+    fetch(`${API_URL}/orders`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.data
+        })
+      )
+      .then((data) => setPedidos(data ?? [])) // lista vacía llega como null
+      .catch((fallo) => {
+        // 401: el token ya no sirve; App cierra la sesión y la ruta protegida nos manda a /ingreso.
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        setError(fallo.message)
+      })
+      .finally(() => setCargando(false))
+    // onSesionVencida queda afuera de las dependencias a propósito (App la crea de nuevo en cada render
+    // y el GET se repetiría sin parar). Se resuelve con useCallback cuando se vea en clase.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
 
   // Renderizado condicional: si estamos cargando o hubo un error, mostramos eso y cortamos acá.
   // Los hooks (useState) siempre van ANTES de estos return.
@@ -66,10 +100,39 @@ function MisPedidos({ pedidos, onCancelOrder }) {
     { id: 'anteriores', label: 'Anteriores', count: anteriores.length },
   ]
 
-  // Al confirmar el diálogo: le avisamos a App qué pedido cancelar y cerramos el diálogo.
+  // Al confirmar el diálogo: PATCH /orders/{id}/cancelar (paso 12.5). Es una escritura: va en el handler.
+  // El backend repone el stock y devuelve el pedido ya cancelado; con él reemplazamos el de la lista
+  // (map) SIN volver a pedir todos los pedidos. Solo se cancelan los PENDIENTE (si no, 409).
   const confirmarCancelacion = () => {
-    onCancelOrder(pedidoACancelarId)
+    const pedidoId = pedidoACancelarId
     setPedidoACancelarId(null)
+
+    fetch(`${API_URL}/orders/${pedidoId}/cancelar`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` }, // ruta privada, sin body
+    })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.data
+        })
+      )
+      .then((cancelado) => {
+        setPedidos((actuales) => actuales.map((pedido) => (pedido.id === cancelado.id ? cancelado : pedido)))
+        onAviso(`Cancelaste el pedido n.º ${pedidoId}`)
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        // 409 (ya no está pendiente), 403, 404: mostramos el mensaje del backend.
+        onAviso(fallo.message)
+      })
   }
 
   return (

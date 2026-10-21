@@ -1,5 +1,6 @@
-// Vista del catálogo (ruta /catalogo). Lista los platos con filtros, orden y paginación.
-import { useState } from 'react'
+// Vista del catálogo (ruta /catalogo). Pide los platos y las categorías al backend (GET /platos y
+// GET /categories), filtra con query params y ordena y pagina en el front (la API no tiene orden ni paginación).
+import { useEffect, useState } from 'react'
 import PlatoCard from '../components/PlatoCard'
 import SearchBar from '../components/SearchBar'
 import CategoryChips from '../components/CategoryChips'
@@ -8,47 +9,33 @@ import EmptyState from '../components/EmptyState'
 import Button from '../components/Button'
 import LoadingState from '../components/LoadingState'
 import ErrorState from '../components/ErrorState'
-import PLATOS_EJEMPLO from '../data/platosEjemplo'
-import CATEGORIAS_EJEMPLO from '../data/categoriasEjemplo'
+
+// URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
+const API_URL = import.meta.env.VITE_API_URL
 
 // Cuántos platos se agregan al listado cada vez que se toca "Ver más".
 const PLATOS_POR_PAGINA = 6
 
 // Filtros al empezar (o al limpiar): todo vacío. categoriaId null = todas las categorías.
-// Los precios se guardan como TEXTO porque vienen de inputs; se pasan a número al filtrar.
+// Los precios se guardan como TEXTO porque vienen de inputs; se mandan tal cual en la URL.
 const FILTROS_INICIALES = { nombre: '', categoriaId: null, precioMin: '', precioMax: '' }
 
-// ---------------------------------------------------------------------------------------
-// FILTRADO DE EJEMPLO (TEMPORAL, se ELIMINA en el paso 12).
-// Simula lo que hace el backend en GET /platos con los query params que soporta la API:
-//   nombre, categoriaId, precioMin, precioMax.
-// En el paso 12 esta función se borra: los filtros se mandan en la URL (?nombre=...&precioMin=...)
-// y la API devuelve la lista ya filtrada. (La regla de la profe: el filtrado real lo hace el backend.)
-// Recibe la lista de platos y el objeto de filtros; devuelve una lista NUEVA con los que cumplen.
-// ---------------------------------------------------------------------------------------
-const filtrarPlatos = (platos, filtros) => {
-  const texto = filtros.nombre.trim().toLowerCase()
-  // El filtro de categoría usa el id, pero cada plato guarda los NOMBRES de sus categorías
-  // (así lo manda la API); buscamos la descripción de la categoría elegida.
-  const categoria = CATEGORIAS_EJEMPLO.find((c) => c.id === filtros.categoriaId)
-
-  // .filter() recorre el array y se queda con los elementos para los que la función devuelve true.
-  return platos.filter((plato) => {
-    // La API solo devuelve platos PUBLICADO o AGOTADO (nunca borradores ni pausados).
-    if (plato.estado !== 'PUBLICADO' && plato.estado !== 'AGOTADO') return false
-    // Nombre: coincidencia parcial sin importar mayúsculas (la semántica exacta del backend no está confirmada).
-    if (texto !== '' && !plato.nombre.toLowerCase().includes(texto)) return false
-    if (categoria !== undefined && !plato.categorias.includes(categoria.description)) return false
-    // Precio: se compara contra el precio base. Number('') daría 0, por eso se chequea que no esté vacío.
-    if (filtros.precioMin !== '' && plato.precio < Number(filtros.precioMin)) return false
-    if (filtros.precioMax !== '' && plato.precio > Number(filtros.precioMax)) return false
-    return true
+// Lee una respuesta del backend y devuelve lo que viene en "data". Si el servidor respondió con un
+// error (400, 404, 500...) lanza un Error con el "message" del backend y el código en "status".
+// Hace falta porque fetch NO manda los errores HTTP al .catch(): hay que mirar response.ok nosotros.
+const leerRespuesta = (response) =>
+  response.json().then((cuerpo) => {
+    if (!response.ok) {
+      const fallo = new Error(cuerpo.message)
+      fallo.status = response.status
+      throw fallo
+    }
+    return cuerpo.data
   })
-}
 
 // ORDEN (se queda en el front: la API NO tiene ordenamiento).
-// .sort() modifica el array original, y el estado/los datos nunca se modifican; por eso primero
-// hacemos una COPIA con [...platos] y ordenamos la copia.
+// .sort() modifica el array original, y el estado nunca se modifica; por eso primero hacemos una
+// COPIA con [...platos] y ordenamos la copia.
 // sort llama a una función de comparación con dos platos (a, b):
 //   - devuelve un número negativo si 'a' va antes que 'b'
 //   - positivo si 'a' va después, y 0 si da igual.
@@ -69,15 +56,19 @@ const ordenarPlatos = (platos, orden) => {
 }
 
 // Props:
-//  - onAdd: función (platoId, cantidad) de App. Catalogo no la usa: solo la reenvía a cada PlatoCard.
+//  - onAdd: función (plato, cantidad) de App. Catalogo no la usa: solo la reenvía a cada PlatoCard.
 function Catalogo({ onAdd }) {
-  // ESTADOS de carga y error. Todavía no hay pedidos al backend, así que quedan fijos en
-  // "no cargando" y "sin error". Solo desestructuramos el primer valor: el setter (setCargando /
-  // setError) se agrega en el paso 12, cuando haya un fetch que los cambie.
-  //  - cargando: true mientras esperamos la respuesta de la API.
+  // ESTADO de los datos que llegan del backend. Arrancan vacíos y se llenan cuando responde la API.
+  const [platos, setPlatos] = useState([])
+  const [categorias, setCategorias] = useState([])
+
+  // ESTADOS de carga y error de la lista de platos.
+  //  - cargando: true hasta que llega la primera respuesta.
   //  - error: null si todo está bien, o el texto del error si la API falló.
-  const [cargando] = useState(false)
-  const [error] = useState(null)
+  // Si las categorías fallan, solo avisamos debajo de los chips (la lista de platos igual se puede usar).
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState(null)
+  const [errorCategorias, setErrorCategorias] = useState(false)
 
   // ESTADO de los filtros: un solo objeto con todos los campos (inputs controlados).
   const [filtros, setFiltros] = useState(FILTROS_INICIALES)
@@ -88,14 +79,75 @@ function Catalogo({ onAdd }) {
   // ESTADO de la paginación: cuántas "páginas" de platos se están mostrando. Empieza en 1.
   const [paginaActual, setPaginaActual] = useState(1)
 
-  // Renderizado condicional: si estamos cargando o hubo un error, mostramos eso y cortamos acá.
-  // Los hooks (useState) siempre van ANTES de estos return.
-  if (cargando) {
-    return <LoadingState message="Cargando el catálogo..." />
-  }
-  if (error !== null) {
-    return <ErrorState message={error} />
-  }
+  // VALIDACIÓN de precios, igual que la API (devuelve 400 si hay precios negativos o si el
+  // mínimo es mayor que el máximo). Es un valor calculado: no se guarda en un estado.
+  // La hacemos ANTES de pedir los platos para no mandarle al backend un filtro inválido.
+  const hayNegativos = Number(filtros.precioMin) < 0 || Number(filtros.precioMax) < 0
+  const minMayorQueMax =
+    filtros.precioMin !== '' && filtros.precioMax !== '' && Number(filtros.precioMin) > Number(filtros.precioMax)
+  // Ternario encadenado: si pasa lo primero, ese mensaje; si no, si pasa lo segundo, el otro; si no, null.
+  const errorPrecios = hayNegativos
+    ? 'Los precios no pueden ser negativos.'
+    : minMayorQueMax
+      ? 'El precio mínimo no puede ser mayor que el máximo.'
+      : null
+
+  // Los valores que realmente se mandan al backend. Si los precios son inválidos, no se mandan.
+  const nombre = filtros.nombre.trim()
+  const categoriaId = filtros.categoriaId
+  const precioMin = errorPrecios === null ? filtros.precioMin.trim() : ''
+  const precioMax = errorPrecios === null ? filtros.precioMax.trim() : ''
+
+  // CATEGORÍAS: se piden una sola vez, al abrir la vista ([] = sin dependencias). Es un GET, por
+  // eso va en un useEffect. Es una ruta pública: NO mandamos el token.
+  useEffect(() => {
+    fetch(`${API_URL}/categories`)
+      .then(leerRespuesta)
+      // La API devuelve data: null cuando la lista está vacía; ?? [] lo convierte en lista vacía.
+      .then((data) => setCategorias(data ?? []))
+      .catch(() => setErrorCategorias(true))
+  }, [])
+
+  // PLATOS: se piden al abrir la vista y CADA VEZ que cambia un filtro. Por eso el segundo
+  // argumento de useEffect lista los filtros: React vuelve a ejecutar el efecto cuando alguno cambia.
+  // El filtrado lo hace el backend: mandamos los filtros como query params (?nombre=...&categoriaId=...).
+  useEffect(() => {
+    // AbortController permite cancelar un pedido en curso. Si el usuario sigue escribiendo, el pedido
+    // anterior se cancela y no puede llegar tarde y pisar el resultado del pedido nuevo.
+    const controlador = new AbortController()
+
+    // URLSearchParams arma el texto de los query params y se encarga de codificar los caracteres
+    // especiales (espacios, tildes). Solo agregamos los filtros que tienen valor.
+    const parametros = new URLSearchParams()
+    if (nombre !== '') parametros.set('nombre', nombre)
+    if (categoriaId !== null) parametros.set('categoriaId', categoriaId)
+    if (precioMin !== '') parametros.set('precioMin', precioMin)
+    if (precioMax !== '') parametros.set('precioMax', precioMax)
+
+    fetch(`${API_URL}/platos?${parametros.toString()}`, { signal: controlador.signal })
+      .then(leerRespuesta)
+      .then((data) => {
+        setPlatos(data ?? [])
+        setError(null)
+        setCargando(false)
+      })
+      .catch((fallo) => {
+        // Un pedido cancelado por nosotros (AbortError) no es un error: ya viene otro en camino.
+        if (fallo.name === 'AbortError') {
+          return
+        }
+        // Sin status, ni siquiera llegamos al servidor (apagado o bloqueado).
+        setError(
+          fallo.status === undefined
+            ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
+            : fallo.message
+        )
+        setCargando(false)
+      })
+
+    // Función de limpieza: React la ejecuta antes de volver a correr el efecto (o al salir de la vista).
+    return () => controlador.abort()
+  }, [nombre, categoriaId, precioMin, precioMax])
 
   // Handler de los inputs de texto y precio. event.target.name dice qué filtro cambió (nombre,
   // precioMin, precioMax) y value es lo que escribió el usuario. [name]: value es una "clave
@@ -123,25 +175,10 @@ function Catalogo({ onAdd }) {
     setPaginaActual(1)
   }
 
-  // VALIDACIÓN de precios, igual que la API (devuelve 400 si hay precios negativos o si el
-  // mínimo es mayor que el máximo). Es un valor calculado: no se guarda en un estado.
-  const hayNegativos = Number(filtros.precioMin) < 0 || Number(filtros.precioMax) < 0
-  const minMayorQueMax =
-    filtros.precioMin !== '' && filtros.precioMax !== '' && Number(filtros.precioMin) > Number(filtros.precioMax)
-  // Ternario encadenado: si pasa lo primero, ese mensaje; si no, si pasa lo segundo, el otro; si no, null.
-  const errorPrecios = hayNegativos
-    ? 'Los precios no pueden ser negativos.'
-    : minMayorQueMax
-      ? 'El precio mínimo no puede ser mayor que el máximo.'
-      : null
-
-  // PIPELINE de la lista, paso a paso (todos son valores calculados en cada render):
-  //  1) filtrar (si los precios son inválidos, ignoramos el filtro de precio)
-  //  2) ordenar la lista ya filtrada
-  //  3) paginar: slice(0, n) devuelve una copia con los primeros n elementos
-  const filtrosAplicados = errorPrecios === null ? filtros : { ...filtros, precioMin: '', precioMax: '' }
-  const platosFiltrados = filtrarPlatos(PLATOS_EJEMPLO, filtrosAplicados)
-  const platosOrdenados = ordenarPlatos(platosFiltrados, orden)
+  // PIPELINE de la lista, con los platos que ya filtró el backend (valores calculados en cada render):
+  //  1) ordenar (en el front)
+  //  2) paginar: slice(0, n) devuelve una copia con los primeros n elementos
+  const platosOrdenados = ordenarPlatos(platos, orden)
   const platosVisibles = platosOrdenados.slice(0, paginaActual * PLATOS_POR_PAGINA)
 
   // ¿Hay algún filtro u orden activo? Sirve para mostrar el botón "Limpiar".
@@ -154,7 +191,10 @@ function Catalogo({ onAdd }) {
         <SearchBar value={filtros.nombre} onChange={handleFiltroChange} />
       </div>
       <div className="mt-4">
-        <CategoryChips categories={CATEGORIAS_EJEMPLO} selectedId={filtros.categoriaId} onSelect={handleCategoria} />
+        <CategoryChips categories={categorias} selectedId={filtros.categoriaId} onSelect={handleCategoria} />
+        {errorCategorias && (
+          <p className="hint hint--error">No pudimos cargar las categorías.</p>
+        )}
       </div>
 
       {/* Precio mínimo, precio máximo y orden: cada input tiene su label y es controlado */}
@@ -210,7 +250,13 @@ function Catalogo({ onAdd }) {
         </div>
       )}
 
-      {platosFiltrados.length === 0 ? (
+      {/* Los filtros siempre se ven; lo que cambia es el contenido de la lista según el estado:
+          cargando, error, sin resultados o platos. */}
+      {cargando ? (
+        <LoadingState message="Cargando el catálogo..." />
+      ) : error !== null ? (
+        <ErrorState message={error} />
+      ) : platos.length === 0 ? (
         <EmptyState
           title="No encontramos platos"
           message="Probá con otro nombre, otra categoría o un rango de precios distinto."
@@ -228,7 +274,7 @@ function Catalogo({ onAdd }) {
           {/* "Ver más" suma una página: se muestran más platos de la misma lista */}
           <Pagination
             shown={platosVisibles.length}
-            total={platosFiltrados.length}
+            total={platosOrdenados.length}
             onMore={() => setPaginaActual(paginaActual + 1)}
           />
         </>

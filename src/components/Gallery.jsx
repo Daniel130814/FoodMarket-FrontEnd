@@ -15,8 +15,16 @@ function Gallery({ images, title }) {
   return (
     <div>
       <div className="aspect-[4/3] overflow-hidden rounded-lg bg-surface-container">
-        {/* La foto grande depende del estado: cambia activa y cambia la imagen */}
-        <img src={images[activa]} alt={title} className="h-full w-full object-cover" />
+        {/* Renderizado condicional: un plato puede no tener fotos (la API devuelve una lista vacía).
+            En ese caso mostramos un ícono en lugar de una imagen rota. */}
+        {images.length > 0 ? (
+          // La foto grande depende del estado: cambia activa y cambia la imagen
+          <img src={images[activa]} alt={title} className="h-full w-full object-cover" />
+        ) : (
+          <span className="grid h-full w-full place-items-center text-on-surface-variant" aria-hidden="true">
+            <span className="material-symbols-outlined text-[72px]">restaurant</span>
+          </span>
+        )}
       </div>
 
       {/* Con una sola foto no tiene sentido mostrar miniaturas */}

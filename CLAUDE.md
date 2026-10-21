@@ -290,16 +290,18 @@ Componentes compartidos: `Header`, `Footer`, `Logo`, `Button`, `PlatoCard`, `Sea
 Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y checkout, gestión de productos del vendedor, administración de cuentas) antes que los extras.
 
 - [x] **1–10** Proyecto Vite, estructura, Tailwind + tokens, Logo/Button, PlatoCard, Header/Footer/rutas, Home + Catálogo, Detalle, Cesta (primero con `CartContext`, ya migrada a estado en `App.jsx` por props: si todavía existe `src/context/`, hay que borrarla), Ingreso + Registro.
-- [ ] **11** Mis pedidos (interfaz con datos de ejemplo): Tabs, OrderCard, OrderTrack, Dialog controlado por estado.
-- [ ] **11b (recortado por la fecha)** Solo esto, con datos de ejemplo: (a) Registro e Ingreso con los campos reales, (b) `RutaProtegida` por rol con `useLocation`, (c) `LoadingState` y `ErrorState` en las vistas, (d) vista `Checkout` con `DomicilioPicker` y `DomicilioForm`. Todo lo demás (forma de los datos, filtros, estados de pedido, vistas del chef) se hace directamente contra la API real.
-- [ ] **12 Conexión con el backend.** Cada sub-paso termina probado en el navegador:
-  - 12.1 `.env` + CORS funcionando; login y registro reales; guardar el JWT; restaurar sesión; logout.
-  - 12.2 Catálogo y detalle reales (GET, filtros por query params, categorías).
-  - 12.3 Cesta del servidor (primera escritura: POST/PUT/DELETE con estado local, sin re-GET).
-  - 12.4 Checkout con domicilio → pedido.
-  - 12.5 Mis pedidos reales + cancelar. Si falta tiempo, se pasa después del paso 13.
-- [ ] **13** Vistas del chef conectadas: Mis publicaciones, Publicar/editar (fotos como URLs, categorías e ingredientes desde los catálogos), eliminar, stock y descuento. Depende de los cambios del backend de la sección 5.
+- [x] **11** Mis pedidos (interfaz con datos de ejemplo): Tabs, OrderCard, OrderTrack, Dialog controlado por estado.
+- [x] **11b (recortado por la fecha)** Solo esto, con datos de ejemplo: (a) Registro e Ingreso con los campos reales, (b) `RutaProtegida` por rol con `useLocation`, (c) `LoadingState` y `ErrorState` en las vistas, (d) vista `Checkout` con `DomicilioPicker` y `DomicilioForm`. Todo lo demás (forma de los datos, filtros, estados de pedido, vistas del chef) se hace directamente contra la API real.
+- [x] **12 Conexión con el backend** (hecho y probado en el navegador; sin probar: 401 de token vencido en las escrituras y los 400 de stock en el checkout):
+  - [x] 12.1 `.env` + CORS funcionando; login y registro reales; guardar el JWT; restaurar sesión; logout.
+  - [x] 12.2 Catálogo y detalle reales (GET, filtros por query params, categorías).
+  - [x] 12.3 Cesta del servidor (POST/PUT/DELETE con estado local, sin re-GET; incluye vaciar con `DELETE /carrito`).
+  - [x] 12.4 Checkout con domicilio → pedido (`GET /domicilios`, `POST createDomicilio`, `POST /carrito/checkout`).
+  - [x] 12.5 Mis pedidos reales + cancelar (`GET /orders`, `PATCH /orders/{id}/cancelar`).
+- [x] **13** Vistas del chef conectadas: Mis publicaciones, Publicar/editar (fotos como URLs, categorías e ingredientes desde los catálogos), eliminar, stock y descuento. Hecho con las limitaciones del backend: sin "mis platos" (la lista sale de `GET /platos` filtrado por `chefId`, así que los `BORRADOR` y `PAUSADO` no se recuperan tras recargar) y sin `PATCH` de stock ni de estado (se usa `PUT` con el plato completo).
 - [ ] **14** Extras, en este orden si sobra tiempo: administración mínima (listar usuarios y crear con rol; la API todavía no cambia roles), reseñas, pagos, pedidos recibidos del chef, perfil del chef, hero con render 3D.
+
+**`TODO(backend)` que quedan:** "mis platos" del chef en todos los estados; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; que `DELETE /platos/{id}` informe si borró o pausó; perfil del chef (la sección de chefs de Inicio usa `src/data/chefsEjemplo.jsx`, el único dato de ejemplo que queda: borrar `src/data/` cuando exista la API).
 
 ## 10. Antes de dar un paso por terminado
 
