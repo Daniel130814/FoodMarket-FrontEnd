@@ -281,9 +281,10 @@ export default RutaProtegida;
 | MisPedidos                          | `/pedidos`                   | CLIENTE              |
 | MisPublicaciones                    | `/mis-publicaciones`         | CHEF                 |
 | PublicarPlato                       | `/publicar`, `/publicar/:id` | CHEF                 |
-| Admin (usuarios, categorías, pagos) | `/admin`                     | ADMIN (más adelante) |
+| Admin (usuarios y pagos)            | `/admin`                     | ADMIN                |
+| PedidosRecibidos                    | `/pedidos-recibidos`         | CHEF                 |
 
-Componentes compartidos: `Header`, `Footer`, `Logo`, `Button`, `PlatoCard`, `SearchBar`, `CategoryChips`, `Pagination`, `Gallery`, `QuantityStepper` (controlado: el valor viene por props), `IngredientTrace`, `ReviewList`, `CartItem`, `OrderSummary`, `EmptyState`, `LoadingState`, `ErrorState`, `Toast`, `Dialog`, `FormField`, `RoleOption`, `Tabs`, `OrderCard`, `OrderTrack`, `DomicilioPicker`, `DomicilioForm`, `PublicationRow`, `FilterChips`, `RutaProtegida`.
+Componentes compartidos: `Header`, `Footer`, `Logo`, `Button`, `PlatoCard`, `SearchBar`, `CategoryChips`, `Pagination`, `Gallery`, `QuantityStepper` (controlado: el valor viene por props), `IngredientTrace`, `ReviewList`, `CartItem`, `OrderSummary`, `EmptyState`, `LoadingState`, `ErrorState`, `Toast`, `Dialog`, `FormField`, `RoleOption`, `Tabs`, `OrderCard`, `SubPedidoCard`, `OrderTrack`, `DomicilioPicker`, `DomicilioForm`, `PublicationRow`, `FilterChips`, `RutaProtegida`.
 
 ## 9. Hoja de ruta
 
@@ -302,8 +303,8 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
 - [ ] **14** Flujo completo de compra y extras (en curso). Para que un pedido salga de PENDIENTE hacen falta el pago del cliente, la aprobación de un ADMIN y que el chef avance el subpedido:
   - [x] 14a Pagos del cliente (`POST /pagos/createPago`, `GET /pagos`) en Mis pedidos.
   - [x] 14b Administración en `/admin`: pagos (aprobar, rechazar, reembolsar) y usuarios (listar y crear con rol; la API todavía no cambia roles). Incluye el componente `FormField`.
-  - [ ] 14c Pedidos recibidos del chef (`GET /subpedidos/chef/{userId}`, `PATCH /subpedidos/{id}/estado`).
-  - [ ] 14d Reseñas del cliente (`POST /resenas/createResena`) en pedidos entregados.
+  - [x] 14c Pedidos recibidos del chef (`GET /subpedidos/chef/{userId}`, `PATCH /subpedidos/{id}/estado`).
+  - [x] 14d Reseñas del cliente (`POST /resenas/createResena`) en pedidos entregados.
   - [ ] 14e Perfil del chef en Inicio (`GET /chef-profiles`) y borrar `src/data/`.
   - [ ] 14f Hero con render 3D (último, solo si sobra tiempo).
 
