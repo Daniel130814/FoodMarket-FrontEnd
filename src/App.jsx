@@ -540,12 +540,12 @@ function App() {
   }
 
   // ACCIONES DEL CHEF sobre sus publicaciones. MisPublicaciones las llama; App las ejecuta contra la API
-  // y avisa con un Toast. Stock, pausar y reactivar (paso 13d) son REALES. Descuento y eliminar siguen
-  // SIMULADOS (pasos 13e y 13f).
+  // y avisa con un Toast. Stock, pausar, reactivar (13d) y descuento (13e) son REALES. Eliminar sigue
+  // SIMULADO (paso 13f: eliminar).
 
   // Cambia solo algunos campos de UN plato en el estado. map devuelve un array NUEVO y reemplaza
   // únicamente el plato con ese id; {...plato, ...cambios} copia el plato y pisa los campos que cambiaron.
-  // Todavía lo usan los pasos simulados (descuento y eliminar).
+  // Todavía lo usa el paso simulado (eliminar, 13f).
   const actualizarPlato = (platoId, cambios) => {
     setMisPlatos(misPlatos.map((plato) => (plato.id === platoId ? { ...plato, ...cambios } : plato)))
   }
@@ -627,13 +627,46 @@ function App() {
     guardarCambios(plato, { estado: 'PUBLICADO' }, (guardado) => `${guardado.nombre} se reactivó`)
   }
 
-  // Aplica un descuento (0 a 99,99 %). El precio base no cambia; el precio con descuento es
-  // precio x (100 - porcentaje) / 100, con 2 decimales. Con 0 se quita el descuento.
+  // Aplica o quita un descuento (paso 13e). Con un porcentaje de 0,01 a 99,99 es
+  // PATCH /platos/{id}/descuento { porcentaje }; con 0 es DELETE /platos/{id}/descuento (quita el descuento).
+  // Los dos devuelven el plato ya actualizado (con precioConDescuento calculado por el backend): con él
+  // reemplazamos el de la lista (map), sin volver a pedir todos los platos.
+  // Es una escritura: la llama MisPublicaciones al confirmar el diálogo, nunca un efecto.
   const aplicarDescuento = (platoId, porcentaje) => {
     const plato = misPlatos.find((p) => p.id === platoId)
-    const precioConDescuento = Math.round(plato.precio * (100 - porcentaje)) / 100
-    actualizarPlato(platoId, { descuentoPorcentaje: porcentaje, precioConDescuento })
-    setAviso(porcentaje === 0 ? `Quitaste el descuento de ${plato.nombre}` : `${plato.nombre} ahora tiene ${porcentaje} % de descuento`)
+    const quitar = porcentaje === 0
+
+    fetch(`${API_URL}/platos/${platoId}/descuento`, {
+      method: quitar ? 'DELETE' : 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sesion.token}`, // ruta privada
+      },
+      // El DELETE no lleva cuerpo; el PATCH manda el porcentaje.
+      body: quitar ? undefined : JSON.stringify({ porcentaje }),
+    })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.data
+        })
+      )
+      .then((guardado) => {
+        setMisPlatos((actuales) => actuales.map((p) => (p.id === guardado.id ? guardado : p)))
+        setAviso(quitar ? `Quitaste el descuento de ${plato.nombre}` : `${plato.nombre} ahora tiene ${porcentaje} % de descuento`)
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          sesionVencida()
+          return
+        }
+        // 400 (porcentaje fuera de rango), 403 (no es tu plato), 404: mensaje del backend.
+        setAviso(fallo.message)
+      })
   }
 
   // Registra un plato que el backend ya creó (paso 13b). PublicarPlato la llama con el PlatoResponse que
