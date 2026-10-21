@@ -16,7 +16,6 @@ import MisPublicaciones from './views/MisPublicaciones'
 import PublicarPlato from './views/PublicarPlato'
 import Ingreso from './views/Ingreso'
 import Registro from './views/Registro'
-import PLATOS_EJEMPLO from './data/platosEjemplo'
 import MIS_PLATOS_EJEMPLO from './data/misPlatosEjemplo'
 import RESENAS_EJEMPLO from './data/resenasEjemplo'
 import CATEGORIAS_EJEMPLO from './data/categoriasEjemplo'
@@ -27,82 +26,6 @@ const API_URL = import.meta.env.VITE_API_URL
 
 // Clave con la que se guarda el JWT en localStorage. Está en una constante para escribirla una sola vez.
 const CLAVE_TOKEN = 'jwtToken'
-
-// ---------------------------------------------------------------------------------------
-// PEDIDOS DE EJEMPLO (TEMPORAL, paso 11b). Tienen la forma de OrderResponse de la API
-// (ENDPOINTS.md, sección 3.8): un pedido con sus subPedidos (uno por chef) y cada subPedido con
-// sus detalles. En el paso 12 esto se reemplaza por GET /orders.
-// Los helpers de abajo arman los objetos a partir de PLATOS_EJEMPLO para no repetir precios.
-// ---------------------------------------------------------------------------------------
-
-// Arma un detalle { id, platoId, platoNombre, cantidad, precioUnitario, subtotal }.
-// precioUnitario es el precio con descuento del plato (la API lo "congela" al crear el pedido).
-const crearDetalle = (id, platoId, cantidad) => {
-  const plato = PLATOS_EJEMPLO.find((p) => p.id === platoId)
-  return {
-    id,
-    platoId,
-    platoNombre: plato.nombre,
-    cantidad,
-    precioUnitario: plato.precioConDescuento,
-    subtotal: plato.precioConDescuento * cantidad,
-  }
-}
-
-// Arma un subPedido de un chef. Su subtotal es la suma de los subtotales de sus detalles
-// (reduce acumula un resultado recorriendo el array).
-// chefNombre es opcional: si no se pasa, se busca en los platos de ejemplo (los pedidos de ejemplo).
-// Los pedidos nuevos lo pasan explícito, porque sus platos son reales y no están en PLATOS_EJEMPLO.
-const crearSubPedido = (id, chefId, estado, detalles, chefNombre = PLATOS_EJEMPLO.find((p) => p.chefId === chefId).chefNombre) => {
-  return {
-    id,
-    chefId,
-    chefNombre,
-    estado,
-    subtotal: detalles.reduce((acumulado, detalle) => acumulado + detalle.subtotal, 0),
-    detalles,
-  }
-}
-
-// Arma un pedido completo. precioFinal es la suma de los subtotales de sus subPedidos.
-// domicilioEntregaId es opcional: si no se pasa, usa el domicilio 5 de los pedidos de ejemplo.
-const crearPedido = (id, fechaCreacion, estado, subPedidos, domicilioEntregaId = 5) => ({
-  id,
-  userId: 7,
-  domicilioEntregaId,
-  fechaCreacion,
-  estado,
-  precioFinal: subPedidos.reduce((acumulado, subPedido) => acumulado + subPedido.subtotal, 0),
-  pagoBloqueado: false,
-  subPedidos,
-})
-
-// Hay un pedido en cada estado para poder probar la vista de pedidos (paso 11b.8).
-const PEDIDOS_EJEMPLO = [
-  crearPedido(1050, '2026-10-19T19:40:00', 'PENDIENTE', [
-    crearSubPedido(80, 1, 'PENDIENTE', [crearDetalle(100, 1, 1)]),
-  ]),
-  crearPedido(1042, '2026-10-19T18:20:00', 'EN_PREPARACION', [
-    crearSubPedido(70, 3, 'EN_PREPARACION', [crearDetalle(90, 3, 1), crearDetalle(91, 5, 1)]),
-    crearSubPedido(71, 2, 'EN_PREPARACION', [crearDetalle(92, 2, 1)]),
-  ]),
-  crearPedido(1039, '2026-10-19T11:05:00', 'ENVIADO', [
-    crearSubPedido(60, 5, 'ENVIADO', [crearDetalle(80, 8, 1)]),
-  ]),
-  crearPedido(1031, '2026-10-02T13:10:00', 'ENTREGADO', [
-    crearSubPedido(50, 1, 'ENTREGADO', [crearDetalle(70, 7, 1)]),
-  ]),
-  crearPedido(1018, '2026-09-24T20:00:00', 'ENTREGADO', [
-    crearSubPedido(40, 6, 'ENTREGADO', [crearDetalle(60, 9, 1)]),
-    crearSubPedido(41, 4, 'ENTREGADO', [crearDetalle(61, 4, 1)]),
-  ]),
-  crearPedido(1004, '2026-09-15T12:30:00', 'ENTREGADO', [
-    crearSubPedido(30, 3, 'ENTREGADO', [crearDetalle(50, 5, 1)]),
-  ]),
-  crearPedido(1002, '2026-09-10T21:15:00', 'CANCELADO', [
-    crearSubPedido(20, 2, 'CANCELADO', [crearDetalle(40, 6, 1)]),
-  ]),
-]
 
 // Recalcula el carrito completo a partir de sus ítems. Es la ÚNICA función que calcula
 // subtotales y total: así nunca quedan desincronizados (en producción lo calcula el backend).
@@ -124,7 +47,7 @@ const calcularCarrito = (id, items) => {
 //  - carrito, onQuantityChange, onRemove: también solo se reenvían, a Carrito (y carrito a Checkout).
 //  - onPedidoCreado: función (pedido) que registra el pedido ya creado por el backend; se reenvía a Checkout.
 //  - onAdd: función (plato, cantidad) para agregar al carrito; se reenvía a Inicio, Catalogo (que se la pasan a PlatoCard) y DetallePlato.
-//  - pedidos / onCancelOrder: la lista de pedidos y la función (pedidoId) para cancelar uno; se reenvían a MisPedidos.
+//  - onSesionVencida / onAviso: también se reenvían a MisPedidos (que pide y cancela sus pedidos con el backend).
 //  - misPlatos y onStockChange / onTogglePause / onDiscount / onDeleteDish: las publicaciones del chef y
 //    las acciones sobre ellas; se reenvían a MisPublicaciones (misPlatos también a PublicarPlato).
 //  - onSavePlato: función (datos, platoId) para crear o editar un plato; se reenvía a PublicarPlato.
@@ -133,7 +56,7 @@ const calcularCarrito = (id, items) => {
 //    y la función para cerrarla; se reenvían al Header.
 //    AppContent además usa sesion para proteger las rutas (RutaProtegida) y para decidir si se puede agregar al carrito.
 //  - onAviso: función (texto) para mostrar un Toast; AppContent la usa cuando un rol no puede comprar.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, onSesionVencida, onPedidoCreado, pedidos, onCancelOrder, misPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onLogin, sesion, cargandoSesion, onLogout, onAviso }) {
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, onSesionVencida, onPedidoCreado, misPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onLogin, sesion, cargandoSesion, onLogout, onAviso }) {
   const location = useLocation()
 
   // useNavigate devuelve una función para cambiar de ruta desde el código. Se puede usar acá
@@ -223,7 +146,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
             path="/pedidos"
             element={
               <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE']}>
-                <MisPedidos pedidos={pedidos} onCancelOrder={onCancelOrder} />
+                <MisPedidos token={sesion?.token} onSesionVencida={onSesionVencida} onAviso={onAviso} />
               </RutaProtegida>
             }
           />
@@ -294,17 +217,10 @@ function App() {
   // (React lo desaconseja: provoca un redibujado extra, y el lint lo marca).
   const [cargandoSesion, setCargandoSesion] = useState(() => localStorage.getItem(CLAVE_TOKEN) !== null)
 
-  // ESTADO DE LOS PEDIDOS: la lista de pedidos del cliente, con la forma de OrderResponse.
-  // Vive en App (el padre común) porque lo ESCRIBE Checkout (al confirmar crea un pedido nuevo)
-  // y lo LEE Mis pedidos. Dos vistas hermanas no pueden pasarse datos entre sí: solo pueden
-  // hablar con el padre que tienen en común. Por eso el estado sube hasta App.
-  // Arranca con los pedidos de ejemplo. En el paso 12 se reemplaza por GET /orders.
-  const [pedidos, setPedidos] = useState(PEDIDOS_EJEMPLO)
-
   // ESTADO DE LAS PUBLICACIONES DEL CHEF: sus platos en cualquier estado (BORRADOR, PUBLICADO,
   // AGOTADO, PAUSADO), con la forma de PlatoResponse. Vive en App porque lo LEE MisPublicaciones
   // y lo ESCRIBE PublicarPlato (y las acciones de la lista): vistas hermanas que solo pueden
-  // hablar con el padre común. Es el mismo razonamiento que el estado pedidos.
+  // hablar con el padre común. Es el mismo razonamiento que el estado del carrito.
   // MOCK: son siempre las del chef de prueba. En el paso 13 se piden al backend.
   const [misPlatos, setMisPlatos] = useState(MIS_PLATOS_EJEMPLO)
 
@@ -449,12 +365,10 @@ function App() {
       })
   }
 
-  // Registra un pedido que el backend ya creó (paso 12.4b). Checkout la llama con el OrderResponse que
-  // devolvió POST /carrito/checkout. Sumamos el pedido a la lista (sin volver a pedirla) y dejamos vacía
-  // la copia local de la cesta: el backend ya vació la suya al hacer el checkout.
-  // (La lista de pedidos sigue siendo de ejemplo hasta el 12.5, donde se pide con GET /orders.)
-  const pedidoCreado = (pedido) => {
-    setPedidos((actuales) => [pedido, ...actuales])
+  // Se llama cuando Checkout ya creó el pedido en el backend (POST /carrito/checkout). El backend ya
+  // vació la cesta del servidor, así que dejamos vacía la copia local. El pedido nuevo lo pide
+  // MisPedidos con GET /orders cuando se abre esa vista.
+  const pedidoCreado = () => {
     setCarrito((actual) => calcularCarrito(actual.id, []))
     setAviso('Pedido confirmado')
   }
@@ -563,25 +477,6 @@ function App() {
     setAviso('Cerraste sesión')
   }
 
-  // Cancela un pedido: lo pasa a CANCELADO (y a todos sus subpedidos) y avisa con un Toast.
-  // MisPedidos la llama cuando el cliente confirma el diálogo. Solo se cancelan los PENDIENTE.
-  // SIMULADA (paso 11b.8): en el paso 12 esto es PATCH /orders/{id}/cancelar, y el backend repone el stock.
-  // map devuelve un array NUEVO; solo reemplazamos el pedido que cambió.
-  const cancelarPedido = (pedidoId) => {
-    setPedidos(
-      pedidos.map((pedido) =>
-        pedido.id === pedidoId && pedido.estado === 'PENDIENTE'
-          ? {
-              ...pedido,
-              estado: 'CANCELADO',
-              subPedidos: pedido.subPedidos.map((subPedido) => ({ ...subPedido, estado: 'CANCELADO' })),
-            }
-          : pedido
-      )
-    )
-    setAviso(`Cancelaste el pedido n.º ${pedidoId}`)
-  }
-
   // ACCIONES DEL CHEF sobre sus publicaciones. MisPublicaciones las llama; App cambia el estado
   // misPlatos y avisa con un Toast. SIMULADAS (paso 11b.10b): en el paso 13 cada una es una
   // llamada a la API (la mayoría es PUT /platos/{id}, que reemplaza el plato entero).
@@ -680,12 +575,11 @@ function App() {
   // tiene reseñas) NO se borra, queda PAUSADO; si no, se borra de verdad. El mensaje es el mismo
   // en los dos casos porque la API no avisa cuál de las dos pasó.
   const eliminarPlato = (platoId) => {
-    const tienePedidos = pedidos.some((pedido) =>
-      pedido.subPedidos.some((subPedido) => subPedido.detalles.some((detalle) => detalle.platoId === platoId))
-    )
+    // TODO(paso 13): con la API real esto es DELETE /platos/{id} y el backend decide si borra o pausa.
+    // Mientras tanto la simulación solo mira las reseñas (los pedidos ahora son del backend).
     const tieneResenas = RESENAS_EJEMPLO.some((resena) => resena.platoId === platoId)
 
-    if (tienePedidos || tieneResenas) {
+    if (tieneResenas) {
       actualizarPlato(platoId, { estado: 'PAUSADO' })
     } else {
       setMisPlatos(misPlatos.filter((plato) => plato.id !== platoId))
@@ -698,7 +592,7 @@ function App() {
 
   return (
     <BrowserRouter>
-      {/* El carrito y los pedidos bajan por props desde acá (flujo unidireccional): los datos hacia
+      {/* El carrito baja por props desde acá (flujo unidireccional): los datos hacia
           abajo y las funciones on... para que los hijos avisen hacia arriba. */}
       <AppContent
         cartCount={cantidadTotal}
@@ -709,8 +603,6 @@ function App() {
         onClear={vaciar}
         onSesionVencida={sesionVencida}
         onPedidoCreado={pedidoCreado}
-        pedidos={pedidos}
-        onCancelOrder={cancelarPedido}
         misPlatos={misPlatos}
         onStockChange={ajustarStock}
         onTogglePause={pausarOReactivar}
