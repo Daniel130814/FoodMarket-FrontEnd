@@ -133,7 +133,7 @@ const calcularCarrito = (id, items) => {
 //    y la función para cerrarla; se reenvían al Header.
 //    AppContent además usa sesion para proteger las rutas (RutaProtegida) y para decidir si se puede agregar al carrito.
 //  - onAviso: función (texto) para mostrar un Toast; AppContent la usa cuando un rol no puede comprar.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onConfirmOrder, pedidos, onCancelOrder, misPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onLogin, sesion, cargandoSesion, onLogout, onAviso }) {
+function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, onConfirmOrder, pedidos, onCancelOrder, misPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onSavePlato, onLogin, sesion, cargandoSesion, onLogout, onAviso }) {
   const location = useLocation()
 
   // useNavigate devuelve una función para cambiar de ruta desde el código. Se puede usar acá
@@ -200,6 +200,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
                   cartCount={cartCount}
                   onQuantityChange={onQuantityChange}
                   onRemove={onRemove}
+                  onClear={onClear}
                 />
               </RutaProtegida>
             }
@@ -401,6 +402,37 @@ function App() {
         // La forma con función evita usar un "carrito" viejo si cambió mientras esperábamos la respuesta.
         setCarrito((actual) => calcularCarrito(actual.id, actual.items.filter((item) => item.id !== itemId)))
       )
+      .catch((fallo) => {
+        // 401: el token ya no sirve, cerramos la sesión.
+        if (fallo.status === 401) {
+          setSesion(null)
+          localStorage.removeItem(CLAVE_TOKEN)
+        }
+        setAviso(fallo.message)
+      })
+  }
+
+  // Vacía la cesta (paso 12.3e). Es una ESCRITURA (DELETE /carrito), va en el handler.
+  // Responde data: null, así que tras confirmar el éxito dejamos la cesta vacía en el estado local.
+  // No es lo mismo que cerrar sesión: el logout NO toca el servidor, solo limpia la copia local.
+  const vaciar = () => {
+    fetch(`${API_URL}/carrito`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${sesion.token}` }, // ruta privada
+    })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+        })
+      )
+      .then(() => {
+        setCarrito((actual) => calcularCarrito(actual.id, []))
+        setAviso('Vaciaste tu cesta')
+      })
       .catch((fallo) => {
         // 401: el token ya no sirve, cerramos la sesión.
         if (fallo.status === 401) {
@@ -692,6 +724,7 @@ function App() {
         onAdd={agregar}
         onQuantityChange={cambiarCantidad}
         onRemove={quitar}
+        onClear={vaciar}
         onConfirmOrder={confirmarPedido}
         pedidos={pedidos}
         onCancelOrder={cancelarPedido}
