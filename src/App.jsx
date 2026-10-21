@@ -304,56 +304,42 @@ function App() {
   // Estado del aviso (Toast): el texto a mostrar, o null si no hay aviso.
   const [aviso, setAviso] = useState(null)
 
-  // Agrega un plato al carrito. Si el plato YA está, SUMA la cantidad (no la reemplaza).
-  // Recibe el plato completo, tal como lo devolvió la API (GET /platos), porque la cesta de ejemplo
-  // necesita guardar de él el stock y el chef. TEMPORAL: cuando la cesta sea real (12.3) esto es
-  // POST /carrito/items { platoId, cantidad } y el backend valida el stock (400 "no tiene stock suficiente").
+  // Agrega un plato a la cesta (paso 12.3b). Si el plato YA está, el backend SUMA la cantidad.
+  // Es una ESCRITURA (POST), por eso va en el handler y nunca en un efecto.
+  // Recibe el plato (tal como lo devolvió GET /platos) y la cantidad. Ya no validamos stock ni estado
+  // acá: lo hace el backend y responde 400 con un mensaje ("no tiene stock suficiente", etc.).
   const agregar = (plato, cantidad) => {
-    // Regla del TPO: un plato agotado (o no publicado) no se agrega.
-    if (plato.estado !== 'PUBLICADO') {
-      setAviso(`${plato.nombre} está agotado hoy`)
-      return
-    }
-
-    const existente = carrito.items.find((item) => item.platoId === plato.id)
-    // La cantidad total del ítem (lo que ya había + lo nuevo) no puede superar el stock.
-    const cantidadTotal = (existente === undefined ? 0 : existente.cantidad) + cantidad
-    if (cantidadTotal > plato.stockDisponible) {
-      setAviso(`No hay stock suficiente de ${plato.nombre}: quedan ${plato.stockDisponible}`)
-      return
-    }
-
-    // map devuelve un array NUEVO; solo reemplazamos el ítem que cambió (React necesita
-    // arrays y objetos nuevos para detectar el cambio de estado).
-    const itemsNuevos =
-      existente !== undefined
-        ? carrito.items.map((item) =>
-            // También actualizamos el stock guardado: el plato puede haber cambiado desde la última vez.
-            item.platoId === plato.id ? { ...item, cantidad: cantidadTotal, stockDisponible: plato.stockDisponible } : item
-          )
-        : [
-            ...carrito.items,
-            {
-              // id del ítem: el siguiente al más grande que haya (el backend real lo asigna solo)
-              id: carrito.items.reduce((mayor, item) => Math.max(mayor, item.id), 0) + 1,
-              platoId: plato.id,
-              nombrePlato: plato.nombre,
-              cantidad,
-              precioBase: plato.precio,
-              descuentoPorcentaje: plato.descuentoPorcentaje,
-              precioUnitarioActual: plato.precioConDescuento,
-              subtotalEstimado: 0, // lo completa calcularCarrito
-              // TEMPORAL (hasta 12.3): la API no manda estos datos en los ítems del carrito, así que
-              // la cesta de ejemplo los guarda cuando se agrega el plato.
-              // TODO(backend): stockDisponible y chefNombre en los ítems del carrito.
-              stockDisponible: plato.stockDisponible,
-              chefId: plato.chefId,
-              chefNombre: plato.chefNombre,
-            },
-          ]
-
-    setCarrito(calcularCarrito(carrito.id, itemsNuevos))
-    setAviso(`Agregaste ${plato.nombre} a tu carrito`)
+    fetch(`${API_URL}/carrito/items`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sesion.token}`, // ruta privada
+      },
+      body: JSON.stringify({ platoId: plato.id, cantidad }),
+    })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.data
+        })
+      )
+      // La respuesta es la cesta COMPLETA ya actualizada: la guardamos tal cual, sin volver a pedirla.
+      .then((carritoServidor) => {
+        setCarrito(carritoServidor)
+        setAviso(`Agregaste ${plato.nombre} a tu carrito`)
+      })
+      .catch((fallo) => {
+        // 401: el token ya no sirve, cerramos la sesión.
+        if (fallo.status === 401) {
+          setSesion(null)
+          localStorage.removeItem(CLAVE_TOKEN)
+        }
+        setAviso(fallo.message)
+      })
   }
 
   // Cambia la cantidad de un ítem: la REEMPLAZA (no suma). Recibe el id del ÍTEM, no del plato.
