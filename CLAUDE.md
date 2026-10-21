@@ -299,7 +299,13 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
   - [x] 12.4 Checkout con domicilio → pedido (`GET /domicilios`, `POST createDomicilio`, `POST /carrito/checkout`).
   - [x] 12.5 Mis pedidos reales + cancelar (`GET /orders`, `PATCH /orders/{id}/cancelar`).
 - [x] **13** Vistas del chef conectadas: Mis publicaciones, Publicar/editar (fotos como URLs, categorías e ingredientes desde los catálogos), eliminar, stock y descuento. Hecho con las limitaciones del backend: sin "mis platos" (la lista sale de `GET /platos` filtrado por `chefId`, así que los `BORRADOR` y `PAUSADO` no se recuperan tras recargar) y sin `PATCH` de stock ni de estado (se usa `PUT` con el plato completo).
-- [ ] **14** Extras, en este orden si sobra tiempo: administración mínima (listar usuarios y crear con rol; la API todavía no cambia roles), reseñas, pagos, pedidos recibidos del chef, perfil del chef, hero con render 3D.
+- [ ] **14** Flujo completo de compra y extras (en curso). Para que un pedido salga de PENDIENTE hacen falta el pago del cliente, la aprobación de un ADMIN y que el chef avance el subpedido:
+  - [x] 14a Pagos del cliente (`POST /pagos/createPago`, `GET /pagos`) en Mis pedidos.
+  - [x] 14b Administración en `/admin`: pagos (aprobar, rechazar, reembolsar) y usuarios (listar y crear con rol; la API todavía no cambia roles). Incluye el componente `FormField`.
+  - [ ] 14c Pedidos recibidos del chef (`GET /subpedidos/chef/{userId}`, `PATCH /subpedidos/{id}/estado`).
+  - [ ] 14d Reseñas del cliente (`POST /resenas/createResena`) en pedidos entregados.
+  - [ ] 14e Perfil del chef en Inicio (`GET /chef-profiles`) y borrar `src/data/`.
+  - [ ] 14f Hero con render 3D (último, solo si sobra tiempo).
 
 **`TODO(backend)` que quedan:** "mis platos" del chef en todos los estados; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; que `DELETE /platos/{id}` informe si borró o pausó; perfil del chef (la sección de chefs de Inicio usa `src/data/chefsEjemplo.jsx`, el único dato de ejemplo que queda: borrar `src/data/` cuando exista la API).
 
