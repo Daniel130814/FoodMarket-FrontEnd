@@ -6,8 +6,8 @@ import Button from './Button'
 //  - dish: el plato a mostrar, con la forma de PlatoResponse de la API
 //    { id, nombre, descripcion, imagenesUrls, precio, descuentoPorcentaje, precioConDescuento,
 //      stockDisponible, estado, chefNombre, ... }
-//  - onAdd: función (platoId, cantidad) que viene del padre. La tarjeta no sabe qué pasa al
-//    agregar (stock, aviso): solo avisa "quiero agregar este plato".
+//  - onAdd: función (plato, cantidad) que viene del padre. La tarjeta no sabe qué pasa al
+//    agregar (stock, aviso): solo avisa "quiero agregar este plato" y le pasa el plato entero.
 function PlatoCard({ dish, onAdd }) {
   // Desestructuración: sacamos del plato solo los campos que usa la tarjeta.
   const { id, nombre, descripcion, imagenesUrls, precio, descuentoPorcentaje, precioConDescuento, stockDisponible, estado, chefNombre } = dish
@@ -25,16 +25,27 @@ function PlatoCard({ dish, onAdd }) {
         to={`/plato/${id}`}
         className="dish__media relative block aspect-[4/3] overflow-hidden rounded-lg sm:aspect-[4/5] bg-surface-container"
       >
-        <img src={imagenesUrls[0]} alt={nombre} className="h-full w-full object-cover" />
+        {/* Renderizado condicional: la API puede devolver un plato sin imágenes. En ese caso
+            mostramos un ícono en lugar de una imagen rota. */}
+        {imagenesUrls.length > 0 ? (
+          <img src={imagenesUrls[0]} alt={nombre} className="h-full w-full object-cover" />
+        ) : (
+          <span className="grid h-full w-full place-items-center text-on-surface-variant" aria-hidden="true">
+            <span className="material-symbols-outlined text-[48px]">restaurant</span>
+          </span>
+        )}
         {state === 'soldout' && (
           <span className="badge badge-dark absolute left-3 top-3">Agotado</span>
         )}
       </Link>
       <div className="mt-4 flex flex-1 flex-col gap-2">
-        <div className="flex items-center justify-between gap-3">
-          {/* TODO(backend): chefNombre en los platos (hoy solo existe en los datos de ejemplo) */}
-          <span className="truncate text-label-md text-on-surface-variant">{chefNombre}</span>
-        </div>
+        {/* TODO(backend): chefNombre en los platos. La API todavía solo trae chefId, así que si no
+            viene el nombre no dibujamos nada. */}
+        {chefNombre !== undefined && (
+          <div className="flex items-center justify-between gap-3">
+            <span className="truncate text-label-md text-on-surface-variant">{chefNombre}</span>
+          </div>
+        )}
         <h3 className="dish__title font-display text-title-md text-primary">
           <Link to={`/plato/${id}`}>{nombre}</Link>
         </h3>
@@ -53,7 +64,7 @@ function PlatoCard({ dish, onAdd }) {
             {state === 'low' && <p className="text-label-sm">Quedan {stockDisponible} hoy</p>}
             {state === 'soldout' && <p className="text-label-sm">Agotado hoy</p>}
           </div>
-          <Button disabled={state === 'soldout'} onClick={() => onAdd(id, 1)}>Agregar</Button>
+          <Button disabled={state === 'soldout'} onClick={() => onAdd(dish, 1)}>Agregar</Button>
         </div>
       </div>
     </article>

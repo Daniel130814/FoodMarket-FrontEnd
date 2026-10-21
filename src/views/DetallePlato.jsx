@@ -13,7 +13,7 @@ import PLATOS_EJEMPLO from '../data/platosEjemplo'
 import RESENAS_EJEMPLO from '../data/resenasEjemplo'
 
 // Props:
-//  - onAdd: función (platoId, cantidad) que viene de App. La vista solo avisa "quiero agregar
+//  - onAdd: función (plato, cantidad) que viene de App. La vista solo avisa "quiero agregar
 //    esto"; App decide si se puede (stock) y muestra el aviso. Así la vista no sabe de reglas.
 function DetallePlato({ onAdd }) {
   // useParams es un hook de react-router: devuelve un objeto con los parámetros
@@ -142,11 +142,11 @@ function DetallePlato({ onAdd }) {
         )}
 
         {/* Sin stock el botón queda deshabilitado. Al tocarlo, llamamos a onAdd (la función del
-            padre) con el id del plato y la cantidad elegida. */}
+            padre) con el plato y la cantidad elegida. */}
         <div className="mt-6">
           <Button
             disabled={agotado}
-            onClick={() => onAdd(plato.id, cantidad)}
+            onClick={() => onAdd(plato, cantidad)}
           >
             {agotado ? 'Agotado' : `Agregar a la cesta · ${formatear(total)}`}
           </Button>

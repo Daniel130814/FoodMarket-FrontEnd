@@ -8,7 +8,6 @@ import EmptyState from '../components/EmptyState'
 import Alert from '../components/Alert'
 import LoadingState from '../components/LoadingState'
 import ErrorState from '../components/ErrorState'
-import PLATOS_EJEMPLO from '../data/platosEjemplo'
 
 // Costo de envío fijo de ejemplo (el mismo valor que en la Cesta). La API todavía no lo calcula.
 const ENVIO = 3200
@@ -164,17 +163,15 @@ function Checkout({ carrito, cartCount, onConfirm }) {
     // La regla de la profe pide .map() para recorrer (nunca forEach), así que lo hacemos en 2 pasos:
     //  1) .map() convierte CADA ítem en un mensaje de conflicto, o en null si está todo bien.
     //  2) .filter() descarta los null y deja solo los conflictos reales.
-    // El ítem del carrito no trae el stock (la API no lo manda), así que lo consultamos por platoId.
+    // TEMPORAL: la API no manda el stock en los ítems del carrito, así que cada ítem lo guardó
+    // cuando se agregó (item.stockDisponible). Cuando la cesta sea real (12.3) esto desaparece.
     const mensajes = items
       .map((item) => {
-        const actual = PLATOS_EJEMPLO.find((p) => p.id === item.platoId)
-        const disponible = actual === undefined ? 0 : actual.stockDisponible
-
-        if (disponible === 0) {
+        if (item.stockDisponible === 0) {
           return `${item.nombrePlato} se agotó.`
         }
-        if (item.cantidad > disponible) {
-          return `De ${item.nombrePlato} quedan ${disponible} y pediste ${item.cantidad}.`
+        if (item.cantidad > item.stockDisponible) {
+          return `De ${item.nombrePlato} quedan ${item.stockDisponible} y pediste ${item.cantidad}.`
         }
         // Sin conflicto: devolvemos null para que el filter lo saque
         return null

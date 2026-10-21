@@ -51,12 +51,13 @@ const crearDetalle = (id, platoId, cantidad) => {
 
 // Arma un subPedido de un chef. Su subtotal es la suma de los subtotales de sus detalles
 // (reduce acumula un resultado recorriendo el array).
-const crearSubPedido = (id, chefId, estado, detalles) => {
-  const platoDelChef = PLATOS_EJEMPLO.find((p) => p.chefId === chefId)
+// chefNombre es opcional: si no se pasa, se busca en los platos de ejemplo (los pedidos de ejemplo).
+// Los pedidos nuevos lo pasan explícito, porque sus platos son reales y no están en PLATOS_EJEMPLO.
+const crearSubPedido = (id, chefId, estado, detalles, chefNombre = PLATOS_EJEMPLO.find((p) => p.chefId === chefId).chefNombre) => {
   return {
     id,
     chefId,
-    chefNombre: platoDelChef.chefNombre,
+    chefNombre,
     estado,
     subtotal: detalles.reduce((acumulado, detalle) => acumulado + detalle.subtotal, 0),
     detalles,
@@ -103,10 +104,6 @@ const PEDIDOS_EJEMPLO = [
   ]),
 ]
 
-// Devuelve el id del chef dueño del plato de un ítem del carrito. El ítem no lo trae (la API no
-// manda el chef en los ítems), así que lo buscamos en los platos por platoId.
-const chefIdDelItem = (item) => PLATOS_EJEMPLO.find((plato) => plato.id === item.platoId).chefId
-
 // Recalcula el carrito completo a partir de sus ítems. Es la ÚNICA función que calcula
 // subtotales y total: así nunca quedan desincronizados (en producción lo calcula el backend).
 // Recibe el id del carrito y la lista de ítems; devuelve un carrito NUEVO { id, items, totalEstimado }.
@@ -126,7 +123,7 @@ const calcularCarrito = (id, items) => {
 //    Eso es "prop drilling": pasar un dato por un componente intermedio hasta quien lo necesita.
 //  - carrito, onQuantityChange, onRemove: también solo se reenvían, a Carrito (y carrito a Checkout).
 //  - onConfirmOrder: función (domicilioId) para confirmar el pedido; se reenvía a Checkout.
-//  - onAdd: función (platoId, cantidad) para agregar al carrito; se reenvía a Inicio, Catalogo (que se la pasan a PlatoCard) y DetallePlato.
+//  - onAdd: función (plato, cantidad) para agregar al carrito; se reenvía a Inicio, Catalogo (que se la pasan a PlatoCard) y DetallePlato.
 //  - pedidos / onCancelOrder: la lista de pedidos y la función (pedidoId) para cancelar uno; se reenvían a MisPedidos.
 //  - misPlatos y onStockChange / onTogglePause / onDiscount / onDeleteDish: las publicaciones del chef y
 //    las acciones sobre ellas; se reenvían a MisPublicaciones (misPlatos también a PublicarPlato).
@@ -156,7 +153,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
   //  - Sin sesión: lo mandamos a ingresar (y después vuelve a esta misma página).
   //  - CHEF o ADMIN: no pueden comprar, avisamos con un Toast.
   //  - CLIENTE: agregamos de verdad (onAdd valida el stock).
-  const agregarSegunSesion = (platoId, cantidad) => {
+  const agregarSegunSesion = (plato, cantidad) => {
     if (sesion === null) {
       // Mandamos la ruta actual como "state" para volver acá después de ingresar.
       navigate('/ingreso', { state: { from: location.pathname } })
@@ -166,7 +163,7 @@ function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onC
       onAviso('Solo los clientes pueden comprar')
       return
     }
-    onAdd(platoId, cantidad)
+    onAdd(plato, cantidad)
   }
 
   // Las vistas de autenticación ocupan toda la pantalla y traen su propio encabezado
@@ -308,23 +305,17 @@ function App() {
   const [aviso, setAviso] = useState(null)
 
   // Agrega un plato al carrito. Si el plato YA está, SUMA la cantidad (no la reemplaza).
-  // Recibe el id del plato (no el objeto): igual que la API, POST /carrito/items { platoId, cantidad }.
-  // TEMPORAL: en el mock validamos el stock contra PLATOS_EJEMPLO. En producción lo valida el
-  // backend (responde 400 "no tiene stock suficiente") y esta validación se elimina.
-  const agregar = (platoId, cantidad) => {
-    const plato = PLATOS_EJEMPLO.find((p) => p.id === platoId)
-
-    if (plato === undefined) {
-      setAviso('El plato no está disponible para agregar al carrito')
-      return
-    }
+  // Recibe el plato completo, tal como lo devolvió la API (GET /platos), porque la cesta de ejemplo
+  // necesita guardar de él el stock y el chef. TEMPORAL: cuando la cesta sea real (12.3) esto es
+  // POST /carrito/items { platoId, cantidad } y el backend valida el stock (400 "no tiene stock suficiente").
+  const agregar = (plato, cantidad) => {
     // Regla del TPO: un plato agotado (o no publicado) no se agrega.
     if (plato.estado !== 'PUBLICADO') {
       setAviso(`${plato.nombre} está agotado hoy`)
       return
     }
 
-    const existente = carrito.items.find((item) => item.platoId === platoId)
+    const existente = carrito.items.find((item) => item.platoId === plato.id)
     // La cantidad total del ítem (lo que ya había + lo nuevo) no puede superar el stock.
     const cantidadTotal = (existente === undefined ? 0 : existente.cantidad) + cantidad
     if (cantidadTotal > plato.stockDisponible) {
@@ -336,7 +327,10 @@ function App() {
     // arrays y objetos nuevos para detectar el cambio de estado).
     const itemsNuevos =
       existente !== undefined
-        ? carrito.items.map((item) => (item.platoId === platoId ? { ...item, cantidad: cantidadTotal } : item))
+        ? carrito.items.map((item) =>
+            // También actualizamos el stock guardado: el plato puede haber cambiado desde la última vez.
+            item.platoId === plato.id ? { ...item, cantidad: cantidadTotal, stockDisponible: plato.stockDisponible } : item
+          )
         : [
             ...carrito.items,
             {
@@ -349,6 +343,12 @@ function App() {
               descuentoPorcentaje: plato.descuentoPorcentaje,
               precioUnitarioActual: plato.precioConDescuento,
               subtotalEstimado: 0, // lo completa calcularCarrito
+              // TEMPORAL (hasta 12.3): la API no manda estos datos en los ítems del carrito, así que
+              // la cesta de ejemplo los guarda cuando se agrega el plato.
+              // TODO(backend): stockDisponible y chefNombre en los ítems del carrito.
+              stockDisponible: plato.stockDisponible,
+              chefId: plato.chefId,
+              chefNombre: plato.chefNombre,
             },
           ]
 
@@ -357,16 +357,15 @@ function App() {
   }
 
   // Cambia la cantidad de un ítem: la REEMPLAZA (no suma). Recibe el id del ÍTEM, no del plato.
-  // TEMPORAL: validamos el stock contra PLATOS_EJEMPLO; en producción lo valida el backend.
+  // TEMPORAL: validamos contra el stock que el ítem guardó al agregarse; en producción lo valida el backend.
   const cambiarCantidad = (itemId, cantidad) => {
     const item = carrito.items.find((i) => i.id === itemId)
-    const plato = PLATOS_EJEMPLO.find((p) => p.id === item.platoId)
 
     if (cantidad < 1) {
       return
     }
-    if (cantidad > plato.stockDisponible) {
-      setAviso(`De ${plato.nombre} quedan ${plato.stockDisponible} porciones`)
+    if (cantidad > item.stockDisponible) {
+      setAviso(`De ${item.nombrePlato} quedan ${item.stockDisponible} porciones`)
       return
     }
 
@@ -391,16 +390,24 @@ function App() {
     // map pasa cada ítem a su chefId, y filter se queda con la primera aparición de cada uno
     // (indexOf devuelve la primera posición donde está el valor).
     const chefIds = carrito.items
-      .map(chefIdDelItem)
+      .map((item) => item.chefId)
       .filter((chefId, posicion, todos) => todos.indexOf(chefId) === posicion)
 
     // Después, por cada chef, juntamos sus ítems y los pasamos a detalles del subpedido.
+    // Los datos salen del propio ítem de la cesta (los platos son reales, no de PLATOS_EJEMPLO).
     const subPedidos = chefIds.map((chefId, i) => {
-      const itemsDelChef = carrito.items.filter((item) => chefIdDelItem(item) === chefId)
-      const detalles = itemsDelChef.map((item, j) =>
-        crearDetalle(idPedido * 100 + i * 10 + j, item.platoId, item.cantidad)
-      )
-      return crearSubPedido(idPedido * 10 + i, chefId, 'PENDIENTE', detalles)
+      const itemsDelChef = carrito.items.filter((item) => item.chefId === chefId)
+      const detalles = itemsDelChef.map((item, j) => ({
+        id: idPedido * 100 + i * 10 + j,
+        platoId: item.platoId,
+        platoNombre: item.nombrePlato,
+        cantidad: item.cantidad,
+        precioUnitario: item.precioUnitarioActual,
+        subtotal: item.subtotalEstimado,
+      }))
+      // TODO(backend): la API no trae el nombre del chef; mientras tanto mostramos "Chef n.º <id>".
+      const chefNombre = itemsDelChef[0].chefNombre ?? `Chef n.º ${chefId}`
+      return crearSubPedido(idPedido * 10 + i, chefId, 'PENDIENTE', detalles, chefNombre)
     })
 
     // ISO sin zona horaria, como manda la API: '2026-10-19T14:30:00'
