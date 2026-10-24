@@ -4,8 +4,7 @@ import { Link } from 'react-router-dom'
 import FilterChips from '../components/FilterChips'
 import PublicationRow from '../components/PublicationRow'
 import Dialog from '../components/Dialog'
-import LoadingState from '../components/LoadingState'
-import ErrorState from '../components/ErrorState'
+import ContenidoAsync from '../components/ContenidoAsync'
 
 // Props:
 //  - platos: las publicaciones del chef, con la forma de PlatoResponse de la API. Vienen de App,
@@ -29,15 +28,6 @@ function MisPublicaciones({ platos, cargando, error, onStockChange, onTogglePaus
   const [platoDescuentoId, setPlatoDescuentoId] = useState(null)
   const [descuentoTexto, setDescuentoTexto] = useState('')
   const [errorDescuento, setErrorDescuento] = useState(null)
-
-  // Renderizado condicional: si estamos cargando o hubo un error, mostramos eso y cortamos acá.
-  // Los hooks (useState) siempre van ANTES de estos return.
-  if (cargando) {
-    return <LoadingState message="Cargando tus publicaciones..." />
-  }
-  if (error !== null) {
-    return <ErrorState message={error} />
-  }
 
   // Cuenta cuántos platos hay en un estado (para el número de cada chip).
   const contar = (estado) => platos.filter((plato) => plato.estado === estado).length
@@ -105,10 +95,14 @@ function MisPublicaciones({ platos, cargando, error, onStockChange, onTogglePaus
         <div className="hidden grid-cols-[88px_minmax(0,1fr)_150px_170px_auto] gap-x-6 border-b border-hairline pb-3 text-label-md text-on-surface-variant md:grid" aria-hidden="true">
           <span></span><span>Plato</span><span>Precio</span><span>Stock</span><span className="text-right">Acciones</span>
         </div>
-        {/* Renderizado condicional: si el filtro no tiene platos, lo decimos */}
-        {platosVisibles.length === 0 ? (
-          <p className="py-10 text-body-md text-on-surface-variant">No tenés platos en este estado.</p>
-        ) : (
+        {/* ContenidoAsync muestra la carga, el error, un aviso si el filtro no tiene platos, o la lista */}
+        <ContenidoAsync
+          cargando={cargando}
+          error={error}
+          vacio={platosVisibles.length === 0}
+          mensajeCarga="Cargando tus publicaciones..."
+          mensajeVacio="No tenés platos en este estado."
+        >
           <ul className="divide-hair">
             {/* map: una fila por plato. key = id del plato, único y estable */}
             {platosVisibles.map((plato) => (
@@ -122,7 +116,7 @@ function MisPublicaciones({ platos, cargando, error, onStockChange, onTogglePaus
               />
             ))}
           </ul>
-        )}
+        </ContenidoAsync>
       </section>
 
       {/* Diálogos controlados por estado: se abren cuando su id deja de ser null */}

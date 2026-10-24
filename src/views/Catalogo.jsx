@@ -7,8 +7,7 @@ import CategoryChips from '../components/CategoryChips'
 import Pagination from '../components/Pagination'
 import EmptyState from '../components/EmptyState'
 import Button from '../components/Button'
-import LoadingState from '../components/LoadingState'
-import ErrorState from '../components/ErrorState'
+import ContenidoAsync from '../components/ContenidoAsync'
 
 // URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
 const API_URL = import.meta.env.VITE_API_URL
@@ -252,33 +251,33 @@ function Catalogo({ onAdd }) {
 
       {/* Los filtros siempre se ven; lo que cambia es el contenido de la lista según el estado:
           cargando, error, sin resultados o platos. */}
-      {cargando ? (
-        <LoadingState message="Cargando el catálogo..." />
-      ) : error !== null ? (
-        <ErrorState message={error} />
-      ) : platos.length === 0 ? (
-        <EmptyState
-          title="No encontramos platos"
-          message="Probá con otro nombre, otra categoría o un rango de precios distinto."
-          actionLabel="Limpiar filtros"
-          onAction={limpiarFiltros}
-        />
-      ) : (
-        <>
-          <div className="mt-8 grid gap-x-6 gap-y-12 sm:grid-cols-2 xl:grid-cols-3">
-            {/* map: una tarjeta por plato. key = id del plato, único y estable */}
-            {platosVisibles.map((plato) => (
-              <PlatoCard key={plato.id} dish={plato} onAdd={onAdd} />
-            ))}
-          </div>
-          {/* "Ver más" suma una página: se muestran más platos de la misma lista */}
-          <Pagination
-            shown={platosVisibles.length}
-            total={platosOrdenados.length}
-            onMore={() => setPaginaActual(paginaActual + 1)}
+      <ContenidoAsync
+        cargando={cargando}
+        error={error}
+        vacio={platos.length === 0}
+        mensajeCarga="Cargando el catálogo..."
+        contenidoVacio={
+          <EmptyState
+            title="No encontramos platos"
+            message="Probá con otro nombre, otra categoría o un rango de precios distinto."
+            actionLabel="Limpiar filtros"
+            onAction={limpiarFiltros}
           />
-        </>
-      )}
+        }
+      >
+        <div className="mt-8 grid gap-x-6 gap-y-12 sm:grid-cols-2 xl:grid-cols-3">
+          {/* map: una tarjeta por plato. key = id del plato, único y estable */}
+          {platosVisibles.map((plato) => (
+            <PlatoCard key={plato.id} dish={plato} onAdd={onAdd} />
+          ))}
+        </div>
+        {/* "Ver más" suma una página: se muestran más platos de la misma lista */}
+        <Pagination
+          shown={platosVisibles.length}
+          total={platosOrdenados.length}
+          onMore={() => setPaginaActual(paginaActual + 1)}
+        />
+      </ContenidoAsync>
     </>
   )
 }
