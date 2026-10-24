@@ -96,6 +96,28 @@ function Inicio({ onAdd }) {
   // slice(0, 4) devuelve una copia con los primeros 4 platos (sin modificar la lista original).
   const platosDeHoy = platos.slice(0, 4)
 
+  // Función auxiliar: devuelve lo que va en la sección de chefs según el estado. Cada if con return
+  // corta en el primer caso que se cumple, así el JSX de abajo no necesita ternarios anidados.
+  const contenidoChefs = () => {
+    if (cargandoChefs) {
+      return <p className="mt-12 text-body-md text-on-surface-variant">Cargando los chefs...</p>
+    }
+    if (errorChefs) {
+      return <p className="hint hint--error mt-12">No pudimos cargar los chefs.</p>
+    }
+    if (chefs.length === 0) {
+      return <p className="mt-12 text-body-md text-on-surface-variant">Todavía no hay chefs con perfil.</p>
+    }
+    return (
+      <ul className="mt-12 divide-y divide-hairline md:grid md:grid-cols-3 md:divide-x md:divide-y-0">
+        {/* slice(0, 3): el diseño tiene 3 columnas. map: una tarjeta por perfil; key = id del perfil */}
+        {chefs.slice(0, 3).map((chef) => (
+          <ChefCard key={chef.id} chef={chef} />
+        ))}
+      </ul>
+    )
+  }
+
   return (
     <>
       {/* Portada: el texto a la izquierda y el hero con 3D a la derecha (en el celular, uno debajo del otro) */}
@@ -158,21 +180,8 @@ function Inicio({ onAdd }) {
         <p className="mt-2 max-w-xl text-body-md text-on-surface-variant">
           Talleres chicos, con nombre y apellido. Cada chef firma lo que cocina.
         </p>
-        {/* Renderizado condicional: la carga, el error, un aviso si no hay perfiles, o las tarjetas. */}
-        {cargandoChefs ? (
-          <p className="mt-12 text-body-md text-on-surface-variant">Cargando los chefs...</p>
-        ) : errorChefs ? (
-          <p className="hint hint--error mt-12">No pudimos cargar los chefs.</p>
-        ) : chefs.length === 0 ? (
-          <p className="mt-12 text-body-md text-on-surface-variant">Todavía no hay chefs con perfil.</p>
-        ) : (
-          <ul className="mt-12 divide-y divide-hairline md:grid md:grid-cols-3 md:divide-x md:divide-y-0">
-            {/* slice(0, 3): el diseño tiene 3 columnas. map: una tarjeta por perfil; key = id del perfil */}
-            {chefs.slice(0, 3).map((chef) => (
-              <ChefCard key={chef.id} chef={chef} />
-            ))}
-          </ul>
-        )}
+        {/* Se llama a la función auxiliar: devuelve la carga, el error, un aviso o las tarjetas. */}
+        {contenidoChefs()}
       </section>
     </>
   )
