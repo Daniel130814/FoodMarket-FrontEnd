@@ -48,7 +48,7 @@ Con DevTools en Network, repetí un par de acciones y señalá la lista de pedid
 1. **CHEF → Mis publicaciones:** ajustá el stock, pausá un plato, aplicale un descuento.
 2. **CHEF → Publicar un plato:** cargá nombre, precio, stock, categorías e ingredientes, y sumá una imagen **desde tu equipo** (campo "Imágenes desde tu equipo") o por URL. Elegí el estado "Publicado" y guardalo: en Network se ve `POST createPlato` → `POST /platos/{id}/imagenes` → `PUT`. Después abrí "Editar" y mostrá que la imagen se ve en la vista previa.
 3. **CHEF → Pedidos recibidos:** avanzá el estado de un subpedido.
-4. **Perfil (cualquier rol):** hacé clic en tu nombre del Header. Editá el nombre y guardá: el Header se actualiza solo. Probá un correo ya usado y mostrá el error junto al campo.
+4. **Perfil (cualquier rol):** hacé clic en tu nombre del Header. Editá el nombre y guardá: el Header se actualiza solo. Probá un correo ya usado y mostrá el error junto al campo. Más abajo, **Cambiar la contraseña**: probá una contraseña actual incorrecta (error junto al campo) y después un cambio exitoso (Toast, y la sesión sigue abierta).
 5. **ADMIN → `/admin`:** en **Pagos** aprobá el pago de un cliente. En **Usuarios** abrí "Ver y editar" y cambiá un nombre.
 
 ## Escena 6 — Backend apagado (1 min)

@@ -1,5 +1,6 @@
 // Vista del perfil (ruta /perfil, para los tres roles con sesión). Muestra los datos de la cuenta y deja
-// editar nombre, apellido y correo. Pide el usuario con GET /users/me y lo guarda con PUT /users/me.
+// editar nombre, apellido y correo, y cambiar la contraseña. Pide el usuario con GET /users/me y lo guarda
+// con PUT /users/me; la contraseña se cambia con PUT /users/me/password.
 import { useEffect, useState } from 'react'
 import ContenidoAsync from '../components/comunes/ContenidoAsync'
 import FormField from '../components/comunes/FormField'
@@ -51,8 +52,20 @@ const validar = (datos) => ({
   ...(!/\S+@\S+\.\S+/.test(datos.email.trim()) && { email: 'Escribí un correo válido.' }),
 })
 
+// Valida el formulario del cambio de contraseña con las reglas de CambioPasswordRequest (ENDPOINTS.md,
+// sección 3.2): la actual es obligatoria y la nueva tiene mínimo 8 caracteres. "repetir" no existe en la
+// API: lo pedimos nosotros para evitar un error de tipeo al escribir la contraseña nueva.
+const validarPassword = (datos) => ({
+  ...(datos.actual === '' && { actual: 'Escribí tu contraseña actual.' }),
+  ...(datos.nueva.length < 8 && { nueva: 'La contraseña nueva tiene que tener al menos 8 caracteres.' }),
+  ...(datos.nueva.length >= 8 && datos.repetir !== datos.nueva && { repetir: 'Las contraseñas no coinciden.' }),
+})
+
+// Formulario vacío del cambio de contraseña.
+const PASSWORD_VACIA = { actual: '', nueva: '', repetir: '' }
+
 // Props:
-//  - token: el JWT de la sesión, para GET y PUT /users/me (rutas privadas)
+//  - token: el JWT de la sesión, para GET y PUT /users/me y PUT /users/me/password (rutas privadas)
 //  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
 //  - onPerfilActualizado: función (usuario) de App. La vista hace el PUT y, cuando el backend responde bien,
 //    le entrega el usuario ya guardado para que App actualice el nombre del Header.
@@ -72,6 +85,13 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
   // ESTADOS del PUT: true mientras espera (evita doble envío) y el error general del backend.
   const [guardando, setGuardando] = useState(false)
   const [errorGuardar, setErrorGuardar] = useState(null)
+
+  // ESTADOS del cambio de contraseña: sus tres campos, un mensaje de error por campo, el error general del
+  // backend y si el PUT está en curso. Son independientes de los del formulario de datos de arriba.
+  const [formPassword, setFormPassword] = useState(PASSWORD_VACIA)
+  const [erroresPassword, setErroresPassword] = useState({})
+  const [errorPassword, setErrorPassword] = useState(null)
+  const [guardandoPassword, setGuardandoPassword] = useState(false)
 
   // GET /users/me al abrir la vista. Es privada: lleva el token. El resultado llena el usuario y el formulario.
   useEffect(() => {
@@ -153,6 +173,59 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
       .finally(() => setGuardando(false))
   }
 
+  // Un único handler para los tres inputs de la contraseña (event.target.name dice cuál cambió).
+  const handlePasswordChange = (event) => {
+    const { name, value } = event.target
+    setFormPassword({ ...formPassword, [name]: value })
+    if (erroresPassword[name]) {
+      setErroresPassword({ ...erroresPassword, [name]: null })
+    }
+  }
+
+  // Cambia la contraseña con PUT /users/me/password { actual, nueva }. Es una escritura: va en el handler
+  // del submit. La respuesta trae data: null (no hay nada que guardar en el estado), así que solo vaciamos
+  // los campos y avisamos. El token vigente sigue siendo válido: no hace falta volver a ingresar.
+  const handlePasswordSubmit = (event) => {
+    event.preventDefault()
+
+    const nuevosErrores = validarPassword(formPassword)
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErroresPassword(nuevosErrores)
+      return
+    }
+
+    setGuardandoPassword(true)
+    setErrorPassword(null)
+    fetch(`${API_URL}/users/me/password`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`, // ruta privada
+      },
+      body: JSON.stringify({ actual: formPassword.actual, nueva: formPassword.nueva }),
+    })
+      .then(leerRespuesta)
+      .then(() => {
+        setFormPassword(PASSWORD_VACIA)
+        setErroresPassword({})
+        onAviso('Cambiaste tu contraseña')
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        // 400: con la nueva ya validada, lo habitual es que la contraseña actual sea incorrecta: el mensaje
+        // del backend va junto a ese campo. El resto (red caída, 500) va en una alerta.
+        if (fallo.status === 400) {
+          setErroresPassword({ actual: fallo.message })
+          return
+        }
+        setErrorPassword(mensajeDe(fallo))
+      })
+      .finally(() => setGuardandoPassword(false))
+  }
+
   return (
     <>
       <h1 className="font-display text-display-lg-mobile text-primary lg:text-[52px] lg:leading-[56px]">Mi perfil</h1>
@@ -169,29 +242,46 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
         mensajeCarga="Cargando tu perfil..."
       >
         {usuario !== null && (
-          <form className="mt-10 max-w-xl space-y-6" onSubmit={handleSubmit} noValidate>
-            {/* Estos datos no se pueden editar (la API ignora el usuario y el rol en PUT /users/me) */}
-            <dl className="grid gap-4 rounded-xl bg-surface-container-lowest p-5 shadow-ambient sm:grid-cols-2">
-              <div>
-                <dt className="text-label-md text-on-surface-variant">Usuario</dt>
-                <dd className="text-body-md text-primary">@{usuario.username}</dd>
-              </div>
-              <div>
-                <dt className="text-label-md text-on-surface-variant">Rol</dt>
-                <dd className="text-body-md text-primary">{NOMBRES_ROL[usuario.role]}</dd>
-              </div>
-            </dl>
+          <>
+            <form className="mt-10 max-w-xl space-y-6" onSubmit={handleSubmit} noValidate>
+              {/* Estos datos no se pueden editar (la API ignora el usuario y el rol en PUT /users/me) */}
+              <dl className="grid gap-4 rounded-xl bg-surface-container-lowest p-5 shadow-ambient sm:grid-cols-2">
+                <div>
+                  <dt className="text-label-md text-on-surface-variant">Usuario</dt>
+                  <dd className="text-body-md text-primary">@{usuario.username}</dd>
+                </div>
+                <div>
+                  <dt className="text-label-md text-on-surface-variant">Rol</dt>
+                  <dd className="text-body-md text-primary">{NOMBRES_ROL[usuario.role]}</dd>
+                </div>
+              </dl>
 
-            {errorGuardar !== null && <Alert title="No pudimos guardar tus datos" messages={[errorGuardar]} />}
+              {errorGuardar !== null && <Alert title="No pudimos guardar tus datos" messages={[errorGuardar]} />}
 
-            <FormField label="Nombre" name="nombre" value={form.nombre} onChange={handleChange} error={errores.nombre} />
-            <FormField label="Apellido" name="apellido" value={form.apellido} onChange={handleChange} error={errores.apellido} />
-            <FormField label="Correo electrónico" name="email" type="email" value={form.email} onChange={handleChange} error={errores.email} />
+              <FormField label="Nombre" name="nombre" value={form.nombre} onChange={handleChange} error={errores.nombre} />
+              <FormField label="Apellido" name="apellido" value={form.apellido} onChange={handleChange} error={errores.apellido} />
+              <FormField label="Correo electrónico" name="email" type="email" value={form.email} onChange={handleChange} error={errores.email} />
 
-            <button type="submit" className="btn btn-primary" disabled={guardando}>
-              {guardando ? 'Guardando...' : 'Guardar cambios'}
-            </button>
-          </form>
+              <button type="submit" className="btn btn-primary" disabled={guardando}>
+                {guardando ? 'Guardando...' : 'Guardar cambios'}
+              </button>
+            </form>
+
+            {/* Cambio de contraseña: un formulario aparte, con su propio botón */}
+            <form className="mt-14 max-w-xl space-y-6" onSubmit={handlePasswordSubmit} noValidate>
+              <h2 className="font-display text-headline-md text-primary">Cambiar la contraseña</h2>
+
+              {errorPassword !== null && <Alert title="No pudimos cambiar la contraseña" messages={[errorPassword]} />}
+
+              <FormField label="Contraseña actual" name="actual" type="password" value={formPassword.actual} onChange={handlePasswordChange} error={erroresPassword.actual} autoComplete="current-password" />
+              <FormField label="Contraseña nueva" name="nueva" type="password" value={formPassword.nueva} onChange={handlePasswordChange} error={erroresPassword.nueva} autoComplete="new-password" />
+              <FormField label="Repetí la contraseña nueva" name="repetir" type="password" value={formPassword.repetir} onChange={handlePasswordChange} error={erroresPassword.repetir} autoComplete="new-password" />
+
+              <button type="submit" className="btn btn-primary" disabled={guardandoPassword}>
+                {guardandoPassword ? 'Cambiando...' : 'Cambiar contraseña'}
+              </button>
+            </form>
+          </>
         )}
       </ContenidoAsync>
     </>

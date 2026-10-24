@@ -23,7 +23,7 @@ La app tiene tres tipos de cuenta, cada uno con su propio recorrido:
 - **Chef:** publica, edita, pausa y elimina sus platos (con imágenes por URL o subidas desde su equipo), maneja su stock y sus descuentos, y avanza los pedidos que le tocan (Recibido, Cocinando, En camino, Entregado).
 - **Administrador:** aprueba o rechaza los pagos de los clientes, crea cuentas con el rol que quiera y edita el nombre, el apellido y el correo de cualquier usuario.
 
-Las tres cuentas pueden ver y editar sus propios datos en **Mi perfil** (haciendo clic en su nombre del Header).
+Las tres cuentas pueden ver y editar sus propios datos y cambiar su contraseña en **Mi perfil** (haciendo clic en su nombre del Header).
 
 Un pedido no sale de «Pendiente de confirmación» hasta que el cliente lo paga y un administrador aprueba ese pago; recién entonces el chef puede empezar a prepararlo.
 
@@ -97,7 +97,6 @@ Cosas que el front resuelve como puede mientras el backend no las ofrezca (está
 - Un administrador puede crear usuarios con cualquier rol, pero no cambiar el rol de uno existente.
 - No hay un administrador inicial: hay que cargarlo a mano en la base de datos.
 - Las imágenes subidas por archivo no se borran del disco del backend al quitarlas o eliminar el plato, y no hay límite de imágenes por plato.
-- La vista Mi perfil edita nombre, apellido y correo, pero todavía no tiene el cambio de contraseña (el backend ya lo ofrece).
 
 ## Integrantes del grupo
 
