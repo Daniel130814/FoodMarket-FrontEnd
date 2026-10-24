@@ -24,7 +24,7 @@
 ### 3.1 Estructura
 
 - Solo JavaScript (`.jsx`). Nada de TypeScript.
-- `src/` contiene **solo** `views/` y `components/`; `App.jsx` y `main.jsx` quedan afuera (más los `index.css`, `App.css` y `assets/` que ya existen). **Sin otras carpetas**: nada de `services/`, `hooks/`, `utils/`, `context/`.
+- `src/` contiene **solo** `views/` y `components/`; `App.jsx` y `main.jsx` quedan afuera (más los `index.css`, `App.css` y `assets/` que ya existen). **Sin otras carpetas** en `src/`: nada de `services/`, `hooks/`, `utils/`, `context/`. Dentro de `components/` sí hay subcarpetas por dominio (ver sección 8).
 - No tocar `index.html`. `main.jsx` solo se toca para envolver `<App />` con `<BrowserRouter>` (decisión #2, 24/10); `Routes` y `Route` van en `App.jsx`. Las fuentes se importan en `index.css`.
 - Front y back son dos repos. Nunca subir `node_modules` ni `.env`.
 - Una sola librería de estilos: **Tailwind v3**. No agregar otra.
@@ -284,7 +284,15 @@ export default RutaProtegida;
 | Admin (usuarios y pagos)            | `/admin`                     | ADMIN                |
 | PedidosRecibidos                    | `/pedidos-recibidos`         | CHEF                 |
 
-Componentes compartidos: `Header`, `Footer`, `Logo`, `Button`, `PlatoCard`, `SearchBar`, `CategoryChips`, `Pagination`, `Gallery`, `QuantityStepper` (controlado: el valor viene por props), `IngredientTrace`, `ReviewList`, `CartItem`, `OrderSummary`, `EmptyState`, `LoadingState`, `ErrorState`, `Toast`, `Dialog`, `FormField`, `RoleOption`, `Tabs`, `OrderCard`, `SubPedidoCard`, `OrderTrack`, `Hero3D`, `DomicilioPicker`, `DomicilioForm`, `PublicationRow`, `FilterChips`, `RutaProtegida`.
+Componentes compartidos, en subcarpetas de `src/components/` (imports como `../components/comunes/Button`):
+
+- `comunes/`: `Button`, `Dialog`, `Toast`, `FormField`, `EmptyState`, `LoadingState`, `ErrorState`, `ContenidoAsync` (resuelve cargando / error / vacío / datos con `children`), `Tabs`, `Pagination`, `Alert`.
+- `layout/`: `Header`, `Footer`, `Logo`, `Hero3D`.
+- `platos/`: `PlatoCard`, `Gallery`, `IngredientTrace`, `IngredientRows`, `ReviewList`, `CategoryChips`, `CategoryPicker`, `FilterChips`, `SearchBar`, `ChefCard`.
+- `cesta/`: `CartItem`, `QuantityStepper` (controlado: el valor viene por props), `OrderSummary`, `DomicilioPicker`, `DomicilioForm`.
+- `pedidos/`: `OrderCard`, `OrderTrack`, `SubPedidoCard`.
+- `chef/`: `PublicationRow`, `ImageUrlList`.
+- `auth/`: `RoleOption`, `RutaProtegida`.
 
 ## 9. Hoja de ruta
 
