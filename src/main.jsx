@@ -6,7 +6,9 @@ import App from './App.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter>
+    {/* useTransitions={false}: los cambios de ruta se aplican junto con el resto del estado. Sin esto, al
+        cerrar sesión desde una ruta privada, RutaProtegida redirigía a /ingreso antes de llegar a "/". */}
+    <BrowserRouter useTransitions={false}>
       <App />
     </BrowserRouter>
   </StrictMode>,
