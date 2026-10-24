@@ -294,7 +294,7 @@ Componentes compartidos, en subcarpetas de `src/components/` (imports como `../c
 - `platos/`: `PlatoCard`, `Gallery`, `IngredientTrace`, `IngredientRows`, `ReviewList`, `CategoryChips`, `CategoryPicker`, `FilterChips`, `SearchBar`, `ChefCard`.
 - `cesta/`: `CartItem`, `QuantityStepper` (controlado: el valor viene por props), `OrderSummary`, `DomicilioPicker`, `DomicilioForm`.
 - `pedidos/`: `OrderCard`, `OrderTrack`, `SubPedidoCard`.
-- `chef/`: `PublicationRow`, `ImageUrlList`.
+- `chef/`: `PublicationRow`, `ImageUrlList`, `ImageFilePicker`.
 - `auth/`: `RoleOption`, `RutaProtegida`.
 
 ## 9. Hoja de ruta
@@ -327,7 +327,7 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
   - [x] 6 Subcarpetas por dominio en `components/`.
   - [x] 7 Guion de demo (`GUION-DEMO.md`).
   - [x] 3.2 Estado del chef en `MisPublicaciones`: `PublicarPlato` pide su plato con `GET /platos/{id}` (3.2.a); `MisPublicaciones` tiene su lista (`GET /platos/mis-platos`), su catálogo de categorías y los handlers de stock, pausa, descuento y eliminar (3.2.b y 3.2.c, en un solo commit porque separados no funcionaban); `App` ya no guarda los platos (3.2.d). Los borradores y pausados sobreviven a la recarga. Pendiente de probar: el `DELETE` que responde "Plato pausado porque tiene historial".
-  - [ ] 8 Subida de imágenes multipart. **El backend ya lo tiene (24/10):** `POST /platos/{id}/imagenes`. Falta hacerlo en el front.
+  - [x] 8 Subida de imágenes multipart (`POST /platos/{id}/imagenes`): `ImageFilePicker` (nuevo, en `components/chef/`) y `PublicarPlato` guardan en tiempos: plato (JSON), cada archivo por `FormData` (uno por uno, sin `Content-Type` a mano) y un `PUT` final solo si se publica un plato cuyas únicas imágenes son archivos (el backend exige una para publicar). Si falla una subida después de crear el plato, pasa a `/publicar/{id}` para no duplicarlo. Probado con el backend real. Límite conocido: los archivos no se borran del disco del backend.
   - [ ] Extras que el backend ya habilitó: cambio de contraseña en `Perfil` (`PUT /users/me/password`), cambio de rol en el detalle de usuario de `Admin` (`PATCH /users/{userId}/role`) y mostrar el `message` del `DELETE /platos/{id}`.
 
 **`TODO(backend)` que quedan:** `PATCH` de stock y de estado del plato; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; nombre y taller del chef en `ChefProfileResponse` (la tarjeta de Inicio muestra solo especialidad, biografía, descripción, foto y reputación); `pedidoId`, fecha y cliente en los subpedidos; `clienteNombre` en las reseñas. (Ya resueltos el 24/10: "mis platos", `GET /platos/{id}` para el dueño, cambio de rol, cambio de contraseña, subida de imágenes y el `message` del `DELETE`.)

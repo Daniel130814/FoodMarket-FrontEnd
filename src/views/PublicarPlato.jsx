@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import ImageUrlList from '../components/chef/ImageUrlList'
+import ImageFilePicker from '../components/chef/ImageFilePicker'
 import CategoryPicker from '../components/platos/CategoryPicker'
 import IngredientRows from '../components/platos/IngredientRows'
 import EmptyState from '../components/comunes/EmptyState'
@@ -50,6 +51,53 @@ const pedirPlato = (platoId, token, signal) =>
     })
   )
 
+// Lee una respuesta del backend y devuelve lo que viene en "data". Si el servidor respondió con un error
+// lanza un Error con el "message" del backend y el código en "status" (fetch NO manda los errores HTTP al
+// .catch(): hay que mirar response.ok nosotros). Es una función común, no un hook.
+const leerRespuesta = (response) =>
+  response.json().then((cuerpo) => {
+    if (!response.ok) {
+      const fallo = new Error(cuerpo.message)
+      fallo.status = response.status
+      throw fallo
+    }
+    return cuerpo.data
+  })
+
+// Formatos y tamaño máximo que acepta el backend para las imágenes subidas (ENDPOINTS.md, sección 3.3).
+// El backend vuelve a validarlos: acá lo hacemos para avisar enseguida, antes de subir nada.
+const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/webp']
+const MAX_BYTES_IMAGEN = 5 * 1024 * 1024
+
+// true si el archivo (un File) tiene un formato permitido y no pasa los 5 MB. type y size son propiedades
+// del File: el tipo que declara el navegador y el tamaño en bytes.
+const esImagenValida = (archivo) => TIPOS_IMAGEN.includes(archivo.type) && archivo.size <= MAX_BYTES_IMAGEN
+
+// Sube UNA imagen a un plato: POST /platos/{id}/imagenes, multipart/form-data con el campo "file".
+// FormData es el objeto del navegador para armar un cuerpo multipart (como un formulario con archivos).
+// OJO: NO se escribe el header Content-Type: el navegador lo arma solo, con el "boundary" que separa las
+// partes. Si lo pusiéramos a mano, el backend no podría leer el archivo. Solo va el token.
+// Devuelve una promesa con el plato completo ya actualizado (con la URL nueva al final de imagenesUrls).
+const subirImagen = (platoId, archivo, token) => {
+  const cuerpo = new FormData()
+  cuerpo.append('file', archivo)
+  return fetch(`${API_URL}/platos/${platoId}/imagenes`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` }, // ruta privada (sin Content-Type, ver arriba)
+    body: cuerpo,
+  }).then(leerRespuesta)
+}
+
+// Sube varias imágenes UNA POR UNA, en orden: cada subida espera a que termine la anterior. No van en
+// paralelo porque el backend agrega cada URL a la lista del plato y dos subidas a la vez podrían pisarse.
+// reduce recorre el array y va encadenando las promesas; arranca con el plato recién guardado.
+// Devuelve una promesa con el plato tal como quedó después de la última subida.
+const subirImagenes = (plato, archivos, token) =>
+  archivos.reduce(
+    (cadena, archivo) => cadena.then((actual) => subirImagen(actual.id, archivo, token)),
+    Promise.resolve(plato)
+  )
+
 // Formulario vacío para un plato nuevo. Los números se guardan como TEXTO porque vienen de
 // inputs; se pasan a número al enviar. Un plato nuevo arranca como borrador, con un campo de imagen.
 const FORM_VACIO = {
@@ -88,8 +136,9 @@ const urlsLimpias = (urls) => urls.map((url) => url.trim()).filter((url) => url 
 
 // Valida el formulario con las reglas de PlatoRequest (ENDPOINTS.md, sección 3.3).
 // Devuelve un objeto con un mensaje por cada campo con error; vacío si todo está bien.
+// cantidadArchivos: cuántas imágenes se eligieron desde el equipo; cuentan como imágenes del plato.
 // Es una función común (no un hook): recibe datos y devuelve datos.
-const validar = (datos) => {
+const validar = (datos, cantidadArchivos) => {
   const ids = datos.ingredientes.map((fila) => fila.ingredienteId)
   const hayFilaIncompleta = datos.ingredientes.some((fila) => fila.ingredienteId === '' || !(Number(fila.cantidad) > 0))
   const hayIngredienteRepetido = ids.some((id, posicion) => id !== '' && ids.indexOf(id) !== posicion)
@@ -102,7 +151,7 @@ const validar = (datos) => {
     ...((datos.stockDisponible === '' || !Number.isInteger(Number(datos.stockDisponible)) || Number(datos.stockDisponible) < 0) && {
       stockDisponible: 'El stock tiene que ser un número entero, 0 o más.',
     }),
-    ...(datos.estado === 'PUBLICADO' && urlsLimpias(datos.imagenesUrls).length === 0 && {
+    ...(datos.estado === 'PUBLICADO' && urlsLimpias(datos.imagenesUrls).length + cantidadArchivos === 0 && {
       imagenesUrls: 'Un plato publicado debe tener al menos una imagen.',
     }),
     ...(hayFilaIncompleta && { ingredientes: 'Elegí el ingrediente y una cantidad mayor a 0 en cada fila.' }),
@@ -145,6 +194,9 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
 
   // ESTADO: un mensaje de error por campo (objeto vacío = sin errores).
   const [errores, setErrores] = useState({})
+
+  // ESTADO: los archivos de imagen que el chef eligió en su equipo (array de File). Se suben al guardar.
+  const [archivos, setArchivos] = useState([])
 
   // ESTADOS de los catálogos reales que el chef puede elegir (GET /categories y GET /ingredientes) y
   // de su carga. Arranca cargando.
@@ -252,6 +304,24 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
     setDatos({ ...datos, imagenesUrls: datos.imagenesUrls.filter((_, i) => i !== posicion) })
   }
 
+  // ---- Archivos de imagen: los válidos se suman a la lista; los que no (formato o tamaño) se rechazan y
+  // los nombramos en el error del campo, para que el chef sepa cuáles no entraron.
+  const elegirArchivos = (nuevos) => {
+    const rechazados = nuevos.filter((archivo) => !esImagenValida(archivo))
+    setArchivos([...archivos, ...nuevos.filter(esImagenValida)])
+    setErrores({
+      ...errores,
+      imagenesUrls: null,
+      archivos:
+        rechazados.length > 0
+          ? `No se agregó: ${rechazados.map((archivo) => archivo.name).join(', ')}. Solo JPG, PNG o WEBP de hasta 5 MB.`
+          : null,
+    })
+  }
+  const quitarArchivo = (posicion) => {
+    setArchivos(archivos.filter((_, i) => i !== posicion))
+  }
+
   // ---- Categorías: si el id ya estaba lo quitamos, si no lo agregamos.
   const alternarCategoria = (categoriaId) => {
     const nuevas = datos.categoriasIds.includes(categoriaId)
@@ -281,7 +351,7 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
   const handleSubmit = (event) => {
     event.preventDefault()
 
-    const nuevosErrores = validar(datos)
+    const nuevosErrores = validar(datos, archivos.length)
     if (Object.keys(nuevosErrores).length > 0) {
       setErrores(nuevosErrores)
       return
@@ -302,11 +372,19 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
       })),
     }
 
-    // Crear y editar comparten el fetch; cambian la URL y el método:
-    //  - crear:  POST /platos/createPlato   (paso 13b)
-    //  - editar: PUT  /platos/{id}          (paso 13c). El PUT REEMPLAZA el plato entero: por eso
-    //    platoRequest lleva siempre todos los campos (lo que no se manda se borra).
-    // Es una escritura: va dentro del handler del submit.
+    // El backend exige al menos una imagen para publicar. Si el chef quiere PUBLICAR y sus únicas imágenes
+    // son archivos (no hay URLs), el plato todavía no tiene ninguna al guardarlo: lo guardamos primero como
+    // BORRADOR, subimos los archivos y al final lo publicamos con un PUT. En los demás casos no hace falta.
+    const publicarSoloConArchivos =
+      datos.estado === 'PUBLICADO' && archivos.length > 0 && platoRequest.imagenesUrls.length === 0
+    const primerPedido = publicarSoloConArchivos ? { ...platoRequest, estado: 'BORRADOR' } : platoRequest
+
+    // Guardar es un proceso en TIEMPOS (todo dentro del handler, nunca en un efecto):
+    //  1. Crear (POST /platos/createPlato) o editar (PUT /platos/{id}) el plato con su JSON. El PUT
+    //     REEMPLAZA el plato entero: por eso el pedido lleva siempre todos los campos.
+    //  2. Subir los archivos elegidos, uno por uno (POST /platos/{id}/imagenes, multipart).
+    //  3. Solo si hacía falta (publicarSoloConArchivos): PUT final con el estado PUBLICADO y la lista
+    //     completa de imágenes, que es la que devolvió la última subida.
     setGuardando(true)
     setErrorGuardar(null)
     fetch(editando ? `${API_URL}/platos/${platoAEditar.id}` : `${API_URL}/platos/createPlato`, {
@@ -315,22 +393,34 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`, // ruta privada
       },
-      body: JSON.stringify(platoRequest),
+      body: JSON.stringify(primerPedido),
     })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
+      .then(leerRespuesta)
+      .then((guardado) =>
+        subirImagenes(guardado, archivos, token)
+          .then((conImagenes) =>
+            publicarSoloConArchivos
+              ? fetch(`${API_URL}/platos/${guardado.id}`, {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`, // ruta privada
+                  },
+                  body: JSON.stringify({ ...platoRequest, imagenesUrls: conImagenes.imagenesUrls }),
+                }).then(leerRespuesta)
+              : conImagenes
+          )
+          // Si falla un paso DESPUÉS de guardar el plato, marcamos el error con el id del plato: más abajo
+          // lo necesitamos para no crear un plato duplicado si el chef vuelve a intentar.
+          .catch((fallo) => {
+            fallo.platoId = guardado.id
             throw fallo
-          }
-          return cuerpo.data
-        })
+          })
       )
-      .then((guardado) => {
+      .then((resultado) => {
         // Avisamos y volvemos a la lista. Mis publicaciones se monta de nuevo y pide sus platos con
         // GET /platos/mis-platos: es el GET de una vista que se abre, no un re-GET después de escribir.
-        onAviso(editando ? `Guardaste los cambios de ${guardado.nombre}` : `Creaste ${guardado.nombre}`)
+        onAviso(editando ? `Guardaste los cambios de ${resultado.nombre}` : `Creaste ${resultado.nombre}`)
         navigate('/mis-publicaciones')
       })
       .catch((fallo) => {
@@ -338,7 +428,17 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
           onSesionVencida()
           return
         }
-        // 400 (validación), 403 (no es tu plato), 404: mostramos el mensaje del backend.
+        // El plato se creó pero falló la subida o la publicación: si nos quedáramos en /publicar, el
+        // siguiente "Guardar" lo crearía de nuevo. Pasamos a editarlo (/publicar/{id}) y avisamos qué pasó.
+        if (!editando && fallo.platoId !== undefined) {
+          onAviso(`Creamos el plato, pero no pudimos terminar de cargar las imágenes: ${mensajeDe(fallo)}`)
+          // Cambiar de /publicar a /publicar/:id NO desmonta la vista (es el mismo componente), así que el
+          // formulario conserva lo que escribió el chef y hay que volver a habilitar el botón Guardar.
+          setGuardando(false)
+          navigate(`/publicar/${fallo.platoId}`, { replace: true })
+          return
+        }
+        // 400 (validación, formato o tamaño de imagen), 403 (no es tu plato), 404: mensaje del backend.
         setErrorGuardar(mensajeDe(fallo))
         setGuardando(false)
       })
@@ -452,6 +552,14 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
           onAdd={agregarImagen}
           onRemove={quitarImagen}
           error={errores.imagenesUrls ?? null}
+        />
+
+        {/* Las imágenes también se pueden subir como archivos: se mandan al guardar el plato */}
+        <ImageFilePicker
+          archivos={archivos}
+          onSelect={elegirArchivos}
+          onRemove={quitarArchivo}
+          error={errores.archivos ?? null}
         />
 
         <CategoryPicker categories={categorias} selectedIds={datos.categoriasIds} onToggle={alternarCategoria} />

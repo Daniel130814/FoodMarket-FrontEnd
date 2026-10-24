@@ -46,7 +46,7 @@ Con DevTools en Network, repetí un par de acciones y señalá la lista de pedid
 ## Escena 5 — Vistas del CHEF y del ADMIN (4 min)
 
 1. **CHEF → Mis publicaciones:** ajustá el stock, pausá un plato, aplicale un descuento.
-2. **CHEF → Publicar un plato:** cargá nombre, precio, stock, imágenes por URL, categorías e ingredientes. Guardalo.
+2. **CHEF → Publicar un plato:** cargá nombre, precio, stock, categorías e ingredientes, y sumá una imagen **desde tu equipo** (campo "Imágenes desde tu equipo") o por URL. Elegí el estado "Publicado" y guardalo: en Network se ve `POST createPlato` → `POST /platos/{id}/imagenes` → `PUT`. Después abrí "Editar" y mostrá que la imagen se ve en la vista previa.
 3. **CHEF → Pedidos recibidos:** avanzá el estado de un subpedido.
 4. **Perfil (cualquier rol):** hacé clic en tu nombre del Header. Editá el nombre y guardá: el Header se actualiza solo. Probá un correo ya usado y mostrá el error junto al campo.
 5. **ADMIN → `/admin`:** en **Pagos** aprobá el pago de un cliente. En **Usuarios** abrí "Ver y editar" y cambiá un nombre.
@@ -90,12 +90,15 @@ No. `PublicarPlato` hace un solo `POST` y navega; `MisPublicaciones` se monta de
 **¿Por qué el estado del chef vive en `MisPublicaciones` y no en `App`?**
 Porque solo esa vista lo usa. `App` guarda lo compartido (sesión, cesta, aviso). Antes estaba en `App` porque el backend no devolvía borradores y esa memoria era la única fuente; con `GET /platos/mis-platos` la fuente es el backend.
 
+**¿Cómo suben las imágenes? ¿Por qué no mandan JSON?**
+Un archivo no viaja en JSON: se arma un `FormData` (cuerpo `multipart/form-data`) con el campo `file` y se manda con `fetch`. No se escribe el header `Content-Type` a mano porque el navegador lo arma solo con el `boundary` que separa las partes. El guardado es en tiempos, todo dentro del handler: primero el plato (JSON), después cada imagen una por una, y un `PUT` final solo si hay que publicar un plato cuyas únicas imágenes son archivos (el backend exige al menos una imagen para publicar). Si falla una subida, el plato ya existe y se pasa a editarlo para no duplicarlo.
+
 **¿Por qué las carpetas dentro de `components/`?**
 Para ordenar 37 componentes por dominio (`comunes`, `layout`, `platos`, `cesta`, `pedidos`, `chef`, `auth`). La regla prohíbe carpetas nuevas en `src/`, no dentro de `components/`.
 
 ## Límites conocidos (decirlos antes de que pregunten)
 
-- **Imágenes solo por URL:** el backend no tiene subida de archivos. La subida multipart está en el plan, pero depende de un endpoint que todavía no existe.
+- **Las imágenes subidas por archivo no se borran del disco del backend:** si se quita una o se elimina el plato, el archivo queda huérfano. Tampoco hay límite de imágenes por plato. Es del backend y está anotado en su contrato.
 - **Cambio de contraseña:** no hay endpoint, así que la vista Perfil edita nombre, apellido y correo.
 - **Un ADMIN no puede cambiar el rol de un usuario existente:** la API ignora el rol en `PUT /users/{id}`.
 - **Sesión en `localStorage`:** es transitorio; la 3.ª entrega lo reemplaza con Redux.

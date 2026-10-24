@@ -1,5 +1,6 @@
 // Lista de campos de URL de imágenes, con vista previa y botones para agregar y quitar.
-// Se usa en views/PublicarPlato. Reemplaza al PhotoUploader de archivos: la API solo acepta URLs.
+// Se usa en views/PublicarPlato, junto a ImageFilePicker: la API acepta imágenes como URLs de texto y,
+// desde el 24/10, también como archivos subidos.
 // Componente "tonto": las URLs y las funciones vienen del padre.
 
 // Props:
