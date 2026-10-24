@@ -119,7 +119,8 @@ Mientras no responda, se usa el comportamiento por defecto. Cada decisión tiene
 - Usuario duplicado = HTTP 400 (no 409). Reseña duplicada, estados inválidos y stock en conflicto = 409.
 - Las fechas son ISO sin zona (`2026-10-19T14:30:00`); los importes son números.
 - No hay paginación ni orden. Filtros de `GET /platos`: `nombre`, `categoriaId`, `precioMin`, `precioMax`.
-- Las imágenes son **solo URLs** (`imagenesUrls: string[]`); no hay subida de archivos.
+- Las imágenes son URLs (`imagenesUrls: string[]`). Desde el 24/10 también se pueden subir por archivo con `POST /platos/{id}/imagenes` (multipart, campo `file`); el backend devuelve el plato con la URL absoluta nueva.
+- Nuevos desde el 24/10 (ver `ENDPOINTS.md`): `GET /platos/mis-platos` (CHEF, todos los estados), `GET /platos/{id}` visible para el dueño aunque esté en `BORRADOR`/`PAUSADO`, `PUT /users/me/password`, `PATCH /users/{userId}/role` (ADMIN) y mensajes distintos en `DELETE /platos/{id}` ("Plato eliminado" / "Plato pausado porque tiene historial").
 - Estados de pedido y subpedido: `PENDIENTE`, `CONFIRMADO`, `EN_PREPARACION`, `ENVIADO`, `ENTREGADO`, `CANCELADO`. Mapeo del seguimiento: `PENDIENTE` = "Pendiente de confirmación", `CONFIRMADO` = Recibido, `EN_PREPARACION` = Cocinando, `ENVIADO` = En camino, `ENTREGADO` = Entregado. "Cancelar" solo si el estado es `PENDIENTE`.
 - Estados de plato: `BORRADOR`, `PUBLICADO`, `AGOTADO`, `PAUSADO` (`AGOTADO` lo calcula el backend). `DELETE /platos/{id}` borra o **pausa** si tiene historial.
 - Unidades de medida: `GRAMOS` = g, `KILOGRAMOS` = kg, `MILILITROS` = ml, `LITROS` = l, `UNIDAD` = u.
@@ -139,9 +140,9 @@ Mientras no responda, se usa el comportamiento por defecto. Cada decisión tiene
 
 - CORS para `http://localhost:5173` (sin eso el navegador bloquea todo).
 - Datos semilla de categorías e ingredientes; un ADMIN inicial.
-- Listar "mis platos" del chef en todos los estados, `GET /platos/{id}` visible para el dueño aunque esté en borrador o pausado, y `PATCH` de stock y de estado.
+- ~~Listar "mis platos" del chef en todos los estados y `GET /platos/{id}` visible para el dueño~~ (**ya está, 24/10**). Sigue pendiente el `PATCH` de stock y de estado.
 - `chefNombre` en los platos y en el perfil del chef; `imagenUrl`, `stockDisponible` y `chefNombre` en los ítems del carrito; `clienteNombre` en las reseñas.
-- Que `DELETE /platos/{id}` informe si el plato quedó borrado o pausado.
+- ~~Que `DELETE /platos/{id}` informe si el plato quedó borrado o pausado~~ (**ya está**: lo dice el `message`).
 
 ## 6. Plantillas de código aprobadas
 
@@ -325,10 +326,11 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
   - [x] 5 Detalle y edición de usuario en `Admin` (`GET` y `PUT /users/{id}`) con `Dialog`.
   - [x] 6 Subcarpetas por dominio en `components/`.
   - [x] 7 Guion de demo (`GUION-DEMO.md`).
-  - [ ] 3.2 Bajar el estado del chef (`misPlatos` y sus handlers) a `MisPublicaciones`. **Pendiente del backend:** necesita "mis platos" y `GET /platos/{id}` para el dueño en todos los estados; sin eso, borradores y pausados desaparecerían al navegar.
-  - [ ] 8 Subida de imágenes multipart. **Pendiente del backend:** necesita un endpoint que reciba `MultipartFile`.
+  - [ ] 3.2 Bajar el estado del chef (`misPlatos` y sus handlers) a `MisPublicaciones`. **El backend ya lo permite (24/10):** `GET /platos/mis-platos` y `GET /platos/{id}` para el dueño. Falta hacerlo en el front.
+  - [ ] 8 Subida de imágenes multipart. **El backend ya lo tiene (24/10):** `POST /platos/{id}/imagenes`. Falta hacerlo en el front.
+  - [ ] Extras que el backend ya habilitó: cambio de contraseña en `Perfil` (`PUT /users/me/password`), cambio de rol en el detalle de usuario de `Admin` (`PATCH /users/{userId}/role`) y mostrar el `message` del `DELETE /platos/{id}`.
 
-**`TODO(backend)` que quedan:** "mis platos" del chef en todos los estados; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; que `DELETE /platos/{id}` informe si borró o pausó; nombre y taller del chef en `ChefProfileResponse` (la tarjeta de Inicio muestra solo especialidad, biografía, descripción, foto y reputación); `pedidoId`, fecha y cliente en los subpedidos; `clienteNombre` en las reseñas; que un ADMIN pueda cambiar el rol de un usuario; cambio de contraseña (`PUT /users/me/password` o similar); subida de imágenes por archivo (paso 8).
+**`TODO(backend)` que quedan:** `PATCH` de stock y de estado del plato; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; nombre y taller del chef en `ChefProfileResponse` (la tarjeta de Inicio muestra solo especialidad, biografía, descripción, foto y reputación); `pedidoId`, fecha y cliente en los subpedidos; `clienteNombre` en las reseñas. (Ya resueltos el 24/10: "mis platos", `GET /platos/{id}` para el dueño, cambio de rol, cambio de contraseña, subida de imágenes y el `message` del `DELETE`.)
 
 ## 10. Antes de dar un paso por terminado
 

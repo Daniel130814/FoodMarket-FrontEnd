@@ -106,9 +106,11 @@ Errores: 400 validación; 400 `"El usuario que se intenta agregar ya existe"` (u
 | ------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
 | `/api/v1/auth/**`                                                                          | Público                                                  |
 | `GET /platos/**`, `/chef-profiles/**`, `/resenas/**`, `/categories/**`, `/ingredientes/**` | Público                                                  |
-| `/users/me` (GET, PUT)                                                                     | Cualquier usuario con token                              |
-| `/users/**` (resto)                                                                        | ADMIN                                                    |
-| `POST /platos/**`                                                                          | CHEF                                                     |
+| `GET /platos/mis-platos`                                                                   | CHEF (se evalúa ANTES de la regla pública `GET /platos/**`) |
+| `GET /imagenes/**`                                                                         | Público                                                  |
+| `/users/me` (GET, PUT), `PUT /users/me/password`                                           | Cualquier usuario con token                              |
+| `/users/**` (resto, incluye `PATCH /users/{userId}/role`)                                  | ADMIN                                                    |
+| `POST /platos/**` (incluye `POST /platos/{platoId}/imagenes`)                              | CHEF                                                     |
 | `PUT/PATCH/DELETE /platos/**`                                                              | CHEF o ADMIN (+ ownership en el servicio)                |
 | `POST /chef-profiles/**`                                                                   | CHEF                                                     |
 | `PUT /chef-profiles/**`                                                                    | CHEF o ADMIN (+ ownership)                               |
@@ -145,6 +147,12 @@ Ver sección 2.
 | `GET /users/{userId}`    | ADMIN  | 404 si no existe                                         |
 | `POST /users/createUser` | ADMIN  | Crea usuario con cualquier rol (incluido ADMIN). 201     |
 | `PUT /users/{userId}`    | ADMIN  | Edita nombre, apellido, email (no el rol ni el username) |
+| `PUT /users/me/password` | 🔑     | Cambia la contraseña propia (nuevo, 24/10)               |
+| `PATCH /users/{userId}/role` | ADMIN | Cambia el rol de un usuario existente (nuevo, 24/10) |
+
+**`PUT /users/me/password`** — body `{ "actual": string, "nueva": string (mínimo 8) }`. `200` con `message: "Contraseña actualizada correctamente"` y `data: null`; el token vigente sigue siendo válido. `400` si `actual` es incorrecta (`"La contraseña actual es incorrecta"`) o la validación falla (`nueva` corta, campos en blanco). `401` sin token.
+
+**`PATCH /users/{userId}/role`** — body `{ "role": "CLIENTE" | "CHEF" | "ADMIN" }` (obligatorio). `200` con `UserResponse` (`message: "Rol del usuario actualizado correctamente"`). El rol reemplaza al anterior; el mismo JWT usa el rol nuevo en la siguiente solicitud (las authorities se recargan en cada pedido). Repetir el rol actual da `200` sin cambios. Errores: `400` falta `role` o es desconocido, o un ADMIN intenta quitarse su propio rol de ADMIN; `403` si el solicitante no es ADMIN; `404` el usuario no existe; `409` si se saca el rol CHEF a alguien con platos `PUBLICADO`/`AGOTADO` o subpedidos `PENDIENTE`/`CONFIRMADO`/`EN_PREPARACION`/`ENVIADO` (`"No se puede quitar el rol CHEF mientras tenga platos publicados o agotados, o subpedidos sin terminar"`).
 
 **Respuesta `UserResponse`:**
 
@@ -168,8 +176,10 @@ Ver sección 2.
 | Método y ruta                        | Acceso             |
 | ------------------------------------ | ------------------ |
 | `GET /platos`                        | 🌐                 |
-| `GET /platos/{platoId}`              | 🌐                 |
+| `GET /platos/{platoId}`              | 🌐 (token opcional; ver abajo) |
+| `GET /platos/mis-platos`             | CHEF (nuevo, 24/10) |
 | `POST /platos/createPlato`           | CHEF               |
+| `POST /platos/{platoId}/imagenes`    | CHEF dueño (nuevo, 24/10) |
 | `PUT /platos/{platoId}`              | CHEF dueño o ADMIN |
 | `DELETE /platos/{platoId}`           | CHEF dueño o ADMIN |
 | `PATCH /platos/{platoId}/descuento`  | CHEF dueño o ADMIN |
@@ -177,10 +187,18 @@ Ver sección 2.
 
 **`GET /platos`** — query params (todos opcionales): `nombre` (string, búsqueda; el trim se aplica; semántica exacta de coincidencia —parcial/exacta— **NO CONFIRMADO**, está en una `@Query` del repositorio), `categoriaId` (Long; 404 si no existe), `precioMin`, `precioMax` (decimales). Validaciones (400): precios negativos, `precioMin > precioMax`. Sin ordenamiento ni paginación.
 
-- **Solo devuelve platos en estado `PUBLICADO` o `AGOTADO`.** Los `BORRADOR` y `PAUSADO` no aparecen para nadie (ni para el chef dueño).
+- **Solo devuelve platos en estado `PUBLICADO` o `AGOTADO`.** Los `BORRADOR` y `PAUSADO` no aparecen acá (para verlos, el chef usa `GET /platos/mis-platos`).
 - Respuesta: `200`, `data` = array de `PlatoResponse` (o `null` si no hay).
 
-**`GET /platos/{platoId}`** — `200` con `PlatoResponse`; 404 si no existe **o si está en BORRADOR/PAUSADO**.
+**`GET /platos/mis-platos`** (CHEF, nuevo) — los platos del chef autenticado en **todos** los estados (`BORRADOR`, `PUBLICADO`, `AGOTADO`, `PAUSADO`), el más nuevo primero. `200` con `data: PlatoResponse[]` (`message: "Platos obtenidos correctamente"`) o `data: null` si no tiene ninguno (`message: "No tenés platos cargados"`). `401` sin token, `403` si no es CHEF. Verificado contra el backend real (24/10).
+
+**`GET /platos/{platoId}`** — ruta pública con token opcional. `PUBLICADO`/`AGOTADO`: `200` para cualquiera. `BORRADOR`/`PAUSADO`: `200` solo con el token del **chef dueño** o de un **ADMIN**; sin token, con otro chef o con un cliente es `404 "El plato indicado no existe"`. Un token inválido o vencido sigue dando `401`, incluso en esta ruta pública. `404` también si no existe.
+
+**`POST /platos/{platoId}/imagenes`** (CHEF dueño, nuevo) — `multipart/form-data` con el campo **`file`** (`image/jpeg`, `image/png` o `image/webp`; se valida también la firma real del archivo; máximo 5 MB). `201` con el `PlatoResponse` completo y la URL nueva **absoluta** (por ejemplo `http://localhost:4002/imagenes/<uuid>.png`) agregada al final de `imagenesUrls`. Errores: `400` formato no permitido, contenido que no coincide, archivo de más de 5 MB, archivo vacío o falta el campo `file`; `401` sin token; `403` si no es CHEF o no es el dueño (un ADMIN tampoco puede subir); `404` si el plato no existe. Orden de los chequeos: 404 → 403 → 400. El front **no** debe mandar `Content-Type` a mano (el navegador arma el `boundary` del multipart). El `PUT /platos/{id}` **reemplaza** `imagenesUrls` completo: al editar un plato con imágenes subidas hay que reenviar esas URLs o se pierden. Un plato `PUBLICADO`/`AGOTADO` exige al menos una imagen, un `BORRADOR` no. No hay límite de imágenes por plato y `PUT`/`DELETE` no borran los archivos del disco.
+
+**`GET /imagenes/{nombre}`** (público, nuevo) — devuelve el archivo (no JSON) con su `Content-Type` real (`image/jpeg|png|webp`) y `Cache-Control` de 30 días; se usa directo en `<img src>`. `404` en JSON si no existe.
+
+**`DELETE /platos/{platoId}`** — `200` con `data: null` y un `message` que ahora dice qué pasó: `"Plato eliminado"` (se borró) o `"Plato pausado porque tiene historial"` (quedó `PAUSADO`).
 
 **`PlatoResponse`:**
 
@@ -544,12 +562,11 @@ Los DTOs de request están detallados en cada endpoint. El `password` nunca se d
 
 ## 5. Imágenes
 
-- **No existe subida de archivos**: no hay endpoints multipart, ni base64, ni almacenamiento en disco, ni endpoint/handler estático para servir imágenes (búsqueda de `multipart`/`MultipartFile` sin resultados).
-- Las imágenes de un plato son **solo URLs de texto** (`imagenesUrls: string[]`, orden preservado), que el front manda en `POST/PUT /platos`. Se guardan en la tabla `plato_imagenes` (columna `imagen_url`). El host real de la imagen (Cloudinary, imgur, etc.) es responsabilidad del front/equipo.
+- **Subida de archivos (nuevo, 24/10):** `POST /platos/{platoId}/imagenes` (multipart, campo `file`) guarda la imagen en disco y devuelve el plato con su URL absoluta; `GET /imagenes/{nombre}` la sirve. Ver sección 3.3. El host de las URLs sale de `PUBLIC_BASE_URL` (por defecto `http://localhost:4002`) y la carpeta de `IMAGENES_DIR` (por defecto `uploads/imagenes`); en un despliegue hay que configurarlas y usar un volumen persistente.
+- Las imágenes de un plato siguen pudiendo ser **URLs de texto** (`imagenesUrls: string[]`, orden preservado), que el front manda en `POST/PUT /platos`. Se guardan en la tabla `plato_imagenes` (columna `imagen_url`). Las URLs de imágenes subidas por archivo se guardan en la misma lista.
 - Foto de perfil del chef: igual, `fotoUrl` string en `ChefProfile`.
 - Límites de tamaño/cantidad o validación de formato de URL: **NO EXISTEN** (solo `@NotBlank` por elemento). Longitud máxima de cada URL = default de columna (255 caracteres, NO CONFIRMADO; es el default de JPA para `String`).
 - Un plato `PUBLICADO` exige al menos 1 URL.
-- Los endpoints de imágenes subidas (`multipart`) habría que agregarlos si se necesitan.
 
 ---
 
@@ -559,7 +576,7 @@ Los DTOs de request están detallados en cada endpoint. El `password` nunca se d
 | -------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Registro de comprador / vendedor       | **Implementado**               | `POST /api/v1/auth/register` con `tipoCuenta` `CLIENTE` o `CHEF`                                                                                                                                                                    |
 | Login con JWT                          | **Implementado**               | `POST /api/v1/auth/authenticate`                                                                                                                                                                                                    |
-| Asignación de permisos/roles por admin | **Parcial / casi inexistente** | No hay endpoint para cambiar el rol de un usuario existente (`PUT /users/{id}` ignora el rol). Un ADMIN solo puede crear usuarios nuevos con rol (`POST /users/createUser`). No hay ADMIN inicial: hay que cargarlo a mano en la BD |
+| Asignación de permisos/roles por admin | **Implementado (24/10)**       | `PATCH /users/{userId}/role` cambia el rol de un usuario existente (`PUT /users/{id}` sigue ignorando el rol). También `POST /users/createUser` crea usuarios con rol. No hay ADMIN inicial: hay que cargarlo a mano en la BD |
 | Gestión de stock                       | **Parcial**                    | `stockDisponible` se setea en `POST/PUT /platos`; se descuenta al crear pedido/checkout y se repone al cancelar; el estado cambia solo `PUBLICADO`↔`AGOTADO`. No hay endpoint dedicado de ajuste de stock                           |
 | Eliminación de productos               | **Implementado**               | `DELETE /platos/{id}`: borra, o pasa a `PAUSADO` si tiene historial/carrito                                                                                                                                                         |
 | Descuentos por producto                | **Implementado**               | `PATCH/DELETE /platos/{id}/descuento` (porcentaje 0–99.99)                                                                                                                                                                          |
@@ -575,9 +592,9 @@ Los DTOs de request están detallados en cada endpoint. El `password` nunca se d
 
 1. **CORS: NO EXISTE** → bloqueo desde `localhost:5173` (ver sección 1).
 2. **Swagger/OpenAPI: NO EXISTE.**
-3. **Subida de imágenes: NO EXISTE** (solo URLs).
+3. **Subida de imágenes: EXISTE desde el 24/10** (`POST /platos/{platoId}/imagenes`, ver 3.3); las URLs de texto siguen funcionando.
 4. **Paginación, ordenamiento y búsqueda avanzada: NO EXISTEN** (solo filtros `nombre`, `categoriaId`, `precioMin`, `precioMax` en `GET /platos`).
-5. **Listar "mis platos" del chef / ver borradores y pausados: NO EXISTE.** `GET /platos` y `GET /platos/{id}` solo muestran `PUBLICADO`/`AGOTADO`; el chef no puede recuperar sus propios `BORRADOR`/`PAUSADO` (ni filtrar por `chefId`). Tampoco hay forma de reactivar un plato pausado conociendo solo su id desde el front, salvo que el front lo guarde.
+5. **"Mis platos" del chef: EXISTE desde el 24/10** (`GET /platos/mis-platos`, todos los estados), y `GET /platos/{id}` devuelve al dueño (o a un ADMIN) sus `BORRADOR`/`PAUSADO`. `GET /platos` sigue mostrando solo `PUBLICADO`/`AGOTADO`.
 6. **Aprobación de pago solo por ADMIN**: no hay forma de que el flujo cliente→pago→confirmación se complete sin intervención de un admin.
 7. **No hay endpoint "mi perfil de chef"** ni "mis subpedidos" sin conocer el `chefId` (usar `GET /subpedidos/chef/{userId propio}`).
 8. **`data: null` en listas vacías** (no `[]`).
