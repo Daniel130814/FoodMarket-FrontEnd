@@ -83,7 +83,10 @@ function Header({ cartCount, sesion, onLogout }) {
             </>
           ) : (
             <div className="flex items-center gap-2">
-              <span className="hidden max-w-[10rem] truncate text-label-md text-primary sm:inline">{sesion.nombre}</span>
+              {/* El nombre es un enlace al perfil */}
+              <Link to="/perfil" className="hidden max-w-[10rem] truncate text-label-md text-primary hover:underline sm:inline" title="Mi perfil">
+                {sesion.nombre}
+              </Link>
               <button type="button" className="btn btn-quiet btn-sm" onClick={onLogout}>Salir</button>
             </div>
           )}
@@ -170,6 +173,13 @@ function Header({ cartCount, sesion, onLogout }) {
             ) : (
               <>
                 <p className="px-3 py-2 text-label-md text-on-surface-variant">Hola, {sesion.nombre}</p>
+                <NavLink
+                  to="/perfil"
+                  className="nav-link block !py-3"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Mi perfil
+                </NavLink>
                 <button
                   type="button"
                   className="nav-link block !py-3 text-left"

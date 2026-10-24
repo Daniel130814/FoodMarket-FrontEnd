@@ -18,6 +18,7 @@ import Ingreso from './views/Ingreso'
 import Registro from './views/Registro'
 import Admin from './views/Admin'
 import PedidosRecibidos from './views/PedidosRecibidos'
+import Perfil from './views/Perfil'
 import NoEncontrado from './views/NoEncontrado'
 
 // URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
@@ -370,6 +371,12 @@ function App() {
     setSesion(nuevaSesion)
     localStorage.setItem(CLAVE_TOKEN, nuevaSesion.token)
     setAviso(`Ingresaste como ${nuevaSesion.nombre}`)
+  }
+
+  // Se llama cuando Perfil ya guardó los cambios en el backend (PUT /users/me). Actualizamos solo el nombre
+  // de la sesión (es lo que muestra el Header); el token, el userId y el rol no cambian.
+  const perfilActualizado = (usuario) => {
+    setSesion((actual) => ({ ...actual, nombre: usuario.nombre }))
   }
 
   // Cierra la sesión. Hay que limpiar TODO lo que pertenece al usuario que se va:
@@ -725,6 +732,21 @@ function App() {
               element={
                 <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['ADMIN']}>
                   <Admin token={sesion?.token} onSesionVencida={sesionVencida} onAviso={setAviso} />
+                </RutaProtegida>
+              }
+            />
+
+            {/* Perfil (paso 4): lo puede ver cualquier usuario con sesión, sea cual sea su rol */}
+            <Route
+              path="/perfil"
+              element={
+                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE', 'CHEF', 'ADMIN']}>
+                  <Perfil
+                    token={sesion?.token}
+                    onSesionVencida={sesionVencida}
+                    onPerfilActualizado={perfilActualizado}
+                    onAviso={setAviso}
+                  />
                 </RutaProtegida>
               }
             />
