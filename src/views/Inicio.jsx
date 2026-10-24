@@ -6,8 +6,7 @@ import PlatoCard from '../components/PlatoCard'
 import CategoryChips from '../components/CategoryChips'
 import ChefCard from '../components/ChefCard'
 import Hero3D from '../components/Hero3D'
-import LoadingState from '../components/LoadingState'
-import ErrorState from '../components/ErrorState'
+import ContenidoAsync from '../components/ContenidoAsync'
 
 // URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
 const API_URL = import.meta.env.VITE_API_URL
@@ -134,22 +133,22 @@ function Inicio({ onAdd }) {
           </div>
           <Link to="/catalogo" className="link text-label-lg">Ver todos los platos</Link>
         </div>
-        {/* Renderizado condicional: según el estado mostramos la carga, el error, un aviso si no hay
-            platos, o las tarjetas. */}
-        {cargando ? (
-          <LoadingState message="Cargando los platos de hoy..." />
-        ) : error !== null ? (
-          <ErrorState message={error} />
-        ) : platosDeHoy.length === 0 ? (
-          <p className="mt-10 text-body-md text-on-surface-variant">Todavía no hay platos publicados.</p>
-        ) : (
+        {/* ContenidoAsync decide qué mostrar según el estado: la carga, el error, un aviso si no hay
+            platos, o (si hay datos) lo que va entre sus etiquetas, o sea las tarjetas. */}
+        <ContenidoAsync
+          cargando={cargando}
+          error={error}
+          vacio={platosDeHoy.length === 0}
+          mensajeCarga="Cargando los platos de hoy..."
+          mensajeVacio="Todavía no hay platos publicados."
+        >
           <div className="mt-10 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
             {/* map: una tarjeta por plato. key = id del plato, único y estable */}
             {platosDeHoy.map((plato) => (
               <PlatoCard key={plato.id} dish={plato} onAdd={onAdd} />
             ))}
           </div>
-        )}
+        </ContenidoAsync>
       </section>
 
       {/* TODO(backend): el perfil de chef no trae el nombre de la persona ni su taller (GET /chef-profiles
