@@ -2,7 +2,8 @@
 //  - Pagos: el ADMIN aprueba o rechaza los pagos que crean los clientes (en la API no hay pasarela: lo
 //    hace una persona). Al aprobar un pago, el backend pasa el pedido y sus subpedidos a CONFIRMADO y los
 //    chefs pueden avanzarlos.
-//  - Usuarios: lista las cuentas y crea cuentas nuevas con cualquier rol (CLIENTE, CHEF o ADMIN).
+//  - Usuarios: lista las cuentas, crea cuentas nuevas con cualquier rol (CLIENTE, CHEF o ADMIN) y abre el
+//    detalle de cada una (GET /users/{id}) para editar su nombre, apellido y correo (PUT /users/{id}).
 import { useEffect, useState } from 'react'
 import Tabs from '../components/Tabs'
 import Dialog from '../components/Dialog'
@@ -76,8 +77,9 @@ const FORM_VACIO = { username: '', nombre: '', apellido: '', email: '', password
 // GET de una ruta PRIVADA: lleva el token. Devuelve una promesa con el "data" de la respuesta (las
 // listas vacías llegan como null, por eso el ?? []) o lanza un Error con el message del backend y el
 // status HTTP. Es una función común (no un hook): recibe datos y devuelve una promesa.
-const pedirPrivado = (ruta, token) =>
-  fetch(`${API_URL}${ruta}`, { headers: { Authorization: `Bearer ${token}` } }).then((response) =>
+// signal es opcional: la señal de un AbortController, para poder cancelar el pedido (ver el efecto del detalle).
+const pedirPrivado = (ruta, token, signal) =>
+  fetch(`${API_URL}${ruta}`, { headers: { Authorization: `Bearer ${token}` }, signal }).then((response) =>
     response.json().then((cuerpo) => {
       if (!response.ok) {
         const fallo = new Error(cuerpo.message)
@@ -99,6 +101,14 @@ const validar = (datos) => ({
   ...(datos.apellido.trim() === '' && { apellido: 'Escribí el apellido.' }),
   ...(!/\S+@\S+\.\S+/.test(datos.email.trim()) && { email: 'Escribí un correo válido.' }),
   ...(datos.password.length < 8 && { password: 'La contraseña tiene que tener al menos 8 caracteres.' }),
+})
+
+// Valida el formulario de edición con las reglas de UserUpdateRequest (ENDPOINTS.md, sección 3.2): nombre,
+// apellido y correo obligatorios. No se editan el usuario, la contraseña ni el rol (la API los ignora).
+const validarEdicion = (datos) => ({
+  ...(datos.nombre.trim() === '' && { nombre: 'Escribí el nombre.' }),
+  ...(datos.apellido.trim() === '' && { apellido: 'Escribí el apellido.' }),
+  ...(!/\S+@\S+\.\S+/.test(datos.email.trim()) && { email: 'Escribí un correo válido.' }),
 })
 
 // Importe en pesos con separadores argentinos, igual que en el resto de la app.
@@ -133,6 +143,20 @@ function Admin({ token, onSesionVencida, onAviso }) {
   // "estado" es el estado NUEVO que va a tener el pago.
   const [accion, setAccion] = useState(null)
 
+  // ESTADOS del diálogo de detalle de un usuario: el id del usuario abierto (null = cerrado), el usuario que
+  // devuelve GET /users/{id}, si se está pidiendo y si falló.
+  const [usuarioAbiertoId, setUsuarioAbiertoId] = useState(null)
+  const [detalle, setDetalle] = useState(null)
+  const [cargandoDetalle, setCargandoDetalle] = useState(false)
+  const [errorDetalle, setErrorDetalle] = useState(null)
+
+  // ESTADOS del formulario de edición de ese usuario: sus campos, un mensaje de error por campo, el error
+  // general del backend y si el PUT está en curso (evita el doble envío).
+  const [formEdicion, setFormEdicion] = useState({ nombre: '', apellido: '', email: '' })
+  const [erroresEdicion, setErroresEdicion] = useState({})
+  const [errorGuardarEdicion, setErrorGuardarEdicion] = useState(null)
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false)
+
   // GET /pagos y GET /users al abrir la vista. Rutas privadas: llevan el token. Promise.all espera a que
   // lleguen LOS DOS y entrega los resultados juntos (mismo orden). Dependencias [token]: no se repite
   // mientras no cambie la sesión.
@@ -155,6 +179,43 @@ function Admin({ token, onSesionVencida, onAviso }) {
     // y el GET se repetiría sin parar). Se resuelve con useCallback cuando se vea en clase.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
+
+  // GET /users/{id} cuando se abre el detalle de un usuario. Es un GET: va en un efecto, con
+  // [usuarioAbiertoId, token] como dependencias, así corre cada vez que se elige otro usuario. El efecto
+  // modifica "detalle", no "usuarioAbiertoId", por eso no hay bucle. Si el id es null (diálogo cerrado) no hace nada.
+  useEffect(() => {
+    if (usuarioAbiertoId === null) {
+      return
+    }
+
+    // AbortController cancela el pedido si se cierra el diálogo o se elige otro usuario antes de que responda
+    // (así una respuesta vieja nunca pisa los datos del usuario nuevo). La función que devuelve el efecto
+    // es la limpieza: React la ejecuta antes de volver a correrlo o al salir de la vista.
+    const controlador = new AbortController()
+
+    pedirPrivado(`/users/${usuarioAbiertoId}`, token, controlador.signal)
+      .then((data) => {
+        setDetalle(data)
+        setFormEdicion({ nombre: data.nombre, apellido: data.apellido, email: data.email })
+        setCargandoDetalle(false)
+      })
+      .catch((fallo) => {
+        // Un pedido cancelado por nosotros (AbortError) no es un error.
+        if (fallo.name === 'AbortError') {
+          return
+        }
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        setErrorDetalle(mensajeDe(fallo))
+        setCargandoDetalle(false)
+      })
+
+    return () => controlador.abort()
+    // onSesionVencida queda afuera de las dependencias a propósito (ver el efecto de arriba).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuarioAbiertoId, token])
 
   // Renderizado condicional: si estamos cargando o hubo un error, mostramos eso y cortamos acá.
   // Los hooks (useState y useEffect) siempre van ANTES de estos return.
@@ -274,6 +335,107 @@ function Admin({ token, onSesionVencida, onAviso }) {
         // 400 (usuario o correo ya existe, datos inválidos), 403: mostramos el mensaje del backend.
         setErrorCrear(mensajeDe(fallo))
       })
+  }
+
+  // Abre el detalle de un usuario: dejamos el diálogo "cargando" y sin datos viejos, y guardamos su id.
+  // Al cambiar usuarioAbiertoId, el efecto de arriba hace el GET. Estos estados se reinician acá (en el
+  // handler del clic) y no dentro del efecto.
+  const abrirDetalle = (userId) => {
+    setDetalle(null)
+    setCargandoDetalle(true)
+    setErrorDetalle(null)
+    setErroresEdicion({})
+    setErrorGuardarEdicion(null)
+    setUsuarioAbiertoId(userId)
+  }
+
+  // Cierra el diálogo. Con id en null el efecto no pide nada y Dialog no dibuja nada.
+  const cerrarDetalle = () => setUsuarioAbiertoId(null)
+
+  // Un único handler para los tres inputs de la edición: event.target.name dice qué campo cambió.
+  const handleEdicionChange = (event) => {
+    const { name, value } = event.target
+    setFormEdicion({ ...formEdicion, [name]: value })
+    if (erroresEdicion[name]) {
+      setErroresEdicion({ ...erroresEdicion, [name]: null })
+    }
+  }
+
+  // Guarda la edición con PUT /users/{id} (paso 5). Es una escritura: va en el handler (el botón del
+  // diálogo). Con el usuario que devuelve el backend reemplazamos el de la lista (map), SIN volver a pedirla.
+  const guardarEdicion = () => {
+    // Sin datos todavía (cargando o falló el GET) o con un guardado en curso no hay nada que enviar.
+    if (detalle === null || guardandoEdicion) {
+      return
+    }
+
+    const errores = validarEdicion(formEdicion)
+    if (Object.keys(errores).length > 0) {
+      setErroresEdicion(errores)
+      return
+    }
+
+    setGuardandoEdicion(true)
+    setErrorGuardarEdicion(null)
+    fetch(`${API_URL}/users/${detalle.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`, // ruta privada
+      },
+      body: JSON.stringify({
+        nombre: formEdicion.nombre.trim(),
+        apellido: formEdicion.apellido.trim(),
+        email: formEdicion.email.trim(),
+      }),
+    })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.data
+        })
+      )
+      .then((editado) => {
+        setUsuarios((actuales) => actuales.map((usuario) => (usuario.id === editado.id ? editado : usuario)))
+        cerrarDetalle()
+        onAviso(`Guardaste los cambios de ${editado.nombre}`)
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        // 400: con los campos ya validados, lo único que puede fallar es el correo repetido: va junto a ese
+        // campo. El resto (403, 404, red caída) va en una alerta dentro del diálogo.
+        if (fallo.status === 400) {
+          setErroresEdicion({ email: fallo.message })
+          return
+        }
+        setErrorGuardarEdicion(mensajeDe(fallo))
+      })
+      .finally(() => setGuardandoEdicion(false))
+  }
+
+  // Función auxiliar: devuelve lo que va dentro del diálogo según el estado (cargando, error o el formulario).
+  const contenidoDetalle = () => {
+    if (cargandoDetalle) {
+      return <p className="mt-5 text-body-md text-on-surface-variant">Cargando los datos...</p>
+    }
+    if (errorDetalle !== null) {
+      return <div className="mt-5"><Alert title="No pudimos cargar el usuario" messages={[errorDetalle]} /></div>
+    }
+    return (
+      <div className="mt-5 space-y-4">
+        {errorGuardarEdicion !== null && <Alert title="No pudimos guardar los cambios" messages={[errorGuardarEdicion]} />}
+        <FormField label="Nombre" name="nombre" value={formEdicion.nombre} onChange={handleEdicionChange} error={erroresEdicion.nombre} />
+        <FormField label="Apellido" name="apellido" value={formEdicion.apellido} onChange={handleEdicionChange} error={erroresEdicion.apellido} />
+        <FormField label="Correo electrónico" name="email" type="email" value={formEdicion.email} onChange={handleEdicionChange} error={erroresEdicion.email} />
+      </div>
+    )
   }
 
   // VALORES CALCULADOS (no se guardan aparte): los pagos de más nuevo a más viejo. [...pagos] copia el
@@ -399,6 +561,9 @@ function Admin({ token, onSesionVencida, onAviso }) {
                   <p className="text-body-sm text-on-surface-variant">@{usuario.username} · {usuario.email}</p>
                 </div>
                 <span className={`badge ${ETIQUETAS_ROL[usuario.role].clase}`}>{ETIQUETAS_ROL[usuario.role].texto}</span>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => abrirDetalle(usuario.id)}>
+                  Ver y editar
+                </button>
               </article>
             ))}
           </div>
@@ -417,6 +582,21 @@ function Admin({ token, onSesionVencida, onAviso }) {
         onConfirm={confirmarAccion}
         onCancel={() => setAccion(null)}
       />
+
+      {/* Diálogo de detalle de un usuario (paso 5): se abre cuando usuarioAbiertoId deja de ser null. Los
+          campos del formulario van como children; el botón de confirmar guarda con PUT /users/{id}. */}
+      <Dialog
+        open={usuarioAbiertoId !== null}
+        title="Editar usuario"
+        message={detalle === null ? 'Datos de la cuenta.' : `@${detalle.username} · ${ETIQUETAS_ROL[detalle.role].texto}`}
+        confirmLabel={guardandoEdicion ? 'Guardando...' : 'Guardar cambios'}
+        confirmVariant="primary"
+        cancelLabel="Cerrar"
+        onConfirm={guardarEdicion}
+        onCancel={cerrarDetalle}
+      >
+        {contenidoDetalle()}
+      </Dialog>
     </>
   )
 }
