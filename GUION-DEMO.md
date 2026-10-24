@@ -103,11 +103,16 @@ Para ordenar 37 componentes por dominio (`comunes`, `layout`, `platos`, `cesta`,
 - **Un ADMIN no puede cambiar el rol de un usuario existente:** la API ignora el rol en `PUT /users/{id}`.
 - **Sesión en `localStorage`:** es transitorio; la 3.ª entrega lo reemplaza con Redux.
 
-## Sin verificar contra el backend real (ensayar)
+## Qué se verificó con el backend real (24/10)
 
-Estas cosas se probaron en el navegador con un servidor de mentira o no se probaron:
+Todo el recorrido de este guion se probó en el navegador contra el backend real, con cuentas de prueba:
 
-- Login con vuelta a la ruta de origen, logout que navega al inicio y agregar a la cesta sin sesión (se movieron en el Paso 3.1).
-- Vista Perfil y detalle de usuario en Admin (probados solo con servidor de mentira).
-- Casos con datos y vacíos de `ContenidoAsync` en Inicio, Catálogo y Mis publicaciones.
-- Un 401 en las escrituras y los 400 de stock en el checkout.
+- Login con vuelta a la ruta de origen, logout, agregar a la cesta sin sesión, restaurar la sesión y token inválido.
+- Catálogo, detalle, cesta, checkout, mis pedidos, cancelar, pagar, **aprobación del ADMIN** y **avance del chef** hasta Entregado, y la reseña del cliente.
+- Vistas del chef: crear (con imágenes por URL y por archivo), editar, stock, descuento y eliminar, incluido el `DELETE` que **pausa** un plato con historial ("Plato pausado porque tiene historial").
+- `Perfil` (datos y contraseña) y `Admin` (detalle de usuario, cambio de rol, errores 400 y 409).
+- El **400 de stock** en el checkout ("Stock insuficiente para el plato N") y el **400 al quitarse el propio rol de ADMIN**.
+
+Lo único que **se simuló** es el **401 en una escritura con sesión activa**: se interceptó `fetch` en el navegador para que devolviera 401, y se comprobó en tres vistas (Mis publicaciones, Perfil y agregar a la cesta) que la app cierra la sesión, borra el token y muestra "Tu sesión venció". Con el backend real solo se vio el 401 al restaurar la sesión con un token inválido.
+
+Igual conviene ensayar la demo completa antes de presentar, con las cuentas reales.
