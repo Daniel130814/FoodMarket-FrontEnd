@@ -114,11 +114,9 @@ const validar = (datos) => {
 //  - token: el JWT de la sesión, para el GET del plato a editar y para el POST y el PUT de platos
 //  - userId: el id del chef con sesión; sirve para no dejar editar un plato que es de otro chef
 //  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
-//  - onPlatoCreado: función (plato) de App. La vista hace el POST y, cuando el backend responde bien,
-//    le entrega el plato creado; App lo suma a las publicaciones y avisa.
-//  - onPlatoEditado: función (plato) de App. Igual, pero con el plato que devuelve el PUT; App reemplaza
-//    el que había.
-function PublicarPlato({ token, userId, onSesionVencida, onPlatoCreado, onPlatoEditado }) {
+//  - onAviso: función (texto) de App para mostrar un Toast. La vista hace el POST o el PUT y, cuando el
+//    backend responde bien, avisa y vuelve a Mis publicaciones, que pide su lista al abrirse.
+function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
   const navigate = useNavigate()
 
   // useParams devuelve los parámetros de la URL. En /publicar/10 devuelve { id: '10' } y en
@@ -330,12 +328,9 @@ function PublicarPlato({ token, userId, onSesionVencida, onPlatoCreado, onPlatoE
         })
       )
       .then((guardado) => {
-        // App suma (crear) o reemplaza (editar) el plato que devolvió el backend; nosotros volvemos a la lista.
-        if (editando) {
-          onPlatoEditado(guardado)
-        } else {
-          onPlatoCreado(guardado)
-        }
+        // Avisamos y volvemos a la lista. Mis publicaciones se monta de nuevo y pide sus platos con
+        // GET /platos/mis-platos: es el GET de una vista que se abre, no un re-GET después de escribir.
+        onAviso(editando ? `Guardaste los cambios de ${guardado.nombre}` : `Creaste ${guardado.nombre}`)
         navigate('/mis-publicaciones')
       })
       .catch((fallo) => {

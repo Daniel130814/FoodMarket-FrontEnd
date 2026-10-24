@@ -1,21 +1,53 @@
-// Vista de Mis publicaciones del chef (ruta /mis-publicaciones, solo rol CHEF). Lista sus platos en cualquier estado.
-import { useState } from 'react'
+// Vista de Mis publicaciones del chef (ruta /mis-publicaciones, solo rol CHEF). Lista sus platos en cualquier
+// estado (GET /platos/mis-platos) y deja ajustar el stock, pausar, aplicar descuento y eliminar.
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import FilterChips from '../components/platos/FilterChips'
 import PublicationRow from '../components/chef/PublicationRow'
 import Dialog from '../components/comunes/Dialog'
 import ContenidoAsync from '../components/comunes/ContenidoAsync'
 
+// URL base del backend (se lee del archivo .env, igual que en App).
+const API_URL = import.meta.env.VITE_API_URL
+
+// Texto de un error de fetch para mostrárselo al usuario. Si el servidor RESPONDIÓ con un error (400, 403...)
+// usamos su "message". Si ni siquiera llegamos al servidor (apagado, sin red), fetch rechaza la promesa con
+// un error SIN status y el texto del navegador ("Failed to fetch") no le sirve a nadie: damos uno claro.
+const mensajeDe = (fallo) =>
+  fallo.status === undefined
+    ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
+    : fallo.message
+
+// Lee una respuesta del backend y devuelve lo que viene en "data". Si el servidor respondió con un error
+// lanza un Error con el "message" del backend y el código en "status" (fetch NO manda los errores HTTP al
+// .catch(): hay que mirar response.ok nosotros). Es una función común, no un hook.
+const leerRespuesta = (response) =>
+  response.json().then((cuerpo) => {
+    if (!response.ok) {
+      const fallo = new Error(cuerpo.message)
+      fallo.status = response.status
+      throw fallo
+    }
+    return cuerpo.data
+  })
+
 // Props:
-//  - platos: las publicaciones del chef, con la forma de PlatoResponse de la API. Vienen de App,
-//    que es la dueña del estado.
-//  - cargando / error: si App todavía está pidiendo las publicaciones y el mensaje si falló (null si no)
-//  - onStockChange: función (platoId, nuevoStock) de App
-//  - onTogglePause: función (platoId) de App; pausa el plato o lo reactiva
-//  - onDiscount: función (platoId, porcentaje) de App; porcentaje 0 quita el descuento
-//  - onDelete: función (platoId) de App
-//  La vista solo avisa lo que el chef quiere hacer; App cambia los platos y muestra el Toast.
-function MisPublicaciones({ platos, cargando, error, onStockChange, onTogglePause, onDiscount, onDelete }) {
+//  - token: el JWT de la sesión, para los pedidos de esta vista (rutas privadas)
+//  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
+//  - onAviso: función (texto) de App para mostrar un Toast
+// La vista tiene el estado de las publicaciones, las pide al backend y hace las escrituras. App ya no
+// guarda nada de esto: solo muestra el Toast y cierra la sesión.
+function MisPublicaciones({ token, onSesionVencida, onAviso }) {
+  // ESTADO de los datos que llegan del backend: las publicaciones del chef (forma de PlatoResponse) y el
+  // catálogo de categorías. Las categorías hacen falta para editar con PUT: la API devuelve las de un
+  // plato por NOMBRE, pero el PUT las pide por ID.
+  const [platos, setPlatos] = useState([])
+  const [categorias, setCategorias] = useState([])
+
+  // ESTADOS de carga y error de esos GET. Arranca cargando.
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState(null)
+
   // ESTADO: el filtro activo. 'todas' o uno de los estados de la API (PUBLICADO, AGOTADO, ...).
   const [filtro, setFiltro] = useState('todas')
 
@@ -28,6 +60,180 @@ function MisPublicaciones({ platos, cargando, error, onStockChange, onTogglePaus
   const [platoDescuentoId, setPlatoDescuentoId] = useState(null)
   const [descuentoTexto, setDescuentoTexto] = useState('')
   const [errorDescuento, setErrorDescuento] = useState(null)
+
+  // GET /platos/mis-platos y GET /categories al abrir la vista. Promise.all espera a que lleguen LOS DOS y
+  // entrega los resultados juntos (mismo orden). mis-platos es privada (lleva el token) y trae los platos del
+  // chef en TODOS los estados, borradores y pausados incluidos; las categorías son públicas (sin token).
+  // Las listas vacías llegan como null, por eso el ?? []. Dependencias [token]: no se repite mientras no
+  // cambie la sesión. Cada vez que se abre la vista se piden de nuevo: es el GET de una vista que se monta.
+  useEffect(() => {
+    // AbortController cancela los pedidos si salimos de la vista antes de que respondan.
+    const controlador = new AbortController()
+
+    Promise.all([
+      fetch(`${API_URL}/platos/mis-platos`, { headers: { Authorization: `Bearer ${token}` }, signal: controlador.signal }).then(leerRespuesta),
+      fetch(`${API_URL}/categories`, { signal: controlador.signal }).then(leerRespuesta),
+    ])
+      .then(([listaPlatos, listaCategorias]) => {
+        setPlatos(listaPlatos ?? [])
+        setCategorias(listaCategorias ?? [])
+      })
+      .catch((fallo) => {
+        // Un pedido cancelado por nosotros (AbortError) no es un error.
+        if (fallo.name === 'AbortError') {
+          return
+        }
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        setError(mensajeDe(fallo))
+      })
+      .finally(() => setCargando(false))
+
+    return () => controlador.abort()
+    // onSesionVencida queda afuera de las dependencias a propósito: App la crea de nuevo en cada render y
+    // el GET se repetiría sin parar. (Se resuelve con useCallback cuando se vea en clase.)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
+
+  // Guarda un cambio en UN plato con PUT /platos/{id}. La API no tiene PATCH para el stock ni para el
+  // estado, y el PUT REEMPLAZA el plato entero (lo que no se manda se borra). Por eso armamos el
+  // PlatoRequest COMPLETO a partir del plato actual y le pisamos solo lo que cambia ("cambios").
+  // Es una escritura: la llaman los handlers de abajo, nunca un efecto. Con el plato que devuelve el
+  // backend reemplazamos el de la lista (map), sin volver a pedir todos los platos.
+  // mensaje: función (plato guardado) que arma el texto del Toast.
+  const guardarCambios = (plato, cambios, mensaje) => {
+    const platoRequest = {
+      nombre: plato.nombre,
+      descripcion: plato.descripcion,
+      precio: plato.precio,
+      stockDisponible: plato.stockDisponible,
+      estado: plato.estado,
+      imagenesUrls: plato.imagenesUrls,
+      // El plato trae los NOMBRES de sus categorías; el PUT necesita los ids (del catálogo).
+      categoriasIds: categorias.filter((categoria) => plato.categorias.includes(categoria.description)).map((categoria) => categoria.id),
+      ingredientes: plato.ingredientes.map((ingrediente) => ({
+        ingredienteId: ingrediente.ingredienteId,
+        cantidad: ingrediente.cantidad,
+        unidadMedida: ingrediente.unidadMedida,
+      })),
+      ...cambios,
+    }
+
+    fetch(`${API_URL}/platos/${plato.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`, // ruta privada
+      },
+      body: JSON.stringify(platoRequest),
+    })
+      .then(leerRespuesta)
+      .then((guardado) => {
+        setPlatos((actuales) => actuales.map((p) => (p.id === guardado.id ? guardado : p)))
+        onAviso(mensaje(guardado))
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        // 400 (por ejemplo, publicar sin imagen), 403 (no es tu plato), 404: mensaje del backend.
+        onAviso(mensajeDe(fallo))
+      })
+  }
+
+  // Ajusta el stock. NO mandamos "estado" (lo pisamos con undefined, que JSON.stringify omite): sin estado
+  // el backend aplica su regla: PUBLICADO con stock 0 pasa a AGOTADO, AGOTADO con stock > 0 vuelve a
+  // PUBLICADO, y BORRADOR y PAUSADO conservan el suyo.
+  const ajustarStock = (platoId, stock) => {
+    const plato = platos.find((p) => p.id === platoId)
+    guardarCambios(plato, { stockDisponible: stock, estado: undefined }, (guardado) => `Stock de ${guardado.nombre}: ${guardado.stockDisponible}`)
+  }
+
+  // Pausa un plato publicado o reactiva uno pausado. Reactivar = mandar PUBLICADO; el backend lo pasa a
+  // AGOTADO si el stock es 0 y responde 400 si el plato no tiene imagen (lo mostramos en el Toast).
+  const pausarOReactivar = (platoId) => {
+    const plato = platos.find((p) => p.id === platoId)
+
+    if (plato.estado !== 'PAUSADO') {
+      guardarCambios(plato, { estado: 'PAUSADO' }, (guardado) => `${guardado.nombre} quedó pausado`)
+      return
+    }
+    guardarCambios(plato, { estado: 'PUBLICADO' }, (guardado) => `${guardado.nombre} se reactivó`)
+  }
+
+  // Aplica o quita un descuento. Con un porcentaje de 0,01 a 99,99 es PATCH /platos/{id}/descuento
+  // { porcentaje }; con 0 es DELETE /platos/{id}/descuento (quita el descuento). Los dos devuelven el plato
+  // ya actualizado (con precioConDescuento calculado por el backend): con él reemplazamos el de la lista
+  // (map), sin volver a pedir todos los platos. Es una escritura: va en el handler, nunca en un efecto.
+  const aplicarDescuento = (platoId, porcentaje) => {
+    const plato = platos.find((p) => p.id === platoId)
+    const quitar = porcentaje === 0
+
+    fetch(`${API_URL}/platos/${platoId}/descuento`, {
+      method: quitar ? 'DELETE' : 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`, // ruta privada
+      },
+      // El DELETE no lleva cuerpo; el PATCH manda el porcentaje.
+      body: quitar ? undefined : JSON.stringify({ porcentaje }),
+    })
+      .then(leerRespuesta)
+      .then((guardado) => {
+        setPlatos((actuales) => actuales.map((p) => (p.id === guardado.id ? guardado : p)))
+        onAviso(quitar ? `Quitaste el descuento de ${plato.nombre}` : `${plato.nombre} ahora tiene ${porcentaje} % de descuento`)
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        // 400 (porcentaje fuera de rango), 403 (no es tu plato), 404: mensaje del backend.
+        onAviso(mensajeDe(fallo))
+      })
+  }
+
+  // Elimina un plato: DELETE /platos/{id}, que responde data: null. El backend decide: si el plato tiene
+  // historial (pedidos, reseñas o está en un carrito) NO se borra, queda PAUSADO; si no, se borra de verdad,
+  // y lo dice en el "message" ("Plato eliminado" o "Plato pausado porque tiene historial").
+  // Como "mis-platos" trae TODOS los estados, un plato pausado sigue en la lista: en ese caso lo marcamos
+  // como PAUSADO con map, y si se borró lo sacamos con filter. En los dos casos sin volver a pedir la lista.
+  // Es una escritura: va en el handler (el botón del diálogo).
+  const eliminarPlato = (platoId) => {
+    fetch(`${API_URL}/platos/${platoId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }, // ruta privada
+    })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.message
+        })
+      )
+      .then((mensaje) => {
+        if (mensaje.startsWith('Plato pausado')) {
+          setPlatos((actuales) => actuales.map((p) => (p.id === platoId ? { ...p, estado: 'PAUSADO' } : p)))
+        } else {
+          setPlatos((actuales) => actuales.filter((p) => p.id !== platoId))
+        }
+        onAviso(mensaje)
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        // 403 (no es tu plato), 404: mensaje del backend.
+        onAviso(mensajeDe(fallo))
+      })
+  }
 
   // Cuenta cuántos platos hay en un estado (para el número de cada chip).
   const contar = (estado) => platos.filter((plato) => plato.estado === estado).length
@@ -62,12 +268,12 @@ function MisPublicaciones({ platos, cargando, error, onStockChange, onTogglePaus
       setErrorDescuento('Ingresá un porcentaje entre 0 y 99,99.')
       return
     }
-    onDiscount(platoDescuentoId, porcentaje)
+    aplicarDescuento(platoDescuentoId, porcentaje)
     setPlatoDescuentoId(null)
   }
 
   const confirmarEliminar = () => {
-    onDelete(platoAEliminarId)
+    eliminarPlato(platoAEliminarId)
     setPlatoAEliminarId(null)
   }
 
@@ -109,8 +315,8 @@ function MisPublicaciones({ platos, cargando, error, onStockChange, onTogglePaus
               <PublicationRow
                 key={plato.id}
                 plato={plato}
-                onStockChange={onStockChange}
-                onTogglePause={onTogglePause}
+                onStockChange={ajustarStock}
+                onTogglePause={pausarOReactivar}
                 onOpenDiscount={abrirDescuento}
                 onOpenDelete={setPlatoAEliminarId}
               />

@@ -35,21 +35,6 @@ const mensajeDe = (fallo) =>
 // Clave con la que se guarda el JWT en localStorage. Está en una constante para escribirla una sola vez.
 const CLAVE_TOKEN = 'jwtToken'
 
-// GET de una ruta PÚBLICA (no lleva token). Devuelve una promesa con el "data" de la respuesta, o lanza
-// un Error con el message del backend. Las listas vacías llegan como null, por eso el ?? [].
-// Es una función común (no un hook): recibe una ruta y devuelve una promesa.
-const pedirPublico = (ruta) =>
-  fetch(`${API_URL}${ruta}`).then((response) =>
-    response.json().then((cuerpo) => {
-      if (!response.ok) {
-        const fallo = new Error(cuerpo.message)
-        fallo.status = response.status
-        throw fallo
-      }
-      return cuerpo.data ?? []
-    })
-  )
-
 // Recalcula el carrito completo a partir de sus ítems. Es la ÚNICA función que calcula
 // subtotales y total: así nunca quedan desincronizados (en producción lo calcula el backend).
 // Recibe el id del carrito y la lista de ítems; devuelve un carrito NUEVO { id, items, totalEstimado }.
@@ -91,34 +76,16 @@ function App() {
   // (React lo desaconseja: provoca un redibujado extra, y el lint lo marca).
   const [cargandoSesion, setCargandoSesion] = useState(() => localStorage.getItem(CLAVE_TOKEN) !== null)
 
-  // ESTADO DE LAS PUBLICACIONES DEL CHEF: sus platos en cualquier estado (BORRADOR, PUBLICADO,
-  // AGOTADO, PAUSADO), con la forma de PlatoResponse. Vive en App porque lo LEE MisPublicaciones
-  // y lo ESCRIBE PublicarPlato (y las acciones de la lista): vistas hermanas que solo pueden
-  // hablar con el padre común. Es el mismo razonamiento que el estado del carrito.
-  // Arranca vacío y se llena con GET /platos cuando ingresa un CHEF (efecto de más abajo, paso 13a).
-  const [misPlatos, setMisPlatos] = useState([])
-
-  // El catálogo de categorías (GET /categories). Lo necesitamos para editar un plato con PUT: la API
-  // devuelve las categorías de un plato por NOMBRE, pero el PUT las pide por ID.
-  const [categorias, setCategorias] = useState([])
-
-  // ESTADOS de carga y error de ese GET. Arranca cargando; se vuelve a poner en true al cerrar sesión.
-  const [cargandoMisPlatos, setCargandoMisPlatos] = useState(true)
-  const [errorMisPlatos, setErrorMisPlatos] = useState(null)
-
   // Estado del aviso (Toast): el texto a mostrar, o null si no hay aviso.
   const [aviso, setAviso] = useState(null)
 
   // Cierra la sesión porque el backend respondió 401 (token vencido o inválido). Las vistas que hacen
   // sus propias llamadas (Checkout) la reciben por props. RutaProtegida las manda a /ingreso al ver sesion en null.
-  // Limpia lo mismo que cerrarSesion: la sesión, el token, la cesta y las publicaciones del usuario que se va.
+  // Limpia lo mismo que cerrarSesion: la sesión, el token, y la cesta del usuario que se va.
   const sesionVencida = () => {
     setSesion(null)
     localStorage.removeItem(CLAVE_TOKEN)
     setCarrito((actual) => calcularCarrito(actual.id, []))
-    setMisPlatos([])
-    setCargandoMisPlatos(true)
-    setErrorMisPlatos(null)
     setAviso('Tu sesión venció, ingresá de nuevo')
   }
 
@@ -260,27 +227,6 @@ function App() {
       })
   }
 
-  // CARGAR LAS PUBLICACIONES DEL CHEF (paso 13a). Es un GET, va en un efecto con [sesion]: corre cuando
-  // ingresa alguien o se restaura la sesión. Solo para el CHEF.
-  // GET /platos es una ruta PÚBLICA: no se manda el token.
-  // TODO(backend): no existe "mis platos". GET /platos solo trae PUBLICADO y AGOTADO y no filtra por
-  // chef, así que filtramos acá por chefId (que es el userId del chef). Los BORRADOR y PAUSADO NO
-  // aparecen hasta que el backend los exponga (sección 5 del CLAUDE.md).
-  useEffect(() => {
-    if (sesion === null || sesion.role !== 'CHEF') {
-      return
-    }
-
-    // Promise.all espera a que lleguen LOS DOS GET (platos y categorías) y entrega los resultados juntos.
-    Promise.all([pedirPublico('/platos'), pedirPublico('/categories')])
-      .then(([platos, listaCategorias]) => {
-        setMisPlatos(platos.filter((plato) => plato.chefId === sesion.userId))
-        setCategorias(listaCategorias)
-      })
-      .catch((fallo) => setErrorMisPlatos(mensajeDe(fallo)))
-      .finally(() => setCargandoMisPlatos(false))
-  }, [sesion])
-
   // Se llama cuando Checkout ya creó el pedido en el backend (POST /carrito/checkout). El backend ya
   // vació la cesta del servidor, así que dejamos vacía la copia local. El pedido nuevo lo pide
   // MisPedidos con GET /orders cuando se abre esa vista.
@@ -388,185 +334,7 @@ function App() {
     // removeItem borra SOLO esta clave. Nunca localStorage.clear(), que borraría todo lo demás.
     localStorage.removeItem(CLAVE_TOKEN)
     setCarrito(calcularCarrito(carrito.id, []))
-    // Las publicaciones también son de ese usuario: las vaciamos y volvemos a "cargando".
-    setMisPlatos([])
-    setCargandoMisPlatos(true)
-    setErrorMisPlatos(null)
     setAviso('Cerraste sesión')
-  }
-
-  // ACCIONES DEL CHEF sobre sus publicaciones. MisPublicaciones las llama; App las ejecuta contra la API
-  // y avisa con un Toast. Stock, pausar, reactivar (13d),
-  // descuento (13e) y eliminar (13f) son REALES.
-
-  // Guarda un cambio en UN plato con PUT /platos/{id} (paso 13d). La API no tiene PATCH para el stock ni
-  // para el estado, y el PUT REEMPLAZA el plato entero (lo que no se manda se borra). Por eso armamos el
-  // PlatoRequest COMPLETO a partir del plato actual y le pisamos solo lo que cambia ("cambios").
-  // Es una escritura: la llaman los handlers de abajo, nunca un efecto. Con el plato que devuelve el
-  // backend reemplazamos el de la lista (map), sin volver a pedir todos los platos.
-  // mensaje: función (plato guardado) que arma el texto del Toast.
-  const guardarCambios = (plato, cambios, mensaje) => {
-    const platoRequest = {
-      nombre: plato.nombre,
-      descripcion: plato.descripcion,
-      precio: plato.precio,
-      stockDisponible: plato.stockDisponible,
-      estado: plato.estado,
-      imagenesUrls: plato.imagenesUrls,
-      // El plato trae los NOMBRES de sus categorías; el PUT necesita los ids (del catálogo).
-      categoriasIds: categorias.filter((categoria) => plato.categorias.includes(categoria.description)).map((categoria) => categoria.id),
-      ingredientes: plato.ingredientes.map((ingrediente) => ({
-        ingredienteId: ingrediente.ingredienteId,
-        cantidad: ingrediente.cantidad,
-        unidadMedida: ingrediente.unidadMedida,
-      })),
-      ...cambios,
-    }
-
-    fetch(`${API_URL}/platos/${plato.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${sesion.token}`, // ruta privada
-      },
-      body: JSON.stringify(platoRequest),
-    })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
-      .then((guardado) => {
-        setMisPlatos((actuales) => actuales.map((p) => (p.id === guardado.id ? guardado : p)))
-        setAviso(mensaje(guardado))
-      })
-      .catch((fallo) => {
-        if (fallo.status === 401) {
-          sesionVencida()
-          return
-        }
-        // 400 (por ejemplo, publicar sin imagen), 403 (no es tu plato), 404: mensaje del backend.
-        setAviso(mensajeDe(fallo))
-      })
-  }
-
-  // Ajusta el stock. NO mandamos "estado" (lo pisamos con undefined, que JSON.stringify omite): sin estado
-  // el backend aplica su regla: PUBLICADO con stock 0 pasa a AGOTADO, AGOTADO con stock > 0 vuelve a
-  // PUBLICADO, y BORRADOR y PAUSADO conservan el suyo.
-  const ajustarStock = (platoId, stock) => {
-    const plato = misPlatos.find((p) => p.id === platoId)
-    guardarCambios(plato, { stockDisponible: stock, estado: undefined }, (guardado) => `Stock de ${guardado.nombre}: ${guardado.stockDisponible}`)
-  }
-
-  // Pausa un plato publicado o reactiva uno pausado. Reactivar = mandar PUBLICADO; el backend lo pasa a
-  // AGOTADO si el stock es 0 y responde 400 si el plato no tiene imagen (lo mostramos en el Toast).
-  // TODO(backend): un plato PAUSADO no vuelve en GET /platos, así que tras recargar no se lo puede reactivar.
-  const pausarOReactivar = (platoId) => {
-    const plato = misPlatos.find((p) => p.id === platoId)
-
-    if (plato.estado !== 'PAUSADO') {
-      guardarCambios(plato, { estado: 'PAUSADO' }, (guardado) => `${guardado.nombre} quedó pausado`)
-      return
-    }
-    guardarCambios(plato, { estado: 'PUBLICADO' }, (guardado) => `${guardado.nombre} se reactivó`)
-  }
-
-  // Aplica o quita un descuento (paso 13e). Con un porcentaje de 0,01 a 99,99 es
-  // PATCH /platos/{id}/descuento { porcentaje }; con 0 es DELETE /platos/{id}/descuento (quita el descuento).
-  // Los dos devuelven el plato ya actualizado (con precioConDescuento calculado por el backend): con él
-  // reemplazamos el de la lista (map), sin volver a pedir todos los platos.
-  // Es una escritura: la llama MisPublicaciones al confirmar el diálogo, nunca un efecto.
-  const aplicarDescuento = (platoId, porcentaje) => {
-    const plato = misPlatos.find((p) => p.id === platoId)
-    const quitar = porcentaje === 0
-
-    fetch(`${API_URL}/platos/${platoId}/descuento`, {
-      method: quitar ? 'DELETE' : 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${sesion.token}`, // ruta privada
-      },
-      // El DELETE no lleva cuerpo; el PATCH manda el porcentaje.
-      body: quitar ? undefined : JSON.stringify({ porcentaje }),
-    })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
-      .then((guardado) => {
-        setMisPlatos((actuales) => actuales.map((p) => (p.id === guardado.id ? guardado : p)))
-        setAviso(quitar ? `Quitaste el descuento de ${plato.nombre}` : `${plato.nombre} ahora tiene ${porcentaje} % de descuento`)
-      })
-      .catch((fallo) => {
-        if (fallo.status === 401) {
-          sesionVencida()
-          return
-        }
-        // 400 (porcentaje fuera de rango), 403 (no es tu plato), 404: mensaje del backend.
-        setAviso(mensajeDe(fallo))
-      })
-  }
-
-  // Registra un plato que el backend ya creó (paso 13b). PublicarPlato la llama con el PlatoResponse que
-  // devolvió POST /platos/createPlato. Lo sumamos a las publicaciones SIN volver a pedir la lista.
-  // TODO(backend): si se creó como BORRADOR, al recargar no vuelve a aparecer (GET /platos no lo trae).
-  const platoCreado = (plato) => {
-    setMisPlatos((actuales) => [...actuales, plato])
-    setAviso(`Creaste ${plato.nombre}`)
-  }
-
-  // Registra un plato que el backend ya editó (paso 13c). PublicarPlato la llama con el PlatoResponse que
-  // devolvió PUT /platos/{id}. Reemplazamos el plato con ese id por el que devolvió el backend (map),
-  // SIN volver a pedir la lista.
-  const platoEditado = (plato) => {
-    setMisPlatos((actuales) => actuales.map((p) => (p.id === plato.id ? plato : p)))
-    setAviso(`Guardaste los cambios de ${plato.nombre}`)
-  }
-
-  // Elimina un plato (paso 13f): DELETE /platos/{id}, que responde data: null. El backend decide: si el
-  // plato tiene historial (pedidos, reseñas o está en un carrito) NO se borra, queda PAUSADO; si no, se
-  // borra de verdad. Y NO avisa cuál de las dos pasó (TODO(backend): que lo informe).
-  // Da igual para la lista: un plato pausado tampoco vuelve en GET /platos. Por eso, después de confirmar
-  // el éxito, lo sacamos del estado con filter (sin volver a pedir la lista), igual que quedaría tras recargar.
-  // Es una escritura: la llama MisPublicaciones al confirmar el diálogo.
-  const eliminarPlato = (platoId) => {
-    fetch(`${API_URL}/platos/${platoId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${sesion.token}` }, // ruta privada
-    })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.message
-        })
-      )
-      .then((mensaje) => {
-        setMisPlatos((actuales) => actuales.filter((plato) => plato.id !== platoId))
-        setAviso(mensaje)
-      })
-      .catch((fallo) => {
-        if (fallo.status === 401) {
-          sesionVencida()
-          return
-        }
-        // 403 (no es tu plato), 404: mensaje del backend.
-        setAviso(mensajeDe(fallo))
-      })
   }
 
   // VALOR CALCULADO: sale del carrito en cada render, no se guarda aparte.
@@ -666,15 +434,7 @@ function App() {
               path="/mis-publicaciones"
               element={
                 <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
-                  <MisPublicaciones
-                    platos={misPlatos}
-                    cargando={cargandoMisPlatos}
-                    error={errorMisPlatos}
-                    onStockChange={ajustarStock}
-                    onTogglePause={pausarOReactivar}
-                    onDiscount={aplicarDescuento}
-                    onDelete={eliminarPlato}
-                  />
+                  <MisPublicaciones token={sesion?.token} onSesionVencida={sesionVencida} onAviso={setAviso} />
                 </RutaProtegida>
               }
             />
@@ -703,8 +463,7 @@ function App() {
                     token={sesion?.token}
                     userId={sesion?.userId}
                     onSesionVencida={sesionVencida}
-                    onPlatoCreado={platoCreado}
-                    onPlatoEditado={platoEditado}
+                    onAviso={setAviso}
                   />
                 </RutaProtegida>
               }
@@ -717,8 +476,7 @@ function App() {
                     token={sesion?.token}
                     userId={sesion?.userId}
                     onSesionVencida={sesionVencida}
-                    onPlatoCreado={platoCreado}
-                    onPlatoEditado={platoEditado}
+                    onAviso={setAviso}
                   />
                 </RutaProtegida>
               }
