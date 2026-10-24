@@ -71,6 +71,9 @@ const ETIQUETAS_ROL = {
   ADMIN: { texto: 'Administrador', clase: 'badge-dark' },
 }
 
+// Los roles de la API, en el orden en que se ofrecen en el selector del detalle de usuario.
+const ROLES = ['CLIENTE', 'CHEF', 'ADMIN']
+
 // Formulario de usuario vacío. role arranca en CLIENTE.
 const FORM_VACIO = { username: '', nombre: '', apellido: '', email: '', password: '', role: 'CLIENTE' }
 
@@ -157,6 +160,12 @@ function Admin({ token, onSesionVencida, onAviso }) {
   const [errorGuardarEdicion, setErrorGuardarEdicion] = useState(null)
   const [guardandoEdicion, setGuardandoEdicion] = useState(false)
 
+  // ESTADOS del cambio de rol de ese usuario: el rol elegido en el selector, el error del backend (null si no
+  // hay) y si el PATCH está en curso. Son independientes de los del formulario de nombre y correo.
+  const [rolElegido, setRolElegido] = useState('CLIENTE')
+  const [errorRol, setErrorRol] = useState(null)
+  const [cambiandoRol, setCambiandoRol] = useState(false)
+
   // GET /pagos y GET /users al abrir la vista. Rutas privadas: llevan el token. Promise.all espera a que
   // lleguen LOS DOS y entrega los resultados juntos (mismo orden). Dependencias [token]: no se repite
   // mientras no cambie la sesión.
@@ -197,6 +206,7 @@ function Admin({ token, onSesionVencida, onAviso }) {
       .then((data) => {
         setDetalle(data)
         setFormEdicion({ nombre: data.nombre, apellido: data.apellido, email: data.email })
+        setRolElegido(data.role)
         setCargandoDetalle(false)
       })
       .catch((fallo) => {
@@ -346,6 +356,7 @@ function Admin({ token, onSesionVencida, onAviso }) {
     setErrorDetalle(null)
     setErroresEdicion({})
     setErrorGuardarEdicion(null)
+    setErrorRol(null)
     setUsuarioAbiertoId(userId)
   }
 
@@ -420,6 +431,52 @@ function Admin({ token, onSesionVencida, onAviso }) {
       .finally(() => setGuardandoEdicion(false))
   }
 
+  // Cambia el rol del usuario abierto con PATCH /users/{id}/role { role } (ENDPOINTS.md, sección 3.2). Es una
+  // escritura: va en el handler del botón. La respuesta es el usuario ya actualizado: con él reemplazamos el
+  // de la lista (map) y el del detalle, SIN volver a pedir nada. Los errores del backend (400 si un ADMIN
+  // intenta quitarse su propio rol, 409 si se saca el rol CHEF a quien tiene platos publicados o subpedidos
+  // sin terminar) se muestran en el diálogo con el mensaje del backend.
+  const cambiarRol = () => {
+    // Sin datos todavía, con un cambio en curso o sin cambio de rol, no hay nada que enviar.
+    if (detalle === null || cambiandoRol || rolElegido === detalle.role) {
+      return
+    }
+
+    setCambiandoRol(true)
+    setErrorRol(null)
+    fetch(`${API_URL}/users/${detalle.id}/role`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`, // ruta privada
+      },
+      body: JSON.stringify({ role: rolElegido }),
+    })
+      .then((response) =>
+        response.json().then((cuerpo) => {
+          if (!response.ok) {
+            const fallo = new Error(cuerpo.message)
+            fallo.status = response.status
+            throw fallo
+          }
+          return cuerpo.data
+        })
+      )
+      .then((actualizado) => {
+        setUsuarios((actuales) => actuales.map((usuario) => (usuario.id === actualizado.id ? actualizado : usuario)))
+        setDetalle(actualizado)
+        onAviso(`${actualizado.nombre} ahora es ${ETIQUETAS_ROL[actualizado.role].texto}`)
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        setErrorRol(mensajeDe(fallo))
+      })
+      .finally(() => setCambiandoRol(false))
+  }
+
   // Función auxiliar: devuelve lo que va dentro del diálogo según el estado (cargando, error o el formulario).
   const contenidoDetalle = () => {
     if (cargandoDetalle) {
@@ -428,12 +485,38 @@ function Admin({ token, onSesionVencida, onAviso }) {
     if (errorDetalle !== null) {
       return <div className="mt-5"><Alert title="No pudimos cargar el usuario" messages={[errorDetalle]} /></div>
     }
+    // Con el diálogo cerrado todavía no hay usuario (esta función se evalúa en cada render): no hay nada que mostrar.
+    if (detalle === null) {
+      return null
+    }
     return (
       <div className="mt-5 space-y-4">
         {errorGuardarEdicion !== null && <Alert title="No pudimos guardar los cambios" messages={[errorGuardarEdicion]} />}
         <FormField label="Nombre" name="nombre" value={formEdicion.nombre} onChange={handleEdicionChange} error={erroresEdicion.nombre} />
         <FormField label="Apellido" name="apellido" value={formEdicion.apellido} onChange={handleEdicionChange} error={erroresEdicion.apellido} />
         <FormField label="Correo electrónico" name="email" type="email" value={formEdicion.email} onChange={handleEdicionChange} error={erroresEdicion.email} />
+
+        {/* Cambio de rol: tiene su propio botón y su propio pedido; no depende de "Guardar cambios" */}
+        <div className="border-t border-hairline pt-4">
+          <label className="label" htmlFor="rol-usuario">Rol</label>
+          <div className="flex gap-3">
+            <select id="rol-usuario" className="field" value={rolElegido} onChange={(event) => setRolElegido(event.target.value)}>
+              {/* map: una opción por rol. key = el valor del rol, único */}
+              {ROLES.map((rol) => (
+                <option key={rol} value={rol}>{ETIQUETAS_ROL[rol].texto}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="btn btn-secondary flex-none"
+              onClick={cambiarRol}
+              disabled={cambiandoRol || rolElegido === detalle.role}
+            >
+              {cambiandoRol ? 'Cambiando...' : 'Cambiar rol'}
+            </button>
+          </div>
+          {errorRol !== null && <div className="mt-3"><Alert title="No pudimos cambiar el rol" messages={[errorRol]} /></div>}
+        </div>
       </div>
     )
   }
@@ -548,9 +631,8 @@ function Admin({ token, onSesionVencida, onAviso }) {
               </button>
             )}
 
-            {/* Pendiente del front (el backend ya lo resolvió el 24/10): cambiar el rol de un usuario existente con
-                PATCH /users/{userId}/role. PUT /users/{id} sigue ignorando el rol; por ahora solo se puede crear
-                una cuenta nueva con el rol elegido. */}
+            {/* El rol de un usuario existente se cambia desde "Ver y editar" (PATCH /users/{userId}/role).
+                PUT /users/{id} sigue ignorando el rol. */}
             {/* map dibuja una fila por usuario; key = id, único y estable */}
             {usuarios.map((usuario) => (
               <article

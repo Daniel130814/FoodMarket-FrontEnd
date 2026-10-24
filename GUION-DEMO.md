@@ -49,7 +49,7 @@ Con DevTools en Network, repetí un par de acciones y señalá la lista de pedid
 2. **CHEF → Publicar un plato:** cargá nombre, precio, stock, categorías e ingredientes, y sumá una imagen **desde tu equipo** (campo "Imágenes desde tu equipo") o por URL. Elegí el estado "Publicado" y guardalo: en Network se ve `POST createPlato` → `POST /platos/{id}/imagenes` → `PUT`. Después abrí "Editar" y mostrá que la imagen se ve en la vista previa.
 3. **CHEF → Pedidos recibidos:** avanzá el estado de un subpedido.
 4. **Perfil (cualquier rol):** hacé clic en tu nombre del Header. Editá el nombre y guardá: el Header se actualiza solo. Probá un correo ya usado y mostrá el error junto al campo. Más abajo, **Cambiar la contraseña**: probá una contraseña actual incorrecta (error junto al campo) y después un cambio exitoso (Toast, y la sesión sigue abierta).
-5. **ADMIN → `/admin`:** en **Pagos** aprobá el pago de un cliente. En **Usuarios** abrí "Ver y editar" y cambiá un nombre.
+5. **ADMIN → `/admin`:** en **Pagos** aprobá el pago de un cliente. En **Usuarios** abrí "Ver y editar" y cambiá un nombre; después cambiá el **rol** de un usuario con el selector y su botón. Si le sacás el rol CHEF a un chef con platos publicados, el backend responde 409 y el mensaje aparece en el diálogo.
 
 ## Escena 6 — Backend apagado (1 min)
 

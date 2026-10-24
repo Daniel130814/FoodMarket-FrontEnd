@@ -21,7 +21,7 @@ La app tiene tres tipos de cuenta, cada uno con su propio recorrido:
 
 - **Cliente:** explora el catálogo (con filtros), mira el detalle de un plato, arma su cesta, elige un domicilio y confirma el pedido, lo paga, sigue su estado y deja una reseña cuando se lo entregan.
 - **Chef:** publica, edita, pausa y elimina sus platos (con imágenes por URL o subidas desde su equipo), maneja su stock y sus descuentos, y avanza los pedidos que le tocan (Recibido, Cocinando, En camino, Entregado).
-- **Administrador:** aprueba o rechaza los pagos de los clientes, crea cuentas con el rol que quiera y edita el nombre, el apellido y el correo de cualquier usuario.
+- **Administrador:** aprueba o rechaza los pagos de los clientes, crea cuentas con el rol que quiera, y edita el nombre, el apellido, el correo y el rol de cualquier usuario.
 
 Las tres cuentas pueden ver y editar sus propios datos y cambiar su contraseña en **Mi perfil** (haciendo clic en su nombre del Header).
 
@@ -94,7 +94,6 @@ El login guarda el token JWT en el estado de `App.jsx` y en `localStorage` (clav
 Cosas que el front resuelve como puede mientras el backend no las ofrezca (están marcadas como `TODO(backend)` en el código):
 
 - Los platos, los perfiles de chef y los ítems de la cesta no traen el nombre del chef; las reseñas no traen el nombre del autor.
-- Un administrador puede crear usuarios con cualquier rol, pero no cambiar el rol de uno existente.
 - No hay un administrador inicial: hay que cargarlo a mano en la base de datos.
 - Las imágenes subidas por archivo no se borran del disco del backend al quitarlas o eliminar el plato, y no hay límite de imágenes por plato.
 

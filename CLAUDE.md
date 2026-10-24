@@ -323,14 +323,14 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
   - [x] 2 Legibilidad del JSX: `ContenidoAsync` (en `Inicio`, `Catalogo`, `MisPublicaciones` y `Perfil`) y funciones auxiliares en lugar de ternarios anidados (chefs de `Inicio`, `OrderTrack`). El 2.3 se salteó: `Checkout`, `PublicarPlato` y `Admin` ya resolvían carga y error con `if` + `return`.
   - [x] 3.1 `BrowserRouter` en `main.jsx` y `AppContent` eliminado (decisión #2).
   - [x] 4 Vista `Perfil` (`GET` y `PUT /users/me`). Sin cambio de contraseña: no hay endpoint.
-  - [x] 5 Detalle y edición de usuario en `Admin` (`GET` y `PUT /users/{id}`) con `Dialog`.
+  - [x] 5 Detalle y edición de usuario en `Admin` (`GET` y `PUT /users/{id}`) con `Dialog`; después se sumó el cambio de rol (ver el extra más abajo).
   - [x] 6 Subcarpetas por dominio en `components/`.
   - [x] 7 Guion de demo (`GUION-DEMO.md`).
   - [x] 3.2 Estado del chef en `MisPublicaciones`: `PublicarPlato` pide su plato con `GET /platos/{id}` (3.2.a); `MisPublicaciones` tiene su lista (`GET /platos/mis-platos`), su catálogo de categorías y los handlers de stock, pausa, descuento y eliminar (3.2.b y 3.2.c, en un solo commit porque separados no funcionaban); `App` ya no guarda los platos (3.2.d). Los borradores y pausados sobreviven a la recarga. Pendiente de probar: el `DELETE` que responde "Plato pausado porque tiene historial".
   - [x] 8 Subida de imágenes multipart (`POST /platos/{id}/imagenes`): `ImageFilePicker` (nuevo, en `components/chef/`) y `PublicarPlato` guardan en tiempos: plato (JSON), cada archivo por `FormData` (uno por uno, sin `Content-Type` a mano) y un `PUT` final solo si se publica un plato cuyas únicas imágenes son archivos (el backend exige una para publicar). Si falla una subida después de crear el plato, pasa a `/publicar/{id}` para no duplicarlo. Probado con el backend real. Límite conocido: los archivos no se borran del disco del backend.
   - [x] Extra: cambio de contraseña en `Perfil` (`PUT /users/me/password`), con su propio formulario, validación y error junto al campo. Probado con el backend real.
   - [x] Extra: el `message` del `DELETE /platos/{id}` ya se muestra en el Toast (desde el 3.2).
-  - [ ] Extra: cambio de rol en el detalle de usuario de `Admin` (`PATCH /users/{userId}/role`).
+  - [x] Extra: cambio de rol en el detalle de usuario de `Admin` (`PATCH /users/{userId}/role`), con selector y botón propios y los errores 400 y 409 del backend en el diálogo. Probado con el backend real (éxito y 409). Sin probar: el 400 al quitarse el propio rol de ADMIN.
 
 **`TODO(backend)` que quedan:** `PATCH` de stock y de estado del plato; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; nombre y taller del chef en `ChefProfileResponse` (la tarjeta de Inicio muestra solo especialidad, biografía, descripción, foto y reputación); `pedidoId`, fecha y cliente en los subpedidos; `clienteNombre` en las reseñas. (Ya resueltos el 24/10: "mis platos", `GET /platos/{id}` para el dueño, cambio de rol, cambio de contraseña, subida de imágenes y el `message` del `DELETE`.)
 
