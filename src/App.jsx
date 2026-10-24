@@ -700,9 +700,8 @@ function App() {
               element={
                 <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
                   <PublicarPlato
-                    platos={misPlatos}
-                    cargandoPlatos={cargandoMisPlatos}
                     token={sesion?.token}
+                    userId={sesion?.userId}
                     onSesionVencida={sesionVencida}
                     onPlatoCreado={platoCreado}
                     onPlatoEditado={platoEditado}
@@ -715,9 +714,8 @@ function App() {
               element={
                 <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
                   <PublicarPlato
-                    platos={misPlatos}
-                    cargandoPlatos={cargandoMisPlatos}
                     token={sesion?.token}
+                    userId={sesion?.userId}
                     onSesionVencida={sesionVencida}
                     onPlatoCreado={platoCreado}
                     onPlatoEditado={platoEditado}

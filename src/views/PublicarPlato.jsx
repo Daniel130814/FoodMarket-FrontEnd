@@ -35,6 +35,21 @@ const pedirCatalogo = (ruta) =>
     })
   )
 
+// GET de UN plato (paso 3.2.a). Lleva el token a propósito, aunque la ruta es pública: un plato en BORRADOR
+// o PAUSADO solo lo devuelve el backend a su chef dueño (con token); sin token da 404. signal es la señal
+// de un AbortController, para poder cancelar el pedido. Es una función común, no un hook.
+const pedirPlato = (platoId, token, signal) =>
+  fetch(`${API_URL}/platos/${platoId}`, { headers: { Authorization: `Bearer ${token}` }, signal }).then((response) =>
+    response.json().then((cuerpo) => {
+      if (!response.ok) {
+        const fallo = new Error(cuerpo.message)
+        fallo.status = response.status
+        throw fallo
+      }
+      return cuerpo.data
+    })
+  )
+
 // Formulario vacío para un plato nuevo. Los números se guardan como TEXTO porque vienen de
 // inputs; se pasan a número al enviar. Un plato nuevo arranca como borrador, con un campo de imagen.
 const FORM_VACIO = {
@@ -96,15 +111,14 @@ const validar = (datos) => {
 }
 
 // Props:
-//  - platos: las publicaciones del chef (vienen de App). Se usan para precargar el plato al editar.
-//  - cargandoPlatos: true mientras App todavía está pidiendo las publicaciones (hace falta para editar)
-//  - token: el JWT de la sesión, para el POST y el PUT de platos (rutas privadas)
+//  - token: el JWT de la sesión, para el GET del plato a editar y para el POST y el PUT de platos
+//  - userId: el id del chef con sesión; sirve para no dejar editar un plato que es de otro chef
 //  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
 //  - onPlatoCreado: función (plato) de App. La vista hace el POST y, cuando el backend responde bien,
 //    le entrega el plato creado; App lo suma a las publicaciones y avisa.
 //  - onPlatoEditado: función (plato) de App. Igual, pero con el plato que devuelve el PUT; App reemplaza
 //    el que había.
-function PublicarPlato({ platos, cargandoPlatos, token, onSesionVencida, onPlatoCreado, onPlatoEditado }) {
+function PublicarPlato({ token, userId, onSesionVencida, onPlatoCreado, onPlatoEditado }) {
   const navigate = useNavigate()
 
   // useParams devuelve los parámetros de la URL. En /publicar/10 devuelve { id: '10' } y en
@@ -112,8 +126,19 @@ function PublicarPlato({ platos, cargandoPlatos, token, onSesionVencida, onPlato
   const { id } = useParams()
   const editando = id !== undefined
 
-  // El plato a editar, o undefined si estamos creando (o si el id no existe).
-  const platoAEditar = editando ? platos.find((plato) => plato.id === Number(id)) : undefined
+  // ESTADOS del plato que se edita (GET /platos/{id}): el plato tal como lo devolvió el backend (null hasta
+  // que responde) y si el backend dijo que no existe o no es visible para este chef (404).
+  const [plato, setPlato] = useState(null)
+  const [platoNoExiste, setPlatoNoExiste] = useState(false)
+
+  // VALORES CALCULADOS (no se guardan aparte) a partir de ese estado:
+  //  - platoCargado: ya llegó el plato de ESTE id (si el id de la URL cambia, vuelve a ser false).
+  //  - cargandoPlato: estamos editando y todavía no hay respuesta.
+  //  - platoAEditar: el plato, solo si es de este chef (GET /platos/{id} también devuelve platos públicos
+  //    de otros chefs; editarlos daría 403 al guardar). undefined si estamos creando o no se puede editar.
+  const platoCargado = plato !== null && String(plato.id) === id
+  const cargandoPlato = editando && !platoCargado && !platoNoExiste
+  const platoAEditar = platoCargado && plato.chefId === userId ? plato : undefined
 
   // ESTADO: lo que el chef fue escribiendo en el formulario (todos los campos en un solo objeto), o null
   // mientras no tocó nada. No lo inicializamos con los datos del plato porque useState solo usa su valor
@@ -151,15 +176,52 @@ function PublicarPlato({ platos, cargandoPlatos, token, onSesionVencida, onPlato
       .finally(() => setCargando(false))
   }, [])
 
-  // Mientras cargan los catálogos o las publicaciones (o si fallaron) no se puede armar el formulario.
-  if (cargando || cargandoPlatos) {
-    return <LoadingState message="Cargando categorías e ingredientes..." />
+  // GET /platos/{id} al editar (paso 3.2.a): pide el plato con su propio fetch en vez de buscarlo en la lista
+  // de App. Así /publicar/:id funciona aunque recargues (F5) y también con borradores y pausados. Es un GET:
+  // va en un efecto, con [id, token] como dependencias, y se salta cuando estamos creando (/publicar).
+  // El efecto modifica "plato", no "id", por eso no hay bucle.
+  useEffect(() => {
+    if (!editando) {
+      return
+    }
+
+    // AbortController cancela el pedido si salimos de la vista o cambia el id antes de que responda.
+    const controlador = new AbortController()
+
+    pedirPlato(id, token, controlador.signal)
+      .then((data) => setPlato(data))
+      .catch((fallo) => {
+        // Un pedido cancelado por nosotros (AbortError) no es un error.
+        if (fallo.name === 'AbortError') {
+          return
+        }
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        // 404: no existe, o es un borrador/pausado de otro chef. Cualquier otro error va a ErrorState.
+        if (fallo.status === 404) {
+          setPlatoNoExiste(true)
+          return
+        }
+        setError(mensajeDe(fallo))
+      })
+
+    return () => controlador.abort()
+    // onSesionVencida queda afuera de las dependencias a propósito: App la crea de nuevo en cada render y
+    // el GET se repetiría sin parar. (Se resuelve con useCallback cuando se vea en clase.)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, token])
+
+  // Mientras cargan los catálogos o el plato a editar (o si fallaron) no se puede armar el formulario.
+  if (cargando || cargandoPlato) {
+    return <LoadingState message="Cargando el formulario..." />
   }
   if (error !== null) {
     return <ErrorState message={error} />
   }
 
-  // Si piden editar un plato que no existe, lo decimos (los hooks ya se llamaron arriba).
+  // Si piden editar un plato que no existe o que no es de este chef, lo decimos (los hooks ya se llamaron arriba).
   if (editando && platoAEditar === undefined) {
     return (
       <EmptyState
