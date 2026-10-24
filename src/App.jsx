@@ -1,7 +1,7 @@
 // Raíz de la app: define las rutas y es DUEÑA del estado del carrito (carrito y aviso).
 // Se monta desde main.jsx.
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import Toast from './components/Toast'
@@ -62,203 +62,12 @@ const calcularCarrito = (id, items) => {
   return { id, items: itemsCalculados, totalEstimado: Math.round(totalEstimado * 100) / 100 }
 }
 
-// Componente interno que evalúa la ruta actual para decidir el diseño (layout)
-// Props:
-//  - cartCount: total de platos del carrito. AppContent NO lo usa: solo lo reenvía al Header.
-//    Eso es "prop drilling": pasar un dato por un componente intermedio hasta quien lo necesita.
-//  - carrito, onQuantityChange, onRemove: también solo se reenvían, a Carrito (y carrito a Checkout).
-//  - onPedidoCreado: función (pedido) que registra el pedido ya creado por el backend; se reenvía a Checkout.
-//  - onAdd: función (plato, cantidad) para agregar al carrito; se reenvía a Inicio, Catalogo (que se la pasan a PlatoCard) y DetallePlato.
-//  - onSesionVencida / onAviso: también se reenvían a MisPedidos (que pide y cancela sus pedidos con el backend).
-//  - cargandoMisPlatos / errorMisPlatos: si se están cargando las publicaciones y el error si falló; se reenvían a MisPublicaciones.
-//  - misPlatos y onStockChange / onTogglePause / onDiscount / onDeleteDish: las publicaciones del chef y
-//    las acciones sobre ellas; se reenvían a MisPublicaciones (misPlatos también a PublicarPlato).
-//  - onPlatoCreado / onPlatoEditado: funciones (plato) que registran un plato ya guardado por el backend; se reenvían a PublicarPlato.
-//  - onLogin: función (sesion) para iniciar sesión; se reenvía a Ingreso y Registro.
-//  - sesion / cargandoSesion / onLogout: la sesión actual (o null), si se está verificando el token guardado
-//    y la función para cerrarla; se reenvían al Header.
-//    AppContent además usa sesion para proteger las rutas (RutaProtegida) y para decidir si se puede agregar al carrito.
-//  - onAviso: función (texto) para mostrar un Toast; AppContent la usa cuando un rol no puede comprar.
-function AppContent({ cartCount, carrito, onAdd, onQuantityChange, onRemove, onClear, onSesionVencida, onPedidoCreado, misPlatos, cargandoMisPlatos, errorMisPlatos, onStockChange, onTogglePause, onDiscount, onDeleteDish, onPlatoCreado, onPlatoEditado, onLogin, sesion, cargandoSesion, onLogout, onAviso }) {
+function App() {
+  // Los hooks del Router (useLocation y useNavigate) funcionan acá porque main.jsx envuelve App
+  // con <BrowserRouter>: App está DENTRO del router.
   const location = useLocation()
-
-  // useNavigate devuelve una función para cambiar de ruta desde el código. Se puede usar acá
-  // porque AppContent está DENTRO del BrowserRouter (App, que está afuera, no podría).
   const navigate = useNavigate()
 
-  // "Salir": cierra la sesión (App) y vuelve al inicio. Se hace acá y no en App porque App está
-  // afuera del router y no puede navegar. Sin el navigate, quien sale estando en una ruta privada
-  // quedaría en /ingreso, porque RutaProtegida lo redirige al ver que ya no hay sesión.
-  const salir = () => {
-    onLogout()
-    navigate('/')
-  }
-
-  // Agregar a la cesta según la sesión. Las tarjetas y el detalle reciben ESTA función en lugar de
-  // onAdd, así no saben nada de sesiones: siguen avisando "quiero agregar este plato".
-  //  - Sin sesión: lo mandamos a ingresar (y después vuelve a esta misma página).
-  //  - CHEF o ADMIN: no pueden comprar, avisamos con un Toast.
-  //  - CLIENTE: agregamos de verdad (onAdd valida el stock).
-  const agregarSegunSesion = (plato, cantidad) => {
-    if (sesion === null) {
-      // Mandamos la ruta actual como "state" para volver acá después de ingresar.
-      navigate('/ingreso', { state: { from: location.pathname } })
-      return
-    }
-    if (sesion.role !== 'CLIENTE') {
-      onAviso('Solo los clientes pueden comprar')
-      return
-    }
-    onAdd(plato, cantidad)
-  }
-
-  // Las vistas de autenticación ocupan toda la pantalla y traen su propio encabezado
-  const esPantallaAuth = location.pathname === '/ingreso' || location.pathname === '/registro'
-
-  if (esPantallaAuth) {
-    return (
-      <Routes>
-        <Route path="/ingreso" element={<Ingreso onLogin={onLogin} />} />
-        <Route path="/registro" element={<Registro onLogin={onLogin} />} />
-      </Routes>
-    )
-  }
-
-  return (
-    <>
-      <a className="skip-link" href="#contenido">Ir al contenido</a>
-      <Header cartCount={cartCount} sesion={sesion} onLogout={salir} />
-      <main id="contenido" className="mx-auto max-w-shell px-5 py-10 lg:px-12">
-        <Routes>
-          {/* Rutas públicas: las puede ver cualquiera, con o sin sesión */}
-          <Route path="/" element={<Inicio onAdd={agregarSegunSesion} />} />
-          <Route path="/catalogo" element={<Catalogo onAdd={agregarSegunSesion} />} />
-          {/* ":id" es un parámetro: /plato/1, /plato/2... todas muestran DetallePlato */}
-          <Route path="/plato/:id" element={<DetallePlato onAdd={agregarSegunSesion} />} />
-
-          {/* Rutas del CLIENTE: RutaProtegida decide si muestra la vista o redirige */}
-          <Route
-            path="/cesta"
-            element={
-              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE']}>
-                <Carrito
-                  carrito={carrito}
-                  cartCount={cartCount}
-                  onQuantityChange={onQuantityChange}
-                  onRemove={onRemove}
-                  onClear={onClear}
-                />
-              </RutaProtegida>
-            }
-          />
-          <Route
-            path="/checkout"
-            element={
-              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE']}>
-                <Checkout
-                  carrito={carrito}
-                  cartCount={cartCount}
-                  token={sesion?.token}
-                  onSesionVencida={onSesionVencida}
-                  onPedidoCreado={onPedidoCreado}
-                />
-              </RutaProtegida>
-            }
-          />
-          <Route
-            path="/pedidos"
-            element={
-              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE']}>
-                <MisPedidos token={sesion?.token} onSesionVencida={onSesionVencida} onAviso={onAviso} />
-              </RutaProtegida>
-            }
-          />
-
-          {/* Rutas del CHEF */}
-          <Route
-            path="/mis-publicaciones"
-            element={
-              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
-                <MisPublicaciones
-                  platos={misPlatos}
-                  cargando={cargandoMisPlatos}
-                  error={errorMisPlatos}
-                  onStockChange={onStockChange}
-                  onTogglePause={onTogglePause}
-                  onDiscount={onDiscount}
-                  onDelete={onDeleteDish}
-                />
-              </RutaProtegida>
-            }
-          />
-
-          {/* Pedidos que le tocan al chef (paso 14c): ve sus subpedidos y los avanza */}
-          <Route
-            path="/pedidos-recibidos"
-            element={
-              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
-                <PedidosRecibidos
-                  token={sesion?.token}
-                  userId={sesion?.userId}
-                  onSesionVencida={onSesionVencida}
-                  onAviso={onAviso}
-                />
-              </RutaProtegida>
-            }
-          />
-
-          {/* /publicar crea un plato; /publicar/:id edita el plato con ese id. Misma vista. */}
-          <Route
-            path="/publicar"
-            element={
-              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
-                <PublicarPlato
-                  platos={misPlatos}
-                  cargandoPlatos={cargandoMisPlatos}
-                  token={sesion?.token}
-                  onSesionVencida={onSesionVencida}
-                  onPlatoCreado={onPlatoCreado}
-                  onPlatoEditado={onPlatoEditado}
-                />
-              </RutaProtegida>
-            }
-          />
-          <Route
-            path="/publicar/:id"
-            element={
-              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
-                <PublicarPlato
-                  platos={misPlatos}
-                  cargandoPlatos={cargandoMisPlatos}
-                  token={sesion?.token}
-                  onSesionVencida={onSesionVencida}
-                  onPlatoCreado={onPlatoCreado}
-                  onPlatoEditado={onPlatoEditado}
-                />
-              </RutaProtegida>
-            }
-          />
-
-          {/* Ruta del ADMIN (paso 14b): aprobar pagos de los clientes */}
-          <Route
-            path="/admin"
-            element={
-              <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['ADMIN']}>
-                <Admin token={sesion?.token} onSesionVencida={onSesionVencida} onAviso={onAviso} />
-              </RutaProtegida>
-            }
-          />
-
-          {/* Comodín: "*" coincide con cualquier ruta que no coincidió antes, por eso va ÚLTIMA */}
-          <Route path="*" element={<NoEncontrado />} />
-        </Routes>
-      </main>
-      <Footer />
-    </>
-  )
-}
-
-function App() {
   // ESTADO DEL CARRITO: vive acá, en el padre más alto. Según la regla de la profe, el estado
   // vive en el padre y baja a los hijos por props; los hijos le avisan con funciones.
   // Un objeto con la forma de CarritoResponse de la API: { id, items, totalEstimado }.
@@ -756,37 +565,185 @@ function App() {
   // VALOR CALCULADO: sale del carrito en cada render, no se guarda aparte.
   const cantidadTotal = carrito.items.reduce((acumulado, item) => acumulado + item.cantidad, 0)
 
+  // "Salir": cierra la sesión y vuelve al inicio. Sin el navigate, quien sale estando en una ruta privada
+  // quedaría en /ingreso, porque RutaProtegida lo redirige al ver que ya no hay sesión.
+  const salir = () => {
+    cerrarSesion()
+    navigate('/')
+  }
+
+  // Agregar a la cesta según la sesión. Las tarjetas y el detalle reciben ESTA función en lugar de
+  // onAdd, así no saben nada de sesiones: siguen avisando "quiero agregar este plato".
+  //  - Sin sesión: lo mandamos a ingresar (y después vuelve a esta misma página).
+  //  - CHEF o ADMIN: no pueden comprar, avisamos con un Toast.
+  //  - CLIENTE: agregamos de verdad (onAdd valida el stock).
+  const agregarSegunSesion = (plato, cantidad) => {
+    if (sesion === null) {
+      // Mandamos la ruta actual como "state" para volver acá después de ingresar.
+      navigate('/ingreso', { state: { from: location.pathname } })
+      return
+    }
+    if (sesion.role !== 'CLIENTE') {
+      setAviso('Solo los clientes pueden comprar')
+      return
+    }
+    agregar(plato, cantidad)
+  }
+
+  // Decide qué pantalla dibujar según la ruta actual. Cada if con return corta en el primer caso.
+  const pantalla = () => {
+    // Las vistas de autenticación ocupan toda la pantalla y traen su propio encabezado
+    const esPantallaAuth = location.pathname === '/ingreso' || location.pathname === '/registro'
+
+    if (esPantallaAuth) {
+      return (
+        <Routes>
+          <Route path="/ingreso" element={<Ingreso onLogin={iniciarSesion} />} />
+          <Route path="/registro" element={<Registro onLogin={iniciarSesion} />} />
+        </Routes>
+      )
+    }
+
+    return (
+      <>
+        <a className="skip-link" href="#contenido">Ir al contenido</a>
+        <Header cartCount={cantidadTotal} sesion={sesion} onLogout={salir} />
+        <main id="contenido" className="mx-auto max-w-shell px-5 py-10 lg:px-12">
+          <Routes>
+            {/* Rutas públicas: las puede ver cualquiera, con o sin sesión */}
+            <Route path="/" element={<Inicio onAdd={agregarSegunSesion} />} />
+            <Route path="/catalogo" element={<Catalogo onAdd={agregarSegunSesion} />} />
+            {/* ":id" es un parámetro: /plato/1, /plato/2... todas muestran DetallePlato */}
+            <Route path="/plato/:id" element={<DetallePlato onAdd={agregarSegunSesion} />} />
+
+            {/* Rutas del CLIENTE: RutaProtegida decide si muestra la vista o redirige */}
+            <Route
+              path="/cesta"
+              element={
+                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE']}>
+                  <Carrito
+                    carrito={carrito}
+                    cartCount={cantidadTotal}
+                    onQuantityChange={cambiarCantidad}
+                    onRemove={quitar}
+                    onClear={vaciar}
+                  />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="/checkout"
+              element={
+                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE']}>
+                  <Checkout
+                    carrito={carrito}
+                    cartCount={cantidadTotal}
+                    token={sesion?.token}
+                    onSesionVencida={sesionVencida}
+                    onPedidoCreado={pedidoCreado}
+                  />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="/pedidos"
+              element={
+                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE']}>
+                  <MisPedidos token={sesion?.token} onSesionVencida={sesionVencida} onAviso={setAviso} />
+                </RutaProtegida>
+              }
+            />
+
+            {/* Rutas del CHEF */}
+            <Route
+              path="/mis-publicaciones"
+              element={
+                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
+                  <MisPublicaciones
+                    platos={misPlatos}
+                    cargando={cargandoMisPlatos}
+                    error={errorMisPlatos}
+                    onStockChange={ajustarStock}
+                    onTogglePause={pausarOReactivar}
+                    onDiscount={aplicarDescuento}
+                    onDelete={eliminarPlato}
+                  />
+                </RutaProtegida>
+              }
+            />
+
+            {/* Pedidos que le tocan al chef (paso 14c): ve sus subpedidos y los avanza */}
+            <Route
+              path="/pedidos-recibidos"
+              element={
+                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
+                  <PedidosRecibidos
+                    token={sesion?.token}
+                    userId={sesion?.userId}
+                    onSesionVencida={sesionVencida}
+                    onAviso={setAviso}
+                  />
+                </RutaProtegida>
+              }
+            />
+
+            {/* /publicar crea un plato; /publicar/:id edita el plato con ese id. Misma vista. */}
+            <Route
+              path="/publicar"
+              element={
+                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
+                  <PublicarPlato
+                    platos={misPlatos}
+                    cargandoPlatos={cargandoMisPlatos}
+                    token={sesion?.token}
+                    onSesionVencida={sesionVencida}
+                    onPlatoCreado={platoCreado}
+                    onPlatoEditado={platoEditado}
+                  />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="/publicar/:id"
+              element={
+                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
+                  <PublicarPlato
+                    platos={misPlatos}
+                    cargandoPlatos={cargandoMisPlatos}
+                    token={sesion?.token}
+                    onSesionVencida={sesionVencida}
+                    onPlatoCreado={platoCreado}
+                    onPlatoEditado={platoEditado}
+                  />
+                </RutaProtegida>
+              }
+            />
+
+            {/* Ruta del ADMIN (paso 14b): aprobar pagos de los clientes */}
+            <Route
+              path="/admin"
+              element={
+                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['ADMIN']}>
+                  <Admin token={sesion?.token} onSesionVencida={sesionVencida} onAviso={setAviso} />
+                </RutaProtegida>
+              }
+            />
+
+            {/* Comodín: "*" coincide con cualquier ruta que no coincidió antes, por eso va ÚLTIMA */}
+            <Route path="*" element={<NoEncontrado />} />
+          </Routes>
+        </main>
+        <Footer />
+      </>
+    )
+  }
+
   return (
-    <BrowserRouter>
-      {/* El carrito baja por props desde acá (flujo unidireccional): los datos hacia
-          abajo y las funciones on... para que los hijos avisen hacia arriba. */}
-      <AppContent
-        cartCount={cantidadTotal}
-        carrito={carrito}
-        onAdd={agregar}
-        onQuantityChange={cambiarCantidad}
-        onRemove={quitar}
-        onClear={vaciar}
-        onSesionVencida={sesionVencida}
-        onPedidoCreado={pedidoCreado}
-        misPlatos={misPlatos}
-        onStockChange={ajustarStock}
-        onTogglePause={pausarOReactivar}
-        onDiscount={aplicarDescuento}
-        onDeleteDish={eliminarPlato}
-        onPlatoCreado={platoCreado}
-        onPlatoEditado={platoEditado}
-        cargandoMisPlatos={cargandoMisPlatos}
-        errorMisPlatos={errorMisPlatos}
-        onLogin={iniciarSesion}
-        sesion={sesion}
-        cargandoSesion={cargandoSesion}
-        onLogout={cerrarSesion}
-        onAviso={setAviso}
-      />
+    <>
+      {pantalla()}
       {/* Toast: se dibuja una sola vez para toda la app; al cerrarlo el aviso vuelve a null */}
       <Toast message={aviso ?? ''} visible={aviso !== null} onClose={() => setAviso(null)} />
-    </BrowserRouter>
+    </>
   )
 }
 
