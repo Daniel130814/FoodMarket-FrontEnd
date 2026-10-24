@@ -21,7 +21,9 @@ La app tiene tres tipos de cuenta, cada uno con su propio recorrido:
 
 - **Cliente:** explora el catálogo (con filtros), mira el detalle de un plato, arma su cesta, elige un domicilio y confirma el pedido, lo paga, sigue su estado y deja una reseña cuando se lo entregan.
 - **Chef:** publica, edita, pausa y elimina sus platos, maneja su stock y sus descuentos, y avanza los pedidos que le tocan (Recibido, Cocinando, En camino, Entregado).
-- **Administrador:** aprueba o rechaza los pagos de los clientes y crea cuentas con el rol que quiera.
+- **Administrador:** aprueba o rechaza los pagos de los clientes, crea cuentas con el rol que quiera y edita el nombre, el apellido y el correo de cualquier usuario.
+
+Las tres cuentas pueden ver y editar sus propios datos en **Mi perfil** (haciendo clic en su nombre del Header).
 
 Un pedido no sale de «Pendiente de confirmación» hasta que el cliente lo paga y un administrador aprueba ese pago; recién entonces el chef puede empezar a prepararlo.
 
@@ -42,14 +44,16 @@ Un pedido no sale de «Pendiente de confirmación» hasta que el cliente lo paga
 | `/publicar/:id`      | Editar un plato                              | Chef    |
 | `/pedidos-recibidos` | Pedidos que le tocan al chef                 | Chef    |
 | `/admin`             | Administración de pagos y usuarios           | Admin   |
+| `/perfil`            | Mi perfil: ver y editar nombre, apellido y correo | Cliente, Chef, Admin |
+| cualquier otra       | Página no encontrada (404)                   | Público |
 
 `/ingreso` y `/registro` se muestran a pantalla completa, sin Header ni Footer. Las rutas privadas redirigen a `/ingreso` si no hay sesión, y al inicio si el rol no corresponde.
 
 ## Estructura de `src/`
 
 - `views/`: una vista por pantalla; tiene el estado y las llamadas a la API.
-- `components/`: piezas de interfaz reutilizables (Header, PlatoCard, Dialog, etc.). Solo reciben props y avisan hacia arriba: no hacen llamadas a la API.
-- `App.jsx` y `main.jsx`: punto de entrada. `App.jsx` define las rutas y guarda el estado compartido (sesión, cesta y avisos).
+- `components/`: piezas de interfaz reutilizables (Header, PlatoCard, Dialog, etc.), ordenadas en subcarpetas por dominio: `comunes/`, `layout/`, `platos/`, `cesta/`, `pedidos/`, `chef/` y `auth/`. Solo reciben props y avisan hacia arriba: no hacen llamadas a la API.
+- `App.jsx` y `main.jsx`: punto de entrada. `main.jsx` envuelve la app con `BrowserRouter`; `App.jsx` define las rutas y guarda el estado compartido (sesión, cesta y avisos).
 
 ## Ejecución local
 
@@ -93,6 +97,7 @@ Cosas que el front resuelve como puede mientras el backend no las ofrezca (está
 - Los platos, los perfiles de chef y los ítems de la cesta no traen el nombre del chef; las reseñas no traen el nombre del autor.
 - Un administrador puede crear usuarios con cualquier rol, pero no cambiar el rol de uno existente.
 - No hay un administrador inicial: hay que cargarlo a mano en la base de datos.
+- No hay cambio de contraseña (la vista Mi perfil edita nombre, apellido y correo) ni subida de imágenes por archivo: las fotos de los platos se cargan por URL.
 
 ## Integrantes del grupo
 

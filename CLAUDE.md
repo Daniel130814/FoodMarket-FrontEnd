@@ -283,6 +283,8 @@ export default RutaProtegida;
 | PublicarPlato                       | `/publicar`, `/publicar/:id` | CHEF                 |
 | Admin (usuarios y pagos)            | `/admin`                     | ADMIN                |
 | PedidosRecibidos                    | `/pedidos-recibidos`         | CHEF                 |
+| Perfil                              | `/perfil`                    | CLIENTE, CHEF, ADMIN |
+| NoEncontrado (404)                  | cualquier otra ruta (`*`)    | público              |
 
 Componentes compartidos, en subcarpetas de `src/components/` (imports como `../components/comunes/Button`):
 
@@ -315,8 +317,18 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
   - [x] 14d Reseñas del cliente (`POST /resenas/createResena`) en pedidos entregados.
   - [x] 14e Perfil del chef en Inicio (`GET /chef-profiles`) y `src/data/` borrada (ya no quedan datos de ejemplo).
   - [x] 14f Hero de la home con 3D de CSS (`Hero3D`: perspectiva, capas y animación, sin librerías ni `useRef`; un render 3D real con three.js queda fuera de las reglas).
+- [x] **Plan de mejoras previo a la exposición** (`PLAN-mejoras.md`, 24/10; guion de la demo en `GUION-DEMO.md`). Hecho, un commit por sub-paso:
+  - [x] 1 Ruta 404 (`NoEncontrado`, `path="*"` como última ruta).
+  - [x] 2 Legibilidad del JSX: `ContenidoAsync` (en `Inicio`, `Catalogo`, `MisPublicaciones` y `Perfil`) y funciones auxiliares en lugar de ternarios anidados (chefs de `Inicio`, `OrderTrack`). El 2.3 se salteó: `Checkout`, `PublicarPlato` y `Admin` ya resolvían carga y error con `if` + `return`.
+  - [x] 3.1 `BrowserRouter` en `main.jsx` y `AppContent` eliminado (decisión #2).
+  - [x] 4 Vista `Perfil` (`GET` y `PUT /users/me`). Sin cambio de contraseña: no hay endpoint.
+  - [x] 5 Detalle y edición de usuario en `Admin` (`GET` y `PUT /users/{id}`) con `Dialog`.
+  - [x] 6 Subcarpetas por dominio en `components/`.
+  - [x] 7 Guion de demo (`GUION-DEMO.md`).
+  - [ ] 3.2 Bajar el estado del chef (`misPlatos` y sus handlers) a `MisPublicaciones`. **Pendiente del backend:** necesita "mis platos" y `GET /platos/{id}` para el dueño en todos los estados; sin eso, borradores y pausados desaparecerían al navegar.
+  - [ ] 8 Subida de imágenes multipart. **Pendiente del backend:** necesita un endpoint que reciba `MultipartFile`.
 
-**`TODO(backend)` que quedan:** "mis platos" del chef en todos los estados; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; que `DELETE /platos/{id}` informe si borró o pausó; nombre y taller del chef en `ChefProfileResponse` (la tarjeta de Inicio muestra solo especialidad, biografía, descripción, foto y reputación); `pedidoId`, fecha y cliente en los subpedidos; `clienteNombre` en las reseñas; que un ADMIN pueda cambiar el rol de un usuario.
+**`TODO(backend)` que quedan:** "mis platos" del chef en todos los estados; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; que `DELETE /platos/{id}` informe si borró o pausó; nombre y taller del chef en `ChefProfileResponse` (la tarjeta de Inicio muestra solo especialidad, biografía, descripción, foto y reputación); `pedidoId`, fecha y cliente en los subpedidos; `clienteNombre` en las reseñas; que un ADMIN pueda cambiar el rol de un usuario; cambio de contraseña (`PUT /users/me/password` o similar); subida de imágenes por archivo (paso 8).
 
 ## 10. Antes de dar un paso por terminado
 
