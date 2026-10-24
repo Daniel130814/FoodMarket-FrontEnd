@@ -93,7 +93,6 @@ El login guarda el token JWT en el estado de `App.jsx` y en `localStorage` (clav
 
 Cosas que el front resuelve como puede mientras el backend no las ofrezca (están marcadas como `TODO(backend)` en el código):
 
-- No existe «mis platos» del chef: la lista sale de `GET /platos` filtrada por chef, así que los platos en **borrador** o **pausados** desaparecen al recargar la página.
 - Los platos, los perfiles de chef y los ítems de la cesta no traen el nombre del chef; las reseñas no traen el nombre del autor.
 - Un administrador puede crear usuarios con cualquier rol, pero no cambiar el rol de uno existente.
 - No hay un administrador inicial: hay que cargarlo a mano en la base de datos.

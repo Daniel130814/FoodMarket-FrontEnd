@@ -65,7 +65,8 @@ function App() {
   // ESTADO DE LA SESIÓN: null si no hay nadie ingresado, o { token, userId, role, nombre } con la
   // misma información que devuelve la API al hacer login (role: "CLIENTE", "CHEF" o "ADMIN").
   // Vive acá, en el padre, porque el Header y las rutas protegidas necesitan saber quién es.
-  // Sin localStorage: al recargar la página la sesión se pierde (todavía no hay persistencia).
+  // El token también se guarda en localStorage (clave jwtToken), así que al recargar la página la sesión
+  // se restaura con GET /users/me (efecto de más abajo).
   const [sesion, setSesion] = useState(null)
 
   // ESTADO: true mientras verificamos el token guardado al abrir la app. Si hay un token guardado

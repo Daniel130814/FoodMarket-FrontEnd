@@ -548,8 +548,9 @@ function Admin({ token, onSesionVencida, onAviso }) {
               </button>
             )}
 
-            {/* TODO(backend): un ADMIN todavía no puede cambiar el rol de un usuario existente (PUT /users/{id}
-                lo ignora). Por ahora solo se puede crear una cuenta nueva con el rol elegido. */}
+            {/* Pendiente del front (el backend ya lo resolvió el 24/10): cambiar el rol de un usuario existente con
+                PATCH /users/{userId}/role. PUT /users/{id} sigue ignorando el rol; por ahora solo se puede crear
+                una cuenta nueva con el rol elegido. */}
             {/* map dibuja una fila por usuario; key = id, único y estable */}
             {usuarios.map((usuario) => (
               <article

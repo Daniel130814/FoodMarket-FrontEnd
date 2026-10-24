@@ -310,7 +310,7 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
   - [x] 12.3 Cesta del servidor (POST/PUT/DELETE con estado local, sin re-GET; incluye vaciar con `DELETE /carrito`).
   - [x] 12.4 Checkout con domicilio → pedido (`GET /domicilios`, `POST createDomicilio`, `POST /carrito/checkout`).
   - [x] 12.5 Mis pedidos reales + cancelar (`GET /orders`, `PATCH /orders/{id}/cancelar`).
-- [x] **13** Vistas del chef conectadas: Mis publicaciones, Publicar/editar (fotos como URLs, categorías e ingredientes desde los catálogos), eliminar, stock y descuento. Hecho con las limitaciones del backend: sin "mis platos" (la lista sale de `GET /platos` filtrado por `chefId`, así que los `BORRADOR` y `PAUSADO` no se recuperan tras recargar) y sin `PATCH` de stock ni de estado (se usa `PUT` con el plato completo).
+- [x] **13** Vistas del chef conectadas: Mis publicaciones, Publicar/editar (fotos como URLs, categorías e ingredientes desde los catálogos), eliminar, stock y descuento. Hecho con las limitaciones del backend de entonces: sin "mis platos" (la lista salía de `GET /platos` filtrado por `chefId`; **resuelto en el 3.2 del plan de mejoras**, hoy usa `GET /platos/mis-platos`) y sin `PATCH` de stock ni de estado (se usa `PUT` con el plato completo).
 - [x] **14** Flujo completo de compra y extras (hecho). Para que un pedido salga de PENDIENTE hacen falta el pago del cliente, la aprobación de un ADMIN y que el chef avance el subpedido:
   - [x] 14a Pagos del cliente (`POST /pagos/createPago`, `GET /pagos`) en Mis pedidos.
   - [x] 14b Administración en `/admin`: pagos (aprobar, rechazar, reembolsar) y usuarios (listar y crear con rol; la API todavía no cambia roles). Incluye el componente `FormField`.
@@ -326,7 +326,7 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
   - [x] 5 Detalle y edición de usuario en `Admin` (`GET` y `PUT /users/{id}`) con `Dialog`.
   - [x] 6 Subcarpetas por dominio en `components/`.
   - [x] 7 Guion de demo (`GUION-DEMO.md`).
-  - [ ] 3.2 Bajar el estado del chef (`misPlatos` y sus handlers) a `MisPublicaciones`. **El backend ya lo permite (24/10):** `GET /platos/mis-platos` y `GET /platos/{id}` para el dueño. Falta hacerlo en el front.
+  - [x] 3.2 Estado del chef en `MisPublicaciones`: `PublicarPlato` pide su plato con `GET /platos/{id}` (3.2.a); `MisPublicaciones` tiene su lista (`GET /platos/mis-platos`), su catálogo de categorías y los handlers de stock, pausa, descuento y eliminar (3.2.b y 3.2.c, en un solo commit porque separados no funcionaban); `App` ya no guarda los platos (3.2.d). Los borradores y pausados sobreviven a la recarga. Pendiente de probar: el `DELETE` que responde "Plato pausado porque tiene historial".
   - [ ] 8 Subida de imágenes multipart. **El backend ya lo tiene (24/10):** `POST /platos/{id}/imagenes`. Falta hacerlo en el front.
   - [ ] Extras que el backend ya habilitó: cambio de contraseña en `Perfil` (`PUT /users/me/password`), cambio de rol en el detalle de usuario de `Admin` (`PATCH /users/{userId}/role`) y mostrar el `message` del `DELETE /platos/{id}`.
 

@@ -84,12 +84,17 @@ Se guarda `data.access_token` en `localStorage` con la clave `jwtToken` y en el 
 **¿Por qué los POST no van en `useEffect`?**
 Porque React Strict Mode ejecuta los efectos dos veces en desarrollo y un POST se duplicaría. Los POST, PUT, PATCH y DELETE van en el handler del evento.
 
+**Después de crear un plato vuelven a pedir la lista: ¿no es un GET repetido?**
+No. `PublicarPlato` hace un solo `POST` y navega; `MisPublicaciones` se monta de nuevo y pide `GET /platos/mis-platos`, que es el GET de una vista que se abre. La regla de la profesora prohíbe volver a pedir la colección *después de escribir en la misma pantalla*; acá la pantalla que escribe y la que lee son distintas. Dentro de `MisPublicaciones`, cada escritura (stock, descuento, eliminar) actualiza la lista local con `map` o `filter` sin ningún GET.
+
+**¿Por qué el estado del chef vive en `MisPublicaciones` y no en `App`?**
+Porque solo esa vista lo usa. `App` guarda lo compartido (sesión, cesta, aviso). Antes estaba en `App` porque el backend no devolvía borradores y esa memoria era la única fuente; con `GET /platos/mis-platos` la fuente es el backend.
+
 **¿Por qué las carpetas dentro de `components/`?**
 Para ordenar 37 componentes por dominio (`comunes`, `layout`, `platos`, `cesta`, `pedidos`, `chef`, `auth`). La regla prohíbe carpetas nuevas en `src/`, no dentro de `components/`.
 
 ## Límites conocidos (decirlos antes de que pregunten)
 
-- **Mis publicaciones no muestra borradores ni pausados después de recargar:** el backend no tiene "mis platos" y `GET /platos` solo trae publicados y agotados. Hoy el estado de esos platos vive en `App` mientras no recargues. Queda pendiente del backend.
 - **Imágenes solo por URL:** el backend no tiene subida de archivos. La subida multipart está en el plan, pero depende de un endpoint que todavía no existe.
 - **Cambio de contraseña:** no hay endpoint, así que la vista Perfil edita nombre, apellido y correo.
 - **Un ADMIN no puede cambiar el rol de un usuario existente:** la API ignora el rol en `PUT /users/{id}`.
