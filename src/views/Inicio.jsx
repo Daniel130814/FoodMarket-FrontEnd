@@ -2,11 +2,11 @@
 // Pide al backend los platos, las categorías y los perfiles de chef (GET /platos, /categories y /chef-profiles).
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import PlatoCard from '../components/PlatoCard'
-import CategoryChips from '../components/CategoryChips'
-import ChefCard from '../components/ChefCard'
-import Hero3D from '../components/Hero3D'
-import ContenidoAsync from '../components/ContenidoAsync'
+import PlatoCard from '../components/platos/PlatoCard'
+import CategoryChips from '../components/platos/CategoryChips'
+import ChefCard from '../components/platos/ChefCard'
+import Hero3D from '../components/layout/Hero3D'
+import ContenidoAsync from '../components/comunes/ContenidoAsync'
 
 // URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
 const API_URL = import.meta.env.VITE_API_URL

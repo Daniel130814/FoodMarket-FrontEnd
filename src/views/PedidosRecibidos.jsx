@@ -2,11 +2,11 @@
 // le tocan (cada pedido se reparte en un subpedido por chef) y le permite avanzarlos paso a paso:
 // Recibido > Cocinando > En camino > Entregado. El cliente ve cada avance en Mis pedidos.
 import { useEffect, useState } from 'react'
-import SubPedidoCard from '../components/SubPedidoCard'
-import Tabs from '../components/Tabs'
-import Dialog from '../components/Dialog'
-import LoadingState from '../components/LoadingState'
-import ErrorState from '../components/ErrorState'
+import SubPedidoCard from '../components/pedidos/SubPedidoCard'
+import Tabs from '../components/comunes/Tabs'
+import Dialog from '../components/comunes/Dialog'
+import LoadingState from '../components/comunes/LoadingState'
+import ErrorState from '../components/comunes/ErrorState'
 
 // URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL

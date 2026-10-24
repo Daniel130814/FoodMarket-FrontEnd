@@ -1,13 +1,13 @@
 // Vista del catálogo (ruta /catalogo). Pide los platos y las categorías al backend (GET /platos y
 // GET /categories), filtra con query params y ordena y pagina en el front (la API no tiene orden ni paginación).
 import { useEffect, useState } from 'react'
-import PlatoCard from '../components/PlatoCard'
-import SearchBar from '../components/SearchBar'
-import CategoryChips from '../components/CategoryChips'
-import Pagination from '../components/Pagination'
-import EmptyState from '../components/EmptyState'
-import Button from '../components/Button'
-import ContenidoAsync from '../components/ContenidoAsync'
+import PlatoCard from '../components/platos/PlatoCard'
+import SearchBar from '../components/platos/SearchBar'
+import CategoryChips from '../components/platos/CategoryChips'
+import Pagination from '../components/comunes/Pagination'
+import EmptyState from '../components/comunes/EmptyState'
+import Button from '../components/comunes/Button'
+import ContenidoAsync from '../components/comunes/ContenidoAsync'
 
 // URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
 const API_URL = import.meta.env.VITE_API_URL

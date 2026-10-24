@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import Button from './Button'
+import Button from '../comunes/Button'
 
 // Tarjeta de un plato (catálogo e inicio). Componente "tonto": solo recibe props y dibuja.
 // Props:

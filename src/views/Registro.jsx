@@ -4,8 +4,8 @@
 
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import Logo from '../components/Logo'
-import RoleOption from '../components/RoleOption'
+import Logo from '../components/layout/Logo'
+import RoleOption from '../components/auth/RoleOption'
 
 // URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env;
 // solo se exponen las que empiezan con VITE_. Con la URL completa (con http://) armamos cada pedido.

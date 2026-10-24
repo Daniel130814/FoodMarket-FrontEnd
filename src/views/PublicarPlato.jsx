@@ -2,13 +2,13 @@
 // Solo para el rol CHEF. Tiene los mismos campos que PlatoRequest, el cuerpo que pide la API.
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import ImageUrlList from '../components/ImageUrlList'
-import CategoryPicker from '../components/CategoryPicker'
-import IngredientRows from '../components/IngredientRows'
-import EmptyState from '../components/EmptyState'
-import Alert from '../components/Alert'
-import LoadingState from '../components/LoadingState'
-import ErrorState from '../components/ErrorState'
+import ImageUrlList from '../components/chef/ImageUrlList'
+import CategoryPicker from '../components/platos/CategoryPicker'
+import IngredientRows from '../components/platos/IngredientRows'
+import EmptyState from '../components/comunes/EmptyState'
+import Alert from '../components/comunes/Alert'
+import LoadingState from '../components/comunes/LoadingState'
+import ErrorState from '../components/comunes/ErrorState'
 
 // URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL

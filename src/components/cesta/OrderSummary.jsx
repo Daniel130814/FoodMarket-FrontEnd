@@ -1,5 +1,5 @@
 // Resumen del pedido: platos, envío y total. Se usa en views/Carrito y views/Checkout.
-import Button from './Button'
+import Button from '../comunes/Button'
 
 // Props:
 //  - units: cantidad total de porciones

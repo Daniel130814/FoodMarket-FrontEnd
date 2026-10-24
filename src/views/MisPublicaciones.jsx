@@ -1,10 +1,10 @@
 // Vista de Mis publicaciones del chef (ruta /mis-publicaciones, solo rol CHEF). Lista sus platos en cualquier estado.
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import FilterChips from '../components/FilterChips'
-import PublicationRow from '../components/PublicationRow'
-import Dialog from '../components/Dialog'
-import ContenidoAsync from '../components/ContenidoAsync'
+import FilterChips from '../components/platos/FilterChips'
+import PublicationRow from '../components/chef/PublicationRow'
+import Dialog from '../components/comunes/Dialog'
+import ContenidoAsync from '../components/comunes/ContenidoAsync'
 
 // Props:
 //  - platos: las publicaciones del chef, con la forma de PlatoResponse de la API. Vienen de App,

@@ -1,11 +1,11 @@
 // Vista de Mis pedidos (ruta /pedidos). Se abre al confirmar el pedido en el checkout.
 // Muestra los pedidos del cliente en dos pestañas (En curso / Anteriores) y permite cancelar los pendientes.
 import { useEffect, useState } from 'react'
-import OrderCard from '../components/OrderCard'
-import Tabs from '../components/Tabs'
-import Dialog from '../components/Dialog'
-import LoadingState from '../components/LoadingState'
-import ErrorState from '../components/ErrorState'
+import OrderCard from '../components/pedidos/OrderCard'
+import Tabs from '../components/comunes/Tabs'
+import Dialog from '../components/comunes/Dialog'
+import LoadingState from '../components/comunes/LoadingState'
+import ErrorState from '../components/comunes/ErrorState'
 
 // URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL

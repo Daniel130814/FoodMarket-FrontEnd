@@ -5,12 +5,12 @@
 //  - Usuarios: lista las cuentas, crea cuentas nuevas con cualquier rol (CLIENTE, CHEF o ADMIN) y abre el
 //    detalle de cada una (GET /users/{id}) para editar su nombre, apellido y correo (PUT /users/{id}).
 import { useEffect, useState } from 'react'
-import Tabs from '../components/Tabs'
-import Dialog from '../components/Dialog'
-import LoadingState from '../components/LoadingState'
-import ErrorState from '../components/ErrorState'
-import Alert from '../components/Alert'
-import FormField from '../components/FormField'
+import Tabs from '../components/comunes/Tabs'
+import Dialog from '../components/comunes/Dialog'
+import LoadingState from '../components/comunes/LoadingState'
+import ErrorState from '../components/comunes/ErrorState'
+import Alert from '../components/comunes/Alert'
+import FormField from '../components/comunes/FormField'
 
 // URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL

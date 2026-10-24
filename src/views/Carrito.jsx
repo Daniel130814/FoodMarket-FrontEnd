@@ -2,10 +2,10 @@
 // Desde acá se sigue al checkout (/checkout), donde se elige el domicilio y se confirma el pedido.
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import CartItem from '../components/CartItem'
-import OrderSummary from '../components/OrderSummary'
-import EmptyState from '../components/EmptyState'
-import Dialog from '../components/Dialog'
+import CartItem from '../components/cesta/CartItem'
+import OrderSummary from '../components/cesta/OrderSummary'
+import EmptyState from '../components/comunes/EmptyState'
+import Dialog from '../components/comunes/Dialog'
 
 // Costo de envío fijo de ejemplo (en el diseño es $3.200). Más adelante lo calcula el backend.
 const ENVIO = 3200

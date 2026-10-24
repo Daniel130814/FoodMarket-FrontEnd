@@ -1,6 +1,6 @@
 // Una fila de la lista de publicaciones del chef: foto, nombre, estado, precio, stock y acciones. Se usa en views/MisPublicaciones.
 import { Link } from 'react-router-dom'
-import QuantityStepper from './QuantityStepper'
+import QuantityStepper from '../cesta/QuantityStepper'
 
 // Cómo se ve cada estado de la API: el texto y la clase del badge. Es un objeto usado como
 // "diccionario": ESTADOS['PAUSADO'] devuelve { etiqueta: 'Pausado', clase: 'badge-sand' }.

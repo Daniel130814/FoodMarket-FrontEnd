@@ -1,9 +1,9 @@
 // Vista del perfil (ruta /perfil, para los tres roles con sesión). Muestra los datos de la cuenta y deja
 // editar nombre, apellido y correo. Pide el usuario con GET /users/me y lo guarda con PUT /users/me.
 import { useEffect, useState } from 'react'
-import ContenidoAsync from '../components/ContenidoAsync'
-import FormField from '../components/FormField'
-import Alert from '../components/Alert'
+import ContenidoAsync from '../components/comunes/ContenidoAsync'
+import FormField from '../components/comunes/FormField'
+import Alert from '../components/comunes/Alert'
 
 // URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL

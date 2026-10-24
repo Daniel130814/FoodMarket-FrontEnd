@@ -1,6 +1,6 @@
 // Protege una ruta según la sesión y el rol. Se usa en App.jsx envolviendo las vistas privadas.
 import { Navigate, useLocation } from 'react-router-dom'
-import LoadingState from './LoadingState'
+import LoadingState from '../comunes/LoadingState'
 
 // Props:
 //  - sesion: null si no hay nadie ingresado, o { token, userId, role, nombre } (viene de App)

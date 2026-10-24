@@ -2,14 +2,14 @@
 // Pide el plato y sus reseñas al backend (GET /platos/{id} y GET /resenas/plato/{id}).
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import Button from '../components/Button'
-import EmptyState from '../components/EmptyState'
-import LoadingState from '../components/LoadingState'
-import ErrorState from '../components/ErrorState'
-import Gallery from '../components/Gallery'
-import QuantityStepper from '../components/QuantityStepper'
-import IngredientTrace from '../components/IngredientTrace'
-import ReviewList from '../components/ReviewList'
+import Button from '../components/comunes/Button'
+import EmptyState from '../components/comunes/EmptyState'
+import LoadingState from '../components/comunes/LoadingState'
+import ErrorState from '../components/comunes/ErrorState'
+import Gallery from '../components/platos/Gallery'
+import QuantityStepper from '../components/cesta/QuantityStepper'
+import IngredientTrace from '../components/platos/IngredientTrace'
+import ReviewList from '../components/platos/ReviewList'
 
 // URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
 const API_URL = import.meta.env.VITE_API_URL

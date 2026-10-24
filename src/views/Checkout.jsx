@@ -1,13 +1,13 @@
 // Vista de checkout (ruta /checkout). Se abre desde la Cesta: se elige el domicilio de entrega y se confirma el pedido.
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import DomicilioPicker from '../components/DomicilioPicker'
-import DomicilioForm from '../components/DomicilioForm'
-import OrderSummary from '../components/OrderSummary'
-import EmptyState from '../components/EmptyState'
-import Alert from '../components/Alert'
-import LoadingState from '../components/LoadingState'
-import ErrorState from '../components/ErrorState'
+import DomicilioPicker from '../components/cesta/DomicilioPicker'
+import DomicilioForm from '../components/cesta/DomicilioForm'
+import OrderSummary from '../components/cesta/OrderSummary'
+import EmptyState from '../components/comunes/EmptyState'
+import Alert from '../components/comunes/Alert'
+import LoadingState from '../components/comunes/LoadingState'
+import ErrorState from '../components/comunes/ErrorState'
 
 // Costo de envío fijo de ejemplo (el mismo valor que en la Cesta). La API todavía no lo calcula.
 const ENVIO = 3200
