@@ -207,6 +207,8 @@ function MisPublicaciones({ token, onSesionVencida, onAviso }) {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }, // ruta privada
     })
+      // Acá NO usamos leerRespuesta: necesitamos el "message" (el DELETE responde data: null) para saber
+      // si el plato se borró o quedó pausado.
       .then((response) =>
         response.json().then((cuerpo) => {
           if (!response.ok) {
