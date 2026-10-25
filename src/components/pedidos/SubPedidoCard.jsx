@@ -1,19 +1,11 @@
-// Tarjeta de un subpedido (la parte de un pedido que le toca a un chef): seguimiento de estado, platos y
-// el botón para avanzarlo. Se usa en views/PedidosRecibidos.
+// Tarjeta de un subpedido (la parte de un pedido que le toca a un chef) para views/PedidosRecibidos.
 import OrderTrack from './OrderTrack'
 
-// Props:
-//  - subPedido: subpedido con la forma de SubPedidoChefResponse de la API
-//    { id, chefId, chefNombre, estado, subtotal, detalles: [{ id, platoId, platoNombre, cantidad, precioUnitario, subtotal }] }
-//  - steps: pasos del seguimiento [{ estado, etiqueta }] (los arma el padre con los textos amigables)
-//  - accion: { boton } con el texto del botón que avanza al paso siguiente, o null si ya no se puede avanzar
-//  - onAdvance: función del padre (subPedido); se llama al tocar el botón. La tarjeta no avanza nada:
-//    solo avisa "quiero avanzar este subpedido".
+// Props: subPedido (SubPedidoChefResponse), steps (pasos { estado, etiqueta }), accion ({ boton } o null si no se
+// puede avanzar), onAdvance (subPedido).
 function SubPedidoCard({ subPedido, steps, accion, onAdvance }) {
-  // Formatea el importe en pesos con separadores argentinos, igual que en el resto de la app.
   const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
 
-  // Cantidad de porciones: reduce suma la cantidad de cada detalle.
   const cantidadTotal = subPedido.detalles.reduce((acumulado, detalle) => acumulado + detalle.cantidad, 0)
 
   return (
@@ -28,7 +20,6 @@ function SubPedidoCard({ subPedido, steps, accion, onAdvance }) {
         </div>
       </header>
 
-      {/* Renderizado condicional: un subpedido cancelado no tiene seguimiento, solo su badge */}
       <div className="mt-7">
         {subPedido.estado === 'CANCELADO' ? (
           <span className="badge badge-terra">Cancelado</span>
@@ -37,7 +28,6 @@ function SubPedidoCard({ subPedido, steps, accion, onAdvance }) {
         )}
       </div>
 
-      {/* Los platos de este subpedido. map: un <li> por detalle; key = id del detalle */}
       <ul className="mt-7 border-t border-hairline pt-5">
         {subPedido.detalles.map((detalle) => (
           <li key={detalle.id} className="flex justify-between gap-4 text-body-sm text-primary">
@@ -47,7 +37,7 @@ function SubPedidoCard({ subPedido, steps, accion, onAdvance }) {
         ))}
       </ul>
 
-      {/* Renderizado condicional: según el estado, el botón de avanzar o una explicación */}
+      {/* El botón de avanzar o, si no se puede, una explicación */}
       {accion !== null && (
         <div className="mt-5 flex justify-end">
           <button type="button" className="btn btn-primary btn-sm" onClick={() => onAdvance(subPedido)}>
