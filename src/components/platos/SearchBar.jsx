@@ -1,11 +1,6 @@
-// Barra de búsqueda por nombre de plato. Se usa en views/Catalogo.
-// Componente "tonto": no guarda el texto, el padre manda el valor y recibe los cambios.
+// Barra de búsqueda por nombre de plato. No guarda el texto: lo manda el padre.
 
-// Props:
-//  - value: texto que muestra el campo (lo guarda el padre con useState)
-//  - onChange: función del padre; recibe el evento del input (el padre lee event.target)
-//  - name: nombre del campo en el estado del padre (así un solo handler sirve para varios inputs)
-//  - placeholder: texto de ayuda cuando el campo está vacío
+// Props: value, onChange (recibe el evento), name (para que un solo handler sirva a varios inputs), placeholder.
 function SearchBar({ value, onChange, name = 'nombre', placeholder = 'Buscar plato' }) {
   return (
     <div role="search" className="relative block">
@@ -17,7 +12,6 @@ function SearchBar({ value, onChange, name = 'nombre', placeholder = 'Buscar pla
         >
           search
         </span>
-        {/* Input "controlado": React decide qué texto muestra (value) y avisa cada cambio (onChange) */}
         <input
           type="search"
           name={name}
