@@ -1,24 +1,14 @@
-// Lista de campos de URL de imágenes, con vista previa y botones para agregar y quitar.
-// Se usa en views/PublicarPlato, junto a ImageFilePicker: la API acepta imágenes como URLs de texto y,
-// desde el 24/10, también como archivos subidos.
-// Componente "tonto": las URLs y las funciones vienen del padre.
+// Lista de campos de URL de imágenes, con vista previa y botones para agregar y quitar (convive con ImageFilePicker).
 
-// Props:
-//  - urls: array de textos, uno por campo (lo guarda el padre con useState)
-//  - onChange: función del padre (posición, nuevoTexto); se llama al escribir en un campo
-//  - onAdd: función del padre sin argumentos; agrega un campo vacío
-//  - onRemove: función del padre (posición); quita ese campo
-//  - error: texto del error de las imágenes, o null si no hay
+// Props: urls (un texto por campo), onChange (posición, texto), onAdd (agrega un campo vacío), onRemove (posición), error (texto o null).
 function ImageUrlList({ urls, onChange, onAdd, onRemove, error }) {
   return (
     <fieldset>
       <legend className="label">Imágenes (URL)</legend>
       <ul className="space-y-3">
-        {/* map: un campo por URL. Estos campos no tienen un id propio, así que usamos la posición
-            (index) como key. Es correcto acá porque los valores son "controlados" por el padre. */}
+        {/* Los campos no tienen id propio: la posición hace de key (válido porque el padre controla los valores) */}
         {urls.map((url, index) => (
           <li key={index} className="flex items-center gap-3">
-            {/* Vista previa: solo si el campo tiene texto */}
             {url.trim() !== '' ? (
               <img src={url} alt={`Vista previa de la imagen ${index + 1}`} className="h-12 w-12 flex-none rounded-md object-cover" />
             ) : (
