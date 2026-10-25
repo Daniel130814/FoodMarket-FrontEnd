@@ -229,7 +229,7 @@ details.faq summary::-webkit-details-marker { display: none; }
 .rise-3 { animation-delay: 0.16s; }
 .settle { animation: settle 0.9s var(--ease) 0.1s both; }
 
-/* ---------- Hero con 3D de CSS (paso 14f) ----------
+/* ---------- Hero con 3D de CSS ----------
    Capas a distintas profundidades dentro de una escena con perspectiva. Cada nivel que contiene capas 3D
    necesita transform-style: preserve-3d; si no, el navegador las aplana. Nada de JavaScript: es solo CSS. */
 @keyframes hero-float {

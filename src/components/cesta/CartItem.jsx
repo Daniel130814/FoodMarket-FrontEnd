@@ -1,9 +1,8 @@
 // Una línea del carrito: nombre, selector de cantidad y botón Quitar. Se usa en views/Carrito.
 import QuantityStepper from './QuantityStepper'
 
-// Tope del selector de cantidad. La API no manda el stock en los ítems del carrito, así que el
-// selector no conoce el stock real; App rechaza (con un aviso) lo que supere el stock.
-// TODO (paso 12): en producción el backend responde 400 si no hay stock suficiente.
+// Tope del selector de cantidad. La API no manda el stock en los ítems del carrito, así que el selector
+// no conoce el stock real: si la cantidad lo supera, el backend responde 400 y App muestra su mensaje.
 const CANTIDAD_MAXIMA = 99
 
 // Props:
@@ -17,8 +16,7 @@ function CartItem({ item, onQuantityChange, onRemove }) {
 
   return (
     <li className="flex gap-4 py-5 first:pt-0 last:pb-0">
-      {/* TODO(backend): imagenUrl, stockDisponible y chefNombre en los ítems del carrito; usamos un placeholder.
-          En el paso 12 se puede buscar la foto con GET /platos/{platoId}. */}
+      {/* TODO(backend): imagenUrl, stockDisponible y chefNombre en los ítems del carrito; usamos un placeholder. */}
       <div
         className="grid h-20 w-20 flex-none place-items-center rounded-md bg-surface-container text-on-surface-variant sm:h-[104px] sm:w-[104px]"
         aria-hidden="true"
