@@ -1,10 +1,7 @@
-// Pie del listado: cuántos platos se ven, barra de progreso y botón "Ver más". Se usa en views/Catalogo.
+// Pie del listado: cuántos platos se ven, barra de progreso y botón "Ver más".
 import Button from './Button'
 
-// Props:
-//  - shown: cuántos platos se están mostrando ahora
-//  - total: cuántos platos hay en total (ya filtrados)
-//  - onMore: función del padre; se llama al tocar "Ver más" (el padre sube la página actual)
+// Props: shown (platos visibles), total (ya filtrados), onMore (el padre sube la página).
 function Pagination({ shown, total, onMore }) {
   const remaining = total - shown
   const percent = (shown / total) * 100
