@@ -1,11 +1,7 @@
 // Pantalla de "no hay nada para mostrar" con un botón de salida.
-// Se usa en views/Carrito, Catalogo, Checkout, DetallePlato y PublicarPlato.
 import Button from './Button'
 
-// Props:
-//  - title / message: textos del aviso
-//  - actionLabel: texto del botón
-//  - onAction: función que se ejecuta al tocar el botón
+// Props: title, message, actionLabel (texto del botón), onAction.
 function EmptyState({ title, message, actionLabel, onAction }) {
   return (
     <div className="mx-auto mt-10 max-w-md py-16 text-center">
