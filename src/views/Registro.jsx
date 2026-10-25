@@ -11,9 +11,9 @@ import RoleOption from '../components/auth/RoleOption'
 // solo se exponen las que empiezan con VITE_. Con la URL completa (con http://) armamos cada pedido.
 const API_URL = import.meta.env.VITE_API_URL
 
-// Lee la respuesta del backend y decide si fue éxito o error. fetch NO manda los errores HTTP (400, 401,
-// 500...) al .catch(), por eso miramos response.ok nosotros: si falló lanzamos un Error con el "message"
-// del backend y su status. La API envuelve todo en { success, message, data }: lo que sirve está en data.
+// Lee la respuesta del backend; se usa como .then(leerRespuesta). fetch NO manda los errores HTTP al
+// .catch(), por eso revisamos response.ok: si falló lanza un Error con el message y el status del backend.
+// La API envuelve todo en { success, message, data }: lo que sirve está en data.
 const leerRespuesta = (response) =>
   response.json().then((cuerpo) => {
     if (!response.ok) {
@@ -59,10 +59,8 @@ function Registro({ onLogin }) {
 
   const navigate = useNavigate()
 
-  // Un único handler para todos los inputs y radios. event.target es el campo que cambió:
-  // name dice cuál es ('nombre', 'email', 'tipoCuenta'...) y value es lo que tiene ahora.
-  // [name]: value es una "clave calculada": usa el valor de name como clave del objeto.
-  // ...datos copia los campos anteriores (el estado no se modifica, se reemplaza por uno nuevo).
+  // Un único handler para todos los inputs y radios: event.target.name dice qué campo cambió y value lo que
+  // tiene ahora. Igual que en Ingreso, [name]: value es una "clave calculada" y ...datos copia lo anterior.
   const handleChange = (event) => {
     const { name, value } = event.target
     setDatos({ ...datos, [name]: value })
@@ -127,10 +125,9 @@ function Registro({ onLogin }) {
     setErrorGeneral('')
     setEnviando(true)
 
-    // POST al backend. Va dentro de este handler (se ejecuta una vez por envío) y NUNCA en un
-    // useEffect: un efecto puede correr más de una vez y crearía cuentas duplicadas.
-    // fetch devuelve una promesa: algo que se resuelve más tarde. Se encadena con .then()
-    // (cuando llega la respuesta), .catch() (si algo falla) y .finally() (pase lo que pase).
+    // POST al backend, dentro del handler y NUNCA en un useEffect: un efecto puede correr más de una vez
+    // y crearía cuentas duplicadas. fetch devuelve una promesa: .then() corre cuando llega la respuesta,
+    // .catch() si algo falla y .finally() pase lo que pase.
     fetch(`${API_URL}/api/v1/auth/register`, {
       method: 'POST',
       // headers (en plural) avisa que mandamos JSON; JSON.stringify pasa el objeto a texto JSON.
@@ -145,8 +142,8 @@ function Registro({ onLogin }) {
         navigate(destino)
       })
       .catch((fallo) => {
-        // Un error con status viene del backend (por ejemplo el 400 "usuario ya existe"): mostramos
-        // su mensaje. Sin status, ni siquiera llegamos al servidor (está apagado o hay un bloqueo).
+        // Con status el error viene del backend (por ejemplo el 400 "usuario ya existe"): mostramos su
+        // mensaje. Sin status, ni llegamos al servidor.
         setErrorGeneral(
           fallo.status === undefined
             ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
