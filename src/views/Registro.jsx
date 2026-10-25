@@ -11,6 +11,19 @@ import RoleOption from '../components/auth/RoleOption'
 // solo se exponen las que empiezan con VITE_. Con la URL completa (con http://) armamos cada pedido.
 const API_URL = import.meta.env.VITE_API_URL
 
+// Lee la respuesta del backend y decide si fue éxito o error. fetch NO manda los errores HTTP (400, 401,
+// 500...) al .catch(), por eso miramos response.ok nosotros: si falló lanzamos un Error con el "message"
+// del backend y su status. La API envuelve todo en { success, message, data }: lo que sirve está en data.
+const leerRespuesta = (response) =>
+  response.json().then((cuerpo) => {
+    if (!response.ok) {
+      const fallo = new Error(cuerpo.message)
+      fallo.status = response.status
+      throw fallo
+    }
+    return cuerpo.data
+  })
+
 // Props:
 //  - onLogin: función (sesion) que viene de App (iniciarSesion). Cuando el backend crea la cuenta
 //    le pasamos la sesión { token, userId, role, nombre } con lo que respondió la API.
@@ -124,19 +137,7 @@ function Registro({ onLogin }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(cuerpoPedido),
     })
-      .then((response) =>
-        // Leemos el cuerpo y recién ahí decidimos si fue éxito o error, porque fetch NO manda los
-        // errores HTTP (400, 401, 500...) al .catch(): hay que mirar response.ok nosotros.
-        response.json().then((respuesta) => {
-          if (!response.ok) {
-            const fallo = new Error(respuesta.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          // La API envuelve todo en { success, message, data }: lo que nos sirve está en data.
-          return respuesta.data
-        })
-      )
+      .then(leerRespuesta)
       .then((data) => {
         // data trae { access_token, userId, role } (ojo: access_token, no token). El nombre no
         // viene en la respuesta, así que usamos el que escribió la persona en el formulario.
