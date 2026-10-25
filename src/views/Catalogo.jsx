@@ -19,9 +19,8 @@ const PLATOS_POR_PAGINA = 6
 // Los precios se guardan como TEXTO porque vienen de inputs; se mandan tal cual en la URL.
 const FILTROS_INICIALES = { nombre: '', categoriaId: null, precioMin: '', precioMax: '' }
 
-// Lee una respuesta del backend y devuelve lo que viene en "data". Si el servidor respondió con un
-// error (400, 404, 500...) lanza un Error con el "message" del backend y el código en "status".
-// Hace falta porque fetch NO manda los errores HTTP al .catch(): hay que mirar response.ok nosotros.
+// Lee la respuesta del backend; se usa como .then(leerRespuesta). fetch NO manda los errores HTTP al
+// .catch(), por eso revisamos response.ok: si falló lanza un Error con el message y el status del backend.
 const leerRespuesta = (response) =>
   response.json().then((cuerpo) => {
     if (!response.ok) {
@@ -32,12 +31,9 @@ const leerRespuesta = (response) =>
     return cuerpo.data
   })
 
-// ORDEN (se queda en el front: la API NO tiene ordenamiento).
-// .sort() modifica el array original, y el estado nunca se modifica; por eso primero hacemos una
-// COPIA con [...platos] y ordenamos la copia.
-// sort llama a una función de comparación con dos platos (a, b):
-//   - devuelve un número negativo si 'a' va antes que 'b'
-//   - positivo si 'a' va después, y 0 si da igual.
+// ORDEN (se queda en el front: la API NO tiene ordenamiento). .sort() modifica el array original y el
+// estado nunca se modifica: por eso ordenamos una COPIA con [...platos]. sort llama a una función de
+// comparación con dos platos (a, b): negativo si 'a' va antes, positivo si va después, 0 si da igual.
 const ordenarPlatos = (platos, orden) => {
   const copia = [...platos]
   if (orden === 'precio-asc') {
@@ -74,10 +70,8 @@ function Catalogo({ onAdd }) {
   const [platos, setPlatos] = useState([])
   const [categorias, setCategorias] = useState([])
 
-  // ESTADOS de carga y error de la lista de platos.
-  //  - cargando: true hasta que llega la primera respuesta.
-  //  - error: null si todo está bien, o el texto del error si la API falló.
-  // Si las categorías fallan, solo avisamos debajo de los chips (la lista de platos igual se puede usar).
+  // ESTADOS de carga y error de la lista de platos (cargando arranca en true; error es null o el texto).
+  // Si las categorías fallan, solo avisamos debajo de los chips: la lista igual se puede usar.
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
   const [errorCategorias, setErrorCategorias] = useState(false)
@@ -101,8 +95,7 @@ function Catalogo({ onAdd }) {
   const precioMin = errorPrecios === null ? filtros.precioMin.trim() : ''
   const precioMax = errorPrecios === null ? filtros.precioMax.trim() : ''
 
-  // CATEGORÍAS: se piden una sola vez, al abrir la vista ([] = sin dependencias). Es un GET, por
-  // eso va en un useEffect. Es una ruta pública: NO mandamos el token.
+  // CATEGORÍAS: se piden una sola vez, al abrir la vista ([] = sin dependencias). Ruta pública: NO mandamos el token.
   useEffect(() => {
     fetch(`${API_URL}/categories`)
       .then(leerRespuesta)
@@ -115,8 +108,8 @@ function Catalogo({ onAdd }) {
   // argumento de useEffect lista los filtros: React vuelve a ejecutar el efecto cuando alguno cambia.
   // El filtrado lo hace el backend: mandamos los filtros como query params (?nombre=...&categoriaId=...).
   useEffect(() => {
-    // AbortController permite cancelar un pedido en curso. Si el usuario sigue escribiendo, el pedido
-    // anterior se cancela y no puede llegar tarde y pisar el resultado del pedido nuevo.
+    // AbortController cancela un pedido en curso: si el usuario sigue escribiendo, el anterior no puede
+    // llegar tarde y pisar el resultado del nuevo.
     const controlador = new AbortController()
 
     // URLSearchParams arma el texto de los query params y se encarga de codificar los caracteres
@@ -152,9 +145,8 @@ function Catalogo({ onAdd }) {
     return () => controlador.abort()
   }, [nombre, categoriaId, precioMin, precioMax])
 
-  // Handler de los inputs de texto y precio. event.target.name dice qué filtro cambió (nombre,
-  // precioMin, precioMax) y value es lo que escribió el usuario. [name]: value es una "clave
-  // calculada". Al cambiar un filtro volvemos a la página 1, porque la lista cambió.
+  // Handler de los inputs de texto y precio: event.target.name dice qué filtro cambió y value lo que escribió
+  // el usuario. Al cambiar un filtro volvemos a la página 1, porque la lista cambió.
   const handleFiltroChange = (event) => {
     const { name, value } = event.target
     setFiltros({ ...filtros, [name]: value })
