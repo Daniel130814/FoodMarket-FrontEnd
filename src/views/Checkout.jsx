@@ -1,4 +1,4 @@
-// Vista de checkout (ruta /checkout). Se abre desde la Cesta: se elige el domicilio de entrega y se confirma el pedido.
+// Checkout (/checkout, CLIENTE): se elige o crea el domicilio de entrega y se confirma el pedido.
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import DomicilioPicker from '../components/cesta/DomicilioPicker'
@@ -9,21 +9,18 @@ import Alert from '../components/comunes/Alert'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
 
-// Costo de envío fijo de ejemplo (el mismo valor que en la Cesta). La API todavía no lo calcula.
+// Envío fijo de ejemplo, igual que en la Cesta (la API todavía no lo calcula).
 const ENVIO = 3200
 
-// URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL
 
-// Texto de un error de fetch para mostrárselo al usuario: el "message" del backend si respondió con un
-// error, o uno claro si ni llegamos al servidor (apagado, sin red; ahí el error no tiene status).
+// Mensaje de un error de fetch: el del backend, o uno claro si no hubo respuesta (el error no tiene status).
 const mensajeDe = (fallo) =>
   fallo.status === undefined
     ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
     : fallo.message
 
-// Lee la respuesta del backend; se usa como .then(leerRespuesta). fetch NO manda los errores HTTP al
-// .catch(), por eso revisamos response.ok: si falló lanza un Error con el message y el status del backend.
+// Devuelve `data` o lanza un Error con message y status (fetch no manda los errores HTTP al .catch).
 const leerRespuesta = (response) =>
   response.json().then((cuerpo) => {
     if (!response.ok) {
@@ -34,7 +31,6 @@ const leerRespuesta = (response) =>
     return cuerpo.data
   })
 
-// Formulario de domicilio vacío: todos los campos como texto vacío.
 const FORM_VACIO = {
   calle: '',
   numero: '',
@@ -46,53 +42,40 @@ const FORM_VACIO = {
   indicacionesEntrega: '',
 }
 
-// Campos que la API exige (@NotBlank). Los demás son opcionales.
+// Campos obligatorios para la API; los demás son opcionales.
 const CAMPOS_OBLIGATORIOS = ['calle', 'numero', 'ciudad', 'provincia', 'codigoPostal']
 
-// Props (vienen de App):
-//  - carrito: { id, items, totalEstimado } con la forma de CarritoResponse de la API
-//  - cartCount: total de unidades (ya calculado por App)
-//  - token: el JWT de la sesión, para las llamadas privadas (GET y POST de domicilios)
-//  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
-//  - onPedidoCreado: función (pedido) de App. Checkout hace el POST y, si el backend responde bien, se la llama:
-//    App vacía la copia local de la cesta y avisa (por ahora no usa el pedido).
+// Props: carrito, cartCount (unidades), token (JWT), onSesionVencida (401), onPedidoCreado (App vacía su copia de la cesta).
 function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }) {
   const navigate = useNavigate()
   const { items, totalEstimado } = carrito
 
-  // ESTADOS de carga y error del GET de domicilios. Arranca cargando.
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
 
-  // ESTADO: los domicilios guardados. Viven acá porque esta vista es el padre de DomicilioPicker
-  // y DomicilioForm (ellos solo reciben datos y avisan cambios).
   const [domicilios, setDomicilios] = useState([])
 
-  // ESTADO: mensaje de error del POST de un domicilio nuevo (null si no hay).
   const [errorDomicilio, setErrorDomicilio] = useState(null)
 
-  // ESTADO: id del domicilio elegido, o null si todavía no eligió ninguno.
   const [domicilioElegidoId, setDomicilioElegidoId] = useState(null)
 
-  // ESTADOS del formulario de domicilio nuevo: si está abierto, sus datos y sus errores por campo.
+  // Formulario de domicilio nuevo: abierto, datos y errores por campo.
   const [mostrarForm, setMostrarForm] = useState(false)
   const [formDomicilio, setFormDomicilio] = useState(FORM_VACIO)
   const [erroresForm, setErroresForm] = useState({})
 
-  // ESTADO: mensajes de error al confirmar (stock insuficiente, plato no publicado...). Lista vacía = sin errores.
+  // Errores al confirmar el pedido (stock insuficiente, plato no publicado...).
   const [conflictos, setConflictos] = useState([])
 
-  // ESTADO: true mientras esperamos la respuesta del checkout. Deshabilita el botón para que un
-  // doble clic no cree dos pedidos.
+  // Confirmación en curso: deshabilita el botón para que un doble clic no cree dos pedidos.
   const [confirmando, setConfirmando] = useState(false)
 
-  // GET /domicilios al abrir la vista. Con [token] solo se repite si cambia el token (el efecto no lo modifica).
+  // Al abrir: GET /domicilios.
   useEffect(() => {
     fetch(`${API_URL}/domicilios`, { headers: { Authorization: `Bearer ${token}` } })
       .then(leerRespuesta)
       .then((data) => setDomicilios(data ?? [])) // lista vacía llega como null
       .catch((fallo) => {
-        // 401: el token ya no sirve; App cierra la sesión y la ruta protegida nos manda a /ingreso.
         if (fallo.status === 401) {
           onSesionVencida()
           return
@@ -100,13 +83,10 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
         setError(mensajeDe(fallo))
       })
       .finally(() => setCargando(false))
-  // onSesionVencida queda afuera de las dependencias a propósito: App la crea de nuevo en cada render y
-  // el GET se repetiría sin parar (se resuelve con useCallback cuando se vea en clase).
+  // onSesionVencida queda afuera de las dependencias: App la recrea en cada render y el GET se repetiría.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
-  // Renderizado condicional: si estamos cargando o hubo un error, mostramos eso y cortamos acá.
-  // Los hooks (useState) siempre van ANTES de estos return.
   if (cargando) {
     return <LoadingState message="Cargando tus domicilios..." />
   }
@@ -114,7 +94,6 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
     return <ErrorState message={error} />
   }
 
-  // Sin ítems no hay nada que comprar.
   if (items.length === 0) {
     return (
       <EmptyState
@@ -126,8 +105,7 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
     )
   }
 
-  // Un único handler para todos los inputs del formulario: event.target.name dice qué campo
-  // cambió y value qué escribió el usuario ([name]: value es una "clave calculada").
+  // Handler de los inputs del formulario de domicilio.
   const handleFormChange = (event) => {
     const { name, value } = event.target
     setFormDomicilio({ ...formDomicilio, [name]: value })
@@ -136,19 +114,17 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
     }
   }
 
-  // Guarda el domicilio nuevo. Valida los campos obligatorios igual que la API.
+  // Guarda el domicilio nuevo (POST) tras validar los obligatorios, y lo suma a la lista sin volver a pedirla.
   const guardarDomicilio = (event) => {
     event.preventDefault()
 
-    // filter se queda con los obligatorios que están vacíos; Object.fromEntries arma un objeto
-    // { campo: mensaje } a partir de una lista de pares [campo, mensaje].
     const faltantes = CAMPOS_OBLIGATORIOS.filter((nombre) => formDomicilio[nombre].trim() === '')
     if (faltantes.length > 0) {
       setErroresForm(Object.fromEntries(faltantes.map((nombre) => [nombre, 'Este dato es obligatorio.'])))
       return
     }
 
-    // Los opcionales vacíos se mandan como null, como los devuelve la API.
+    // Los opcionales vacíos van como null, como los devuelve la API.
     const opcional = (valor) => (valor.trim() === '' ? null : valor.trim())
 
     const datos = {
@@ -162,7 +138,6 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
       indicacionesEntrega: opcional(formDomicilio.indicacionesEntrega),
     }
 
-    // POST /domicilios/createDomicilio, dentro del handler del submit.
     fetch(`${API_URL}/domicilios/createDomicilio`, {
       method: 'POST',
       headers: {
@@ -172,7 +147,6 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
       body: JSON.stringify(datos),
     })
       .then(leerRespuesta)
-      // Sumamos el domicilio creado (con el id que asignó el backend) SIN volver a pedir la lista.
       .then((creado) => {
         setDomicilios((actuales) => [...actuales, creado])
         setDomicilioElegidoId(creado.id)
@@ -197,9 +171,8 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
     setErroresForm({})
   }
 
-  // Confirmar pedido (el botón ya está deshabilitado sin domicilio elegido). POST /carrito/checkout: el
-  // backend valida el stock, lo descuenta, arma un subpedido por chef, vacía la cesta del servidor y
-  // devuelve el pedido.
+  // Confirma el pedido (POST /carrito/checkout): el backend valida y descuenta el stock, arma un subpedido por chef
+  // y vacía la cesta del servidor.
   const confirmar = () => {
     setConfirmando(true)
     setConflictos([])
@@ -214,7 +187,6 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
     })
       .then(leerRespuesta)
       .then((pedido) => {
-        // App suma el pedido y vacía la cesta; nosotros vamos a "Mis pedidos".
         onPedidoCreado(pedido)
         navigate('/pedidos')
       })
@@ -223,7 +195,6 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
           onSesionVencida()
           return
         }
-        // 400 (stock insuficiente, carrito vacío...), 403, 404: mostramos el mensaje del backend.
         setConflictos([mensajeDe(fallo)])
         setConfirmando(false)
       })
@@ -237,7 +208,6 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
       </Link>
       <h1 className="mt-4 font-display text-display-lg-mobile text-primary lg:text-[52px] lg:leading-[56px]">Finalizar compra</h1>
 
-      {/* Renderizado condicional: el aviso solo aparece si hay conflictos */}
       {conflictos.length > 0 && (
         <div className="mt-6">
           <Alert title="No pudimos confirmar tu pedido" messages={conflictos} />
@@ -248,7 +218,6 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
         <div className="lg:col-span-8">
           <DomicilioPicker domicilios={domicilios} selectedId={domicilioElegidoId} onSelect={setDomicilioElegidoId} />
 
-          {/* El formulario se muestra o se esconde según el estado mostrarForm (nada de DOM) */}
           {mostrarForm ? (
             <>
               {errorDomicilio !== null && (
@@ -272,7 +241,6 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
             </div>
           )}
 
-          {/* Mientras no haya domicilio elegido, explicamos por qué el botón está deshabilitado */}
           {domicilioElegidoId === null && (
             <p className="mt-4 text-body-sm text-on-surface-variant">Elegí un domicilio para poder confirmar el pedido.</p>
           )}
