@@ -1,10 +1,8 @@
-// Pantalla de "algo salió mal". Se usa en las views que van a pedir datos al backend.
+// Pantalla de "algo salió mal" para las vistas que piden datos al backend.
 
-// Props:
-//  - message: texto del error a mostrar (por ejemplo, el "message" que responde la API)
+// Props: message (texto del error, por ejemplo el de la API).
 function ErrorState({ message }) {
   return (
-    // role="alert" hace que los lectores de pantalla lo anuncien apenas aparece
     <div role="alert" className="mx-auto mt-10 max-w-md py-16 text-center">
       <span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-error-container text-on-error-container">
         <span className="material-symbols-outlined fill text-[36px]" aria-hidden="true">error</span>
