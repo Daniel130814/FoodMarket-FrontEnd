@@ -366,6 +366,16 @@ function App() {
     agregar(plato, cantidad)
   }
 
+  // Envuelve una vista con RutaProtegida, para no repetir las mismas props en cada ruta privada.
+  // Recibe la lista de roles que pueden entrar y la vista (ya armada con sus props); devuelve el
+  // elemento para el "element" de la ruta. No es un componente (no lleva mayúscula): es una función
+  // que devuelve JSX, igual que pantalla() más abajo.
+  const protegida = (roles, vista) => (
+    <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={roles}>
+      {vista}
+    </RutaProtegida>
+  )
+
   // Decide qué pantalla dibujar según la ruta actual. Cada if con return corta en el primer caso.
   const pantalla = () => {
     // Las vistas de autenticación ocupan toda la pantalla y traen su propio encabezado
@@ -380,6 +390,17 @@ function App() {
       )
     }
 
+    // PublicarPlato se usa en dos rutas (crear y editar): lo armamos una sola vez y lo reutilizamos.
+    const formularioPlato = protegida(
+      ['CHEF'],
+      <PublicarPlato
+        token={sesion?.token}
+        userId={sesion?.userId}
+        onSesionVencida={sesionVencida}
+        onAviso={setAviso}
+      />
+    )
+
     return (
       <>
         <a className="skip-link" href="#contenido">Ir al contenido</a>
@@ -392,120 +413,86 @@ function App() {
             {/* ":id" es un parámetro: /plato/1, /plato/2... todas muestran DetallePlato */}
             <Route path="/plato/:id" element={<DetallePlato onAdd={agregarSegunSesion} />} />
 
-            {/* Rutas del CLIENTE: RutaProtegida decide si muestra la vista o redirige */}
+            {/* Rutas del CLIENTE: protegida() decide si muestra la vista o redirige */}
             <Route
               path="/cesta"
-              element={
-                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE']}>
-                  <Carrito
-                    carrito={carrito}
-                    cartCount={cantidadTotal}
-                    onQuantityChange={cambiarCantidad}
-                    onRemove={quitar}
-                    onClear={vaciar}
-                  />
-                </RutaProtegida>
-              }
+              element={protegida(
+                ['CLIENTE'],
+                <Carrito
+                  carrito={carrito}
+                  cartCount={cantidadTotal}
+                  onQuantityChange={cambiarCantidad}
+                  onRemove={quitar}
+                  onClear={vaciar}
+                />
+              )}
             />
             <Route
               path="/checkout"
-              element={
-                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE']}>
-                  <Checkout
-                    carrito={carrito}
-                    cartCount={cantidadTotal}
-                    token={sesion?.token}
-                    onSesionVencida={sesionVencida}
-                    onPedidoCreado={pedidoCreado}
-                  />
-                </RutaProtegida>
-              }
+              element={protegida(
+                ['CLIENTE'],
+                <Checkout
+                  carrito={carrito}
+                  cartCount={cantidadTotal}
+                  token={sesion?.token}
+                  onSesionVencida={sesionVencida}
+                  onPedidoCreado={pedidoCreado}
+                />
+              )}
             />
             <Route
               path="/pedidos"
-              element={
-                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE']}>
-                  <MisPedidos token={sesion?.token} onSesionVencida={sesionVencida} onAviso={setAviso} />
-                </RutaProtegida>
-              }
+              element={protegida(
+                ['CLIENTE'],
+                <MisPedidos token={sesion?.token} onSesionVencida={sesionVencida} onAviso={setAviso} />
+              )}
             />
 
             {/* Rutas del CHEF */}
             <Route
               path="/mis-publicaciones"
-              element={
-                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
-                  <MisPublicaciones token={sesion?.token} onSesionVencida={sesionVencida} onAviso={setAviso} />
-                </RutaProtegida>
-              }
+              element={protegida(
+                ['CHEF'],
+                <MisPublicaciones token={sesion?.token} onSesionVencida={sesionVencida} onAviso={setAviso} />
+              )}
             />
-
-            {/* Pedidos que le tocan al chef (paso 14c): ve sus subpedidos y los avanza */}
             <Route
               path="/pedidos-recibidos"
-              element={
-                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
-                  <PedidosRecibidos
-                    token={sesion?.token}
-                    userId={sesion?.userId}
-                    onSesionVencida={sesionVencida}
-                    onAviso={setAviso}
-                  />
-                </RutaProtegida>
-              }
+              element={protegida(
+                ['CHEF'],
+                <PedidosRecibidos
+                  token={sesion?.token}
+                  userId={sesion?.userId}
+                  onSesionVencida={sesionVencida}
+                  onAviso={setAviso}
+                />
+              )}
             />
+            {/* /publicar crea un plato y /publicar/:id lo edita: misma vista, armada una sola vez arriba */}
+            <Route path="/publicar" element={formularioPlato} />
+            <Route path="/publicar/:id" element={formularioPlato} />
 
-            {/* /publicar crea un plato; /publicar/:id edita el plato con ese id. Misma vista. */}
-            <Route
-              path="/publicar"
-              element={
-                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
-                  <PublicarPlato
-                    token={sesion?.token}
-                    userId={sesion?.userId}
-                    onSesionVencida={sesionVencida}
-                    onAviso={setAviso}
-                  />
-                </RutaProtegida>
-              }
-            />
-            <Route
-              path="/publicar/:id"
-              element={
-                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CHEF']}>
-                  <PublicarPlato
-                    token={sesion?.token}
-                    userId={sesion?.userId}
-                    onSesionVencida={sesionVencida}
-                    onAviso={setAviso}
-                  />
-                </RutaProtegida>
-              }
-            />
-
-            {/* Ruta del ADMIN (paso 14b): aprobar pagos de los clientes */}
+            {/* Ruta del ADMIN */}
             <Route
               path="/admin"
-              element={
-                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['ADMIN']}>
-                  <Admin token={sesion?.token} onSesionVencida={sesionVencida} onAviso={setAviso} />
-                </RutaProtegida>
-              }
+              element={protegida(
+                ['ADMIN'],
+                <Admin token={sesion?.token} onSesionVencida={sesionVencida} onAviso={setAviso} />
+              )}
             />
 
-            {/* Perfil (paso 4): lo puede ver cualquier usuario con sesión, sea cual sea su rol */}
+            {/* Perfil: lo puede ver cualquier usuario con sesión, sea cual sea su rol */}
             <Route
               path="/perfil"
-              element={
-                <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={['CLIENTE', 'CHEF', 'ADMIN']}>
-                  <Perfil
-                    token={sesion?.token}
-                    onSesionVencida={sesionVencida}
-                    onPerfilActualizado={perfilActualizado}
-                    onAviso={setAviso}
-                  />
-                </RutaProtegida>
-              }
+              element={protegida(
+                ['CLIENTE', 'CHEF', 'ADMIN'],
+                <Perfil
+                  token={sesion?.token}
+                  onSesionVencida={sesionVencida}
+                  onPerfilActualizado={perfilActualizado}
+                  onAviso={setAviso}
+                />
+              )}
             />
 
             {/* Comodín: "*" coincide con cualquier ruta que no coincidió antes, por eso va ÚLTIMA */}
