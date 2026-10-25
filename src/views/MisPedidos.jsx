@@ -10,17 +10,15 @@ import ErrorState from '../components/comunes/ErrorState'
 // URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL
 
-// Texto de un error de fetch para mostrárselo al usuario. Si el servidor RESPONDIÓ con un error (400, 403...)
-// usamos su "message". Si ni siquiera llegamos al servidor (apagado, sin red), fetch rechaza la promesa con
-// un error SIN status y el texto del navegador ("Failed to fetch") no le sirve a nadie: damos uno claro.
+// Texto de un error de fetch para mostrárselo al usuario: el "message" del backend si respondió con un
+// error, o uno claro si ni llegamos al servidor (apagado, sin red; ahí el error no tiene status).
 const mensajeDe = (fallo) =>
   fallo.status === undefined
     ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
     : fallo.message
 
-// Lee la respuesta del backend: si no fue exitosa lanza un Error con el message y el status HTTP
-// (fetch no manda los errores HTTP al .catch()); si fue exitosa devuelve cuerpo.data.
-// Se usa como .then(leerRespuesta) en todos los fetch de esta vista.
+// Lee la respuesta del backend; se usa como .then(leerRespuesta). fetch NO manda los errores HTTP al
+// .catch(), por eso revisamos response.ok: si falló lanza un Error con el message y el status del backend.
 const leerRespuesta = (response) =>
   response.json().then((cuerpo) => {
     if (!response.ok) {
@@ -31,8 +29,7 @@ const leerRespuesta = (response) =>
     return cuerpo.data
   })
 
-// GET de una ruta PRIVADA: lleva el token. Devuelve una promesa con el "data" de la respuesta (las
-// listas vacías llegan como null, por eso el ?? []). Es una función común (no un hook).
+// GET de una ruta PRIVADA: lleva el token. Las listas vacías llegan como null, por eso el ?? [].
 const pedirPrivado = (ruta, token) =>
   fetch(`${API_URL}${ruta}`, { headers: { Authorization: `Bearer ${token}` } })
     .then(leerRespuesta)
@@ -64,16 +61,14 @@ const ORDEN_ESTADOS = ['PENDIENTE', 'CONFIRMADO', 'EN_PREPARACION', 'ENVIADO', '
 const PASOS_SEGUIMIENTO = ORDEN_ESTADOS.map((estado) => ({ estado, etiqueta: ETIQUETAS_ESTADO[estado] }))
 
 // Props:
-//  - token: el JWT de la sesión, para las llamadas privadas (GET /orders y /pagos, PATCH cancelar, POST pago)
+//  - token: el JWT de la sesión, para las llamadas privadas
 //  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
 //  - onAviso: función (texto) de App para mostrar un Toast
 function MisPedidos({ token, onSesionVencida, onAviso }) {
-  // ESTADO: los pedidos del cliente, con la forma de OrderResponse de la API. Viven acá porque solo
-  // esta vista los usa: los pide al montarse y los actualiza al cancelar.
+  // ESTADO: los pedidos del cliente (OrderResponse). Viven acá porque solo esta vista los usa.
   const [pedidos, setPedidos] = useState([])
 
-  // ESTADO: los pagos del cliente (PagoResponse). Un pedido puede tener varios (por ejemplo uno rechazado
-  // y un reintento). Se piden junto con los pedidos y se actualizan al pagar.
+  // ESTADO: los pagos del cliente (PagoResponse). Un pedido puede tener varios (uno rechazado y un reintento).
   const [pagos, setPagos] = useState([])
 
   // ESTADOS de carga y error del GET. Arranca cargando.
@@ -102,9 +97,8 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
   // que reseñó en esta sesión (y los que la API avisó que ya tenían reseña, con un 409).
   const [platosResenados, setPlatosResenados] = useState([])
 
-  // GET /orders y GET /pagos al abrir la vista. Rutas privadas: llevan el token. Devuelven solo lo de este
-  // cliente. Promise.all espera a que lleguen LOS DOS y entrega los resultados juntos (mismo orden).
-  // Dependencias [token]: no se repite mientras no cambie la sesión.
+  // GET /orders y GET /pagos al abrir la vista (solo lo de este cliente). Promise.all espera a que lleguen
+  // LOS DOS; con [token] no se repite mientras no cambie la sesión.
   useEffect(() => {
     Promise.all([pedirPrivado('/orders', token), pedirPrivado('/pagos', token)])
       .then(([listaPedidos, listaPagos]) => {
@@ -134,9 +128,8 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
     return <ErrorState message={error} />
   }
 
-  // Último pago de un pedido (el más nuevo por fecha) o null si no tiene. filter se queda con los pagos de
-  // ese pedido; sort los ordena del más nuevo al más viejo (sobre la copia que devolvió filter, que es un
-  // array nuevo) y [0] toma el primero. Las fechas ISO se pueden comparar como texto.
+  // Último pago de un pedido (el más nuevo por fecha) o null si no tiene: filter se queda con los pagos de
+  // ese pedido, sort los ordena del más nuevo al más viejo y [0] toma el primero.
   const ultimoPago = (pedidoId) => {
     const delPedido = pagos
       .filter((pago) => pago.pedidoId === pedidoId)
@@ -159,9 +152,8 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
     { id: 'anteriores', label: 'Anteriores', count: anteriores.length },
   ]
 
-  // Al confirmar el diálogo: PATCH /orders/{id}/cancelar (paso 12.5). Es una escritura: va en el handler.
-  // El backend repone el stock y devuelve el pedido ya cancelado; con él reemplazamos el de la lista
-  // (map) SIN volver a pedir todos los pedidos. Solo se cancelan los PENDIENTE (si no, 409).
+  // Al confirmar el diálogo: PATCH /orders/{id}/cancelar. El backend repone el stock y devuelve el pedido
+  // cancelado, que reemplaza al de la lista (map) SIN volver a pedir todos. Solo se cancelan los PENDIENTE (si no, 409).
   const confirmarCancelacion = () => {
     const pedidoId = pedidoACancelarId
     setPedidoACancelarId(null)
@@ -191,11 +183,9 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
     setPedidoAPagarId(pedidoId)
   }
 
-  // Al confirmar el diálogo: POST /pagos/createPago { medioPago, pedidoId } (paso 14a). Es una escritura:
-  // va en el handler. El monto lo fija el servidor (precioFinal del pedido) y el pago nace PENDIENTE: lo
-  // aprueba un ADMIN. Con el pago que devuelve el backend lo sumamos a la lista, SIN volver a pedir todo.
-  // Cerramos el diálogo ENSEGUIDA (antes del fetch): así el botón desaparece y un segundo clic no puede
-  // crear un pago duplicado.
+  // Al confirmar el diálogo: POST /pagos/createPago. El monto lo fija el servidor y el pago nace PENDIENTE:
+  // lo aprueba un ADMIN. Lo sumamos a la lista SIN volver a pedir todo. Cerramos el diálogo ENSEGUIDA
+  // (antes del fetch) para que un segundo clic no cree un pago duplicado.
   const confirmarPago = () => {
     const pedidoId = pedidoAPagarId
     setPedidoAPagarId(null)
@@ -230,10 +220,9 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
     setPlatoAResenar(detalle)
   }
 
-  // Al confirmar el diálogo: POST /resenas/createResena { calificacion, comentario, platoId } (paso 14d).
-  // Es una escritura: va en el handler. Cerramos el diálogo ENSEGUIDA para que un segundo clic no cree
-  // una reseña duplicada. El comentario es opcional: vacío lo omitimos (JSON.stringify ignora undefined).
-  // Errores de la API: 400 (el plato no fue comprado en un subpedido entregado) y 409 (ya lo reseñaste).
+  // Al confirmar el diálogo: POST /resenas/createResena. Cerramos el diálogo ENSEGUIDA (evita duplicados).
+  // El comentario es opcional: vacío lo omitimos (JSON.stringify ignora undefined). Errores de la API:
+  // 400 (el plato no fue comprado en un subpedido entregado) y 409 (ya lo reseñaste).
   const confirmarResena = () => {
     const { platoId, platoNombre } = platoAResenar
     setPlatoAResenar(null)
