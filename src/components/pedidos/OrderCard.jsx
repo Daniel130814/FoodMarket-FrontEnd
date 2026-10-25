@@ -1,33 +1,18 @@
-// Tarjeta de un pedido: datos, seguimiento de estado y platos agrupados por chef. Se usa en views/MisPedidos.
+// Tarjeta de un pedido (datos, seguimiento y platos por chef) para views/MisPedidos.
 import OrderTrack from './OrderTrack'
 
-// Props:
-//  - order: pedido con la forma de OrderResponse de la API
-//    { id, fechaCreacion, estado, precioFinal, pagoBloqueado,
-//      subPedidos: [{ id, chefId, chefNombre, estado, subtotal, detalles: [{ id, platoId, platoNombre, cantidad, precioUnitario, subtotal }] }] }
-//  - steps: pasos del seguimiento [{ estado, etiqueta }] (los arma el padre con los textos amigables)
-//  - payment: el ÚLTIMO pago de este pedido con la forma de PagoResponse de la API
-//    { id, pedidoId, monto, medioPago, estado, fechaCreacion, fechaPago }, o null si todavía no tiene ninguno
-//  - onCancel: función del padre (pedidoId); se llama al tocar "Cancelar pedido". La tarjeta no
-//    cancela nada: solo avisa "quiero cancelar este pedido".
-//  - onPay: función del padre (pedidoId); se llama al tocar "Pagar". La tarjeta no paga nada: solo avisa.
-//  - reviewedPlatoIds: ids de los platos que el cliente ya reseñó (los marca como "Reseñado" en vez de ofrecer el botón)
-//  - onReview: función del padre (detalle); se llama al tocar "Reseñar" en un plato. La tarjeta no guarda nada:
-//    solo avisa "quiero reseñar este plato" con su detalle { platoId, platoNombre, ... }.
+// Props: order (OrderResponse), steps (pasos { estado, etiqueta } del seguimiento), payment (último pago o null),
+// reviewedPlatoIds (platos ya reseñados), onCancel (pedidoId), onPay (pedidoId), onReview (detalle del plato).
 function OrderCard({ order, steps, payment, reviewedPlatoIds, onCancel, onPay, onReview }) {
-  // Formatea el importe en pesos con separadores argentinos, igual que en el carrito.
   const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
 
-  // La fecha llega en formato ISO ('2026-10-19T18:20:00'); la pasamos a un texto legible.
   const fecha = new Date(order.fechaCreacion).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })
 
-  // Cantidad de porciones: flatMap junta los detalles de todos los subpedidos en un solo array
-  // y reduce los suma.
   const cantidadTotal = order.subPedidos
     .flatMap((subPedido) => subPedido.detalles)
     .reduce((acumulado, detalle) => acumulado + detalle.cantidad, 0)
 
-  // Estados del pago de la API -> texto y color del badge. Es un objeto usado como "diccionario".
+  // Estado del pago -> texto y color del badge.
   const ETIQUETAS_PAGO = {
     PENDIENTE: { texto: 'Pago pendiente de aprobación', clase: 'badge-sand' },
     APROBADO: { texto: 'Pago aprobado', clase: 'badge-leaf' },
@@ -35,10 +20,7 @@ function OrderCard({ order, steps, payment, reviewedPlatoIds, onCancel, onPay, o
     REEMBOLSADO: { texto: 'Pago reembolsado', clase: 'badge-mute' },
   }
 
-  // VALORES CALCULADOS (no se guardan aparte): cuándo se puede pagar.
-  //  - el pedido tiene que estar PENDIENTE (no cancelado ni avanzado);
-  //  - si la API bloqueó los pagos (5 rechazados), no se puede más;
-  //  - sin pago todavía, o con el último RECHAZADO, se puede (re)intentar.
+  // Se puede pagar si el pedido está PENDIENTE, la API no bloqueó los pagos (5 rechazados) y no hay pago o el último fue RECHAZADO.
   const sePuedePagar =
     order.estado === 'PENDIENTE' && !order.pagoBloqueado && (payment === null || payment.estado === 'RECHAZADO')
 
@@ -55,7 +37,6 @@ function OrderCard({ order, steps, payment, reviewedPlatoIds, onCancel, onPay, o
         </div>
       </header>
 
-      {/* Renderizado condicional: un pedido cancelado no tiene seguimiento, solo su badge */}
       <div className="mt-7">
         {order.estado === 'CANCELADO' ? (
           <span className="badge badge-terra">Cancelado</span>
@@ -64,7 +45,7 @@ function OrderCard({ order, steps, payment, reviewedPlatoIds, onCancel, onPay, o
         )}
       </div>
 
-      {/* Un bloque por chef (subpedido), con sus platos. key = id del subpedido / del detalle */}
+      {/* Un bloque por chef (subpedido), con sus platos */}
       <ul className="mt-7 space-y-4 border-t border-hairline pt-5">
         {order.subPedidos.map((subPedido) => (
           <li key={subPedido.id}>
@@ -74,7 +55,7 @@ function OrderCard({ order, steps, payment, reviewedPlatoIds, onCancel, onPay, o
                 <li key={detalle.id} className="flex items-center justify-between gap-4 text-body-sm text-primary">
                   <span>{detalle.cantidad} × {detalle.platoNombre}</span>
                   <span className="flex items-center gap-3">
-                    {/* Renderizado condicional: la API solo deja reseñar platos de un subpedido ENTREGADO */}
+                    {/* La API solo deja reseñar platos de un subpedido ENTREGADO */}
                     {subPedido.estado === 'ENTREGADO' &&
                       (reviewedPlatoIds.includes(detalle.platoId) ? (
                         <span className="badge badge-leaf">Reseñado</span>
@@ -92,7 +73,7 @@ function OrderCard({ order, steps, payment, reviewedPlatoIds, onCancel, onPay, o
         ))}
       </ul>
 
-      {/* Estado del pago: renderizado condicional. Un pedido cancelado no muestra pago. */}
+      {/* Estado del pago (un pedido cancelado no lo muestra) */}
       {order.estado !== 'CANCELADO' && (
         <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
           {payment !== null && <span className={`badge ${ETIQUETAS_PAGO[payment.estado].clase}`}>{ETIQUETAS_PAGO[payment.estado].texto}</span>}
@@ -108,7 +89,7 @@ function OrderCard({ order, steps, payment, reviewedPlatoIds, onCancel, onPay, o
         </div>
       )}
 
-      {/* Solo se puede cancelar mientras el pedido está pendiente de confirmación (regla de la API) */}
+      {/* Solo se cancela un pedido pendiente (regla de la API) */}
       {order.estado === 'PENDIENTE' && (
         <div className="mt-3 flex justify-end">
           <button type="button" className="btn btn-quiet btn-sm text-error" onClick={() => onCancel(order.id)}>
