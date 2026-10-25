@@ -1,11 +1,9 @@
-// Vista 404 (ruta comodín "*"). Se muestra cuando la URL no coincide con ninguna otra ruta de App.jsx.
-// Reutiliza el componente EmptyState y el botón lleva de vuelta al inicio.
+// 404 (ruta "*"): se muestra cuando la URL no coincide con ninguna otra ruta; el botón vuelve al inicio.
 import { useNavigate } from 'react-router-dom'
 import EmptyState from '../components/comunes/EmptyState'
 
-// No recibe props: no depende de ningún dato, solo de la navegación.
+// Sin props.
 function NoEncontrado() {
-  // useNavigate devuelve una función para cambiar de ruta desde un handler (regla 3.8)
   const navigate = useNavigate()
 
   return (
