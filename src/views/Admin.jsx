@@ -1,9 +1,8 @@
 // Vista de administración (ruta /admin, solo rol ADMIN). Tiene dos pestañas:
-//  - Pagos: el ADMIN aprueba o rechaza los pagos que crean los clientes (en la API no hay pasarela: lo
-//    hace una persona). Al aprobar un pago, el backend pasa el pedido y sus subpedidos a CONFIRMADO y los
-//    chefs pueden avanzarlos.
-//  - Usuarios: lista las cuentas, crea cuentas nuevas con cualquier rol (CLIENTE, CHEF o ADMIN) y abre el
-//    detalle de cada una (GET /users/{id}) para editar su nombre, apellido y correo (PUT /users/{id}).
+//  - Pagos: el ADMIN aprueba, rechaza o reembolsa los pagos de los clientes (no hay pasarela: lo hace una
+//    persona). Al aprobar, el backend pasa el pedido y sus subpedidos a CONFIRMADO y los chefs pueden avanzarlos.
+//  - Usuarios: lista las cuentas, crea cuentas con cualquier rol y abre el detalle de cada una para editar
+//    sus datos (PUT /users/{id}) y cambiar su rol (PATCH /users/{id}/role).
 import { useEffect, useState } from 'react'
 import Tabs from '../components/comunes/Tabs'
 import Dialog from '../components/comunes/Dialog'
@@ -15,9 +14,8 @@ import FormField from '../components/comunes/FormField'
 // URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL
 
-// Texto de un error de fetch para mostrárselo al usuario. Si el servidor RESPONDIÓ con un error (400, 403...)
-// usamos su "message". Si ni siquiera llegamos al servidor (apagado, sin red), fetch rechaza la promesa con
-// un error SIN status y el texto del navegador ("Failed to fetch") no le sirve a nadie: damos uno claro.
+// Texto de un error de fetch para mostrárselo al usuario: el "message" del backend si respondió con un
+// error, o uno claro si ni llegamos al servidor (apagado, sin red; ahí el error no tiene status).
 const mensajeDe = (fallo) =>
   fallo.status === undefined
     ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
@@ -77,9 +75,8 @@ const ROLES = ['CLIENTE', 'CHEF', 'ADMIN']
 // Formulario de usuario vacío. role arranca en CLIENTE.
 const FORM_VACIO = { username: '', nombre: '', apellido: '', email: '', password: '', role: 'CLIENTE' }
 
-// Lee la respuesta del backend: si no fue exitosa lanza un Error con el message y el status HTTP
-// (fetch no manda los errores HTTP al .catch()); si fue exitosa devuelve cuerpo.data.
-// Se usa como .then(leerRespuesta) en todos los fetch de esta vista.
+// Lee la respuesta del backend; se usa como .then(leerRespuesta). fetch NO manda los errores HTTP al
+// .catch(), por eso revisamos response.ok: si falló lanza un Error con el message y el status del backend.
 const leerRespuesta = (response) =>
   response.json().then((cuerpo) => {
     if (!response.ok) {
@@ -90,9 +87,8 @@ const leerRespuesta = (response) =>
     return cuerpo.data
   })
 
-// GET de una ruta PRIVADA: lleva el token. Devuelve una promesa con el "data" de la respuesta (las
-// listas vacías llegan como null, por eso el ?? []). Es una función común (no un hook).
-// signal es opcional: la señal de un AbortController, para poder cancelar el pedido (ver el efecto del detalle).
+// GET de una ruta PRIVADA: lleva el token. Las listas vacías llegan como null, por eso el ?? [].
+// signal es opcional: la señal de un AbortController para poder cancelar el pedido (ver el efecto del detalle).
 const pedirPrivado = (ruta, token, signal) =>
   fetch(`${API_URL}${ruta}`, { headers: { Authorization: `Bearer ${token}` }, signal })
     .then(leerRespuesta)
@@ -171,9 +167,8 @@ function Admin({ token, onSesionVencida, onAviso }) {
   const [errorRol, setErrorRol] = useState(null)
   const [cambiandoRol, setCambiandoRol] = useState(false)
 
-  // GET /pagos y GET /users al abrir la vista. Rutas privadas: llevan el token. Promise.all espera a que
-  // lleguen LOS DOS y entrega los resultados juntos (mismo orden). Dependencias [token]: no se repite
-  // mientras no cambie la sesión.
+  // GET /pagos y GET /users al abrir la vista. Promise.all espera a que lleguen LOS DOS y entrega los
+  // resultados juntos, en el mismo orden. Con [token] no se repite mientras no cambie la sesión.
   useEffect(() => {
     Promise.all([pedirPrivado('/pagos', token), pedirPrivado('/users', token)])
       .then(([listaPagos, listaUsuarios]) => {
@@ -194,17 +189,16 @@ function Admin({ token, onSesionVencida, onAviso }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
-  // GET /users/{id} cuando se abre el detalle de un usuario. Es un GET: va en un efecto, con
-  // [usuarioAbiertoId, token] como dependencias, así corre cada vez que se elige otro usuario. El efecto
-  // modifica "detalle", no "usuarioAbiertoId", por eso no hay bucle. Si el id es null (diálogo cerrado) no hace nada.
+  // GET /users/{id} cuando se abre el detalle de un usuario: corre cada vez que cambia usuarioAbiertoId.
+  // No hay bucle porque el efecto modifica "detalle", no "usuarioAbiertoId". Con el id en null no hace nada.
   useEffect(() => {
     if (usuarioAbiertoId === null) {
       return
     }
 
-    // AbortController cancela el pedido si se cierra el diálogo o se elige otro usuario antes de que responda
-    // (así una respuesta vieja nunca pisa los datos del usuario nuevo). La función que devuelve el efecto
-    // es la limpieza: React la ejecuta antes de volver a correrlo o al salir de la vista.
+    // AbortController cancela el pedido si se cierra el diálogo o se elige otro usuario antes de que
+    // responda (una respuesta vieja no pisa los datos del nuevo). La función que devuelve el efecto es la
+    // limpieza: React la ejecuta antes de volver a correrlo o al salir de la vista.
     const controlador = new AbortController()
 
     pedirPrivado(`/users/${usuarioAbiertoId}`, token, controlador.signal)
@@ -241,9 +235,8 @@ function Admin({ token, onSesionVencida, onAviso }) {
     return <ErrorState message={error} />
   }
 
-  // Al confirmar el diálogo: PATCH /pagos/{id}/estado { estado } (paso 14b.1). Es una escritura: va en el
-  // handler. La API devuelve el pago ya actualizado; con él reemplazamos el de la lista (map), SIN volver
-  // a pedir todos los pagos. Cerramos el diálogo ENSEGUIDA para que un segundo clic no repita la acción.
+  // Al confirmar el diálogo: PATCH /pagos/{id}/estado. Con el pago que devuelve la API reemplazamos el de la
+  // lista (map), SIN volver a pedir todos. Cerramos el diálogo ENSEGUIDA para que un segundo clic no repita la acción.
   const confirmarAccion = () => {
     const { pagoId, estado } = accion
     setAccion(null)
@@ -290,9 +283,8 @@ function Admin({ token, onSesionVencida, onAviso }) {
     setErrorCrear(null)
   }
 
-  // Crea un usuario con POST /users/createUser (paso 14b.2). Es una escritura: va en el handler del submit.
-  // Valida igual que la API; si todo está bien manda el cuerpo de UserRequest. Con el usuario que devuelve
-  // el backend (201) lo sumamos a la lista, SIN volver a pedirla.
+  // Crea un usuario con POST /users/createUser. Valida igual que la API y, con el usuario que devuelve el
+  // backend, lo suma a la lista SIN volver a pedirla.
   const crearUsuario = (event) => {
     event.preventDefault()
 
@@ -359,8 +351,8 @@ function Admin({ token, onSesionVencida, onAviso }) {
     }
   }
 
-  // Guarda la edición con PUT /users/{id} (paso 5). Es una escritura: va en el handler (el botón del
-  // diálogo). Con el usuario que devuelve el backend reemplazamos el de la lista (map), SIN volver a pedirla.
+  // Guarda la edición con PUT /users/{id}. Con el usuario que devuelve el backend reemplazamos el de la
+  // lista (map), SIN volver a pedirla.
   const guardarEdicion = () => {
     // Sin datos todavía (cargando o falló el GET) o con un guardado en curso no hay nada que enviar.
     if (detalle === null || guardandoEdicion) {
@@ -409,11 +401,10 @@ function Admin({ token, onSesionVencida, onAviso }) {
       .finally(() => setGuardandoEdicion(false))
   }
 
-  // Cambia el rol del usuario abierto con PATCH /users/{id}/role { role } (ENDPOINTS.md, sección 3.2). Es una
-  // escritura: va en el handler del botón. La respuesta es el usuario ya actualizado: con él reemplazamos el
-  // de la lista (map) y el del detalle, SIN volver a pedir nada. Los errores del backend (400 si un ADMIN
-  // intenta quitarse su propio rol, 409 si se saca el rol CHEF a quien tiene platos publicados o subpedidos
-  // sin terminar) se muestran en el diálogo con el mensaje del backend.
+  // Cambia el rol del usuario abierto con PATCH /users/{id}/role. Con el usuario que devuelve el backend
+  // reemplazamos el de la lista y el del detalle, SIN volver a pedir nada. Los errores (400 si un ADMIN se
+  // quita su propio rol, 409 si se saca CHEF a quien tiene platos o subpedidos sin terminar) se muestran
+  // en el diálogo con el mensaje del backend.
   const cambiarRol = () => {
     // Sin datos todavía, con un cambio en curso o sin cambio de rol, no hay nada que enviar.
     if (detalle === null || cambiandoRol || rolElegido === detalle.role) {
@@ -635,8 +626,8 @@ function Admin({ token, onSesionVencida, onAviso }) {
         onCancel={() => setAccion(null)}
       />
 
-      {/* Diálogo de detalle de un usuario (paso 5): se abre cuando usuarioAbiertoId deja de ser null. Los
-          campos del formulario van como children; el botón de confirmar guarda con PUT /users/{id}. */}
+      {/* Diálogo de detalle de un usuario: se abre cuando usuarioAbiertoId deja de ser null. Los campos
+          del formulario van como children; el botón de confirmar guarda con PUT /users/{id}. */}
       <Dialog
         open={usuarioAbiertoId !== null}
         title="Editar usuario"
