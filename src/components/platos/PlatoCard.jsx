@@ -1,32 +1,23 @@
 import { Link } from 'react-router-dom'
 import Button from '../comunes/Button'
 
-// Tarjeta de un plato (catálogo e inicio). Componente "tonto": solo recibe props y dibuja.
-// Props:
-//  - dish: el plato a mostrar, con la forma de PlatoResponse de la API
-//    { id, nombre, descripcion, imagenesUrls, precio, descuentoPorcentaje, precioConDescuento,
-//      stockDisponible, estado, chefNombre, ... }
-//  - onAdd: función (plato, cantidad) que viene del padre. La tarjeta no sabe qué pasa al
-//    agregar (stock, aviso): solo avisa "quiero agregar este plato" y le pasa el plato entero.
+// Tarjeta de un plato (catálogo e inicio). Props: dish (PlatoResponse), onAdd (plato, cantidad; la tarjeta solo avisa).
 function PlatoCard({ dish, onAdd }) {
-  // Desestructuración: sacamos del plato solo los campos que usa la tarjeta.
   const { id, nombre, descripcion, imagenesUrls, precio, descuentoPorcentaje, precioConDescuento, stockDisponible, estado, chefNombre } = dish
 
-  // El estado visual sale del estado que manda la API: AGOTADO = sin stock.
+  // AGOTADO = sin stock.
   const state = estado === 'AGOTADO' ? 'soldout' : stockDisponible <= 5 ? 'low' : 'available'
-  // Hay descuento si el porcentaje es mayor a 0: entonces mostramos el precio base tachado.
+  // Con descuento (porcentaje mayor a 0) se muestra el precio base tachado.
   const tieneDescuento = descuentoPorcentaje > 0
   const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
 
   return (
     <article className="dish flex flex-col" data-state={state}>
-      {/* Link navega sin recargar la página; el id del plato arma la URL */}
       <Link
         to={`/plato/${id}`}
         className="dish__media relative block aspect-[4/3] overflow-hidden rounded-lg sm:aspect-[4/5] bg-surface-container"
       >
-        {/* Renderizado condicional: la API puede devolver un plato sin imágenes. En ese caso
-            mostramos un ícono en lugar de una imagen rota. */}
+        {/* Un plato puede venir sin imágenes: se muestra un ícono */}
         {imagenesUrls.length > 0 ? (
           <img src={imagenesUrls[0]} alt={nombre} className="h-full w-full object-cover" />
         ) : (
@@ -39,8 +30,7 @@ function PlatoCard({ dish, onAdd }) {
         )}
       </Link>
       <div className="mt-4 flex flex-1 flex-col gap-2">
-        {/* TODO(backend): chefNombre en los platos. La API todavía solo trae chefId, así que si no
-            viene el nombre no dibujamos nada. */}
+        {/* TODO(backend): chefNombre en los platos; mientras no venga, no se dibuja nada */}
         {chefNombre !== undefined && (
           <div className="flex items-center justify-between gap-3">
             <span className="truncate text-label-md text-on-surface-variant">{chefNombre}</span>
