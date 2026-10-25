@@ -1,5 +1,4 @@
-// Encabezado principal de la aplicación Appetitos.
-// Se muestra de forma fija (sticky) en la parte superior de las páginas principales.
+// Encabezado fijo (sticky) de las páginas principales.
 
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
@@ -10,20 +9,14 @@ const ENLACES = [
   { texto: 'Platos', ruta: '/catalogo' },
 ]
 
-// Props:
-//  - cartCount: cantidad total de platos en el carrito (el número de la insignia).
-//    Lo calcula App y llega por props: el Header solo lo muestra, no sabe de dónde sale.
-//  - sesion: null si no hay nadie ingresado, o { token, userId, role, nombre }. Decide qué se muestra.
-//  - onLogout: función sin argumentos de App para cerrar la sesión (el Header solo avisa "quiero salir").
+// Props: cartCount (número de la insignia), sesion (null o { token, userId, role, nombre }; decide qué se muestra), onLogout (App cierra la sesión).
 function Header({ cartCount, sesion, onLogout }) {
-  // Estado local de UI: si el menú móvil está abierto. Solo le importa al Header,
-  // por eso puede quedarse acá (la regla permite estado local de UI de un solo componente).
+  // Menú móvil abierto o cerrado (UI propia del Header).
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
     <header className="sticky top-0 z-40 border-b border-hairline bg-surface/90 backdrop-blur-md">
       <div className="mx-auto flex h-[68px] max-w-shell items-center gap-2 px-4 sm:px-5 lg:h-[76px] lg:gap-8 lg:px-12">
-        {/* Botón para desplegar menú en pantallas chicas */}
         <button
           type="button"
           className="btn btn-quiet btn-icon -ml-2 lg:hidden"
@@ -39,14 +32,14 @@ function Header({ cartCount, sesion, onLogout }) {
           <Logo />
         </Link>
 
-        {/* Navegación para pantallas grandes */}
+        {/* Navegación (pantallas grandes) */}
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Principal">
           {ENLACES.map((enlace) => (
             <NavLink key={enlace.ruta} to={enlace.ruta} className="nav-link">
               {enlace.texto}
             </NavLink>
           ))}
-          {/* Renderizado condicional: cada enlace solo lo ve el rol que corresponde, con sesión iniciada */}
+          {/* Cada enlace lo ve solo el rol que corresponde */}
           {sesion !== null && sesion.role === 'CLIENTE' && (
             <NavLink to="/pedidos" className="nav-link">Mis pedidos</NavLink>
           )}
@@ -61,11 +54,8 @@ function Header({ cartCount, sesion, onLogout }) {
           )}
         </nav>
 
-        {/* Accesos rápidos de la derecha: cuenta y carrito */}
         <div className="ml-auto flex items-center gap-1.5">
-          {/* Renderizado condicional: sin sesión mostramos Ingresar / Registrarse; con sesión,
-              el nombre y el botón Salir. El ícono solo aparece en pantallas chicas (lg:hidden);
-              en las grandes van los dos enlaces con texto. */}
+          {/* Sin sesión: Ingresar y Registrarse; con sesión: el nombre y Salir. Ícono en pantallas chicas, texto en las grandes */}
           {sesion === null ? (
             <>
               <Link
@@ -83,7 +73,6 @@ function Header({ cartCount, sesion, onLogout }) {
             </>
           ) : (
             <div className="flex items-center gap-2">
-              {/* El nombre es un enlace al perfil */}
               <Link to="/perfil" className="hidden max-w-[10rem] truncate text-label-md text-primary hover:underline sm:inline" title="Mi perfil">
                 {sesion.nombre}
               </Link>
@@ -91,7 +80,6 @@ function Header({ cartCount, sesion, onLogout }) {
             </div>
           )}
 
-          {/* Carrito con insignia de cantidad */}
           <Link to="/cesta" className="icon-link" aria-label={`Cesta, ${cartCount} platos`}>
             <span className="material-symbols-outlined">shopping_bag</span>
             <span className="count" aria-hidden="true">{cartCount}</span>
@@ -99,7 +87,7 @@ function Header({ cartCount, sesion, onLogout }) {
         </div>
       </div>
 
-      {/* Menú desplegable para móviles */}
+      {/* Menú móvil */}
       {menuOpen && (
         <div id="menu-movil" className="border-t border-hairline bg-surface px-4 pb-4 pt-2 lg:hidden">
           <nav aria-label="Principal móvil" className="flex flex-col">
@@ -151,7 +139,6 @@ function Header({ cartCount, sesion, onLogout }) {
             )}
           </nav>
 
-          {/* Sección de autenticación en el menú móvil */}
           <nav aria-label="Cuenta móvil" className="mt-2 flex flex-col border-t border-hairline pt-2">
             {sesion === null ? (
               <>
