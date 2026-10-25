@@ -22,38 +22,9 @@ const mensajeDe = (fallo) =>
     ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
     : fallo.message
 
-// GET de un catálogo público (categorías o ingredientes): no lleva token. Devuelve una promesa con la
-// lista (las listas vacías llegan como null, por eso el ?? []). Es una función común, no un hook.
-const pedirCatalogo = (ruta) =>
-  fetch(`${API_URL}${ruta}`).then((response) =>
-    response.json().then((cuerpo) => {
-      if (!response.ok) {
-        const fallo = new Error(cuerpo.message)
-        fallo.status = response.status
-        throw fallo
-      }
-      return cuerpo.data ?? []
-    })
-  )
-
-// GET de UN plato (paso 3.2.a). Lleva el token a propósito, aunque la ruta es pública: un plato en BORRADOR
-// o PAUSADO solo lo devuelve el backend a su chef dueño (con token); sin token da 404. signal es la señal
-// de un AbortController, para poder cancelar el pedido. Es una función común, no un hook.
-const pedirPlato = (platoId, token, signal) =>
-  fetch(`${API_URL}/platos/${platoId}`, { headers: { Authorization: `Bearer ${token}` }, signal }).then((response) =>
-    response.json().then((cuerpo) => {
-      if (!response.ok) {
-        const fallo = new Error(cuerpo.message)
-        fallo.status = response.status
-        throw fallo
-      }
-      return cuerpo.data
-    })
-  )
-
 // Lee una respuesta del backend y devuelve lo que viene en "data". Si el servidor respondió con un error
 // lanza un Error con el "message" del backend y el código en "status" (fetch NO manda los errores HTTP al
-// .catch(): hay que mirar response.ok nosotros). Es una función común, no un hook.
+// .catch(): hay que mirar response.ok nosotros). Se usa como .then(leerRespuesta) en todos los fetch de esta vista.
 const leerRespuesta = (response) =>
   response.json().then((cuerpo) => {
     if (!response.ok) {
@@ -63,6 +34,19 @@ const leerRespuesta = (response) =>
     }
     return cuerpo.data
   })
+
+// GET de un catálogo público (categorías o ingredientes): no lleva token. Devuelve una promesa con la
+// lista (las listas vacías llegan como null, por eso el ?? []). Es una función común, no un hook.
+const pedirCatalogo = (ruta) =>
+  fetch(`${API_URL}${ruta}`)
+    .then(leerRespuesta)
+    .then((data) => data ?? [])
+
+// GET de UN plato (paso 3.2.a). Lleva el token a propósito, aunque la ruta es pública: un plato en BORRADOR
+// o PAUSADO solo lo devuelve el backend a su chef dueño (con token); sin token da 404. signal es la señal
+// de un AbortController, para poder cancelar el pedido. Es una función común, no un hook.
+const pedirPlato = (platoId, token, signal) =>
+  fetch(`${API_URL}/platos/${platoId}`, { headers: { Authorization: `Bearer ${token}` }, signal }).then(leerRespuesta)
 
 // Formatos y tamaño máximo que acepta el backend para las imágenes subidas (ENDPOINTS.md, sección 3.3).
 // El backend vuelve a validarlos: acá lo hacemos para avisar enseguida, antes de subir nada.
