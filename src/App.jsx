@@ -1,5 +1,5 @@
-// Raíz de la app: define las rutas y es DUEÑA del estado del carrito (carrito y aviso).
-// Se monta desde main.jsx.
+// Raíz de la app: define las rutas y es DUEÑA del estado compartido (sesión, cesta y aviso).
+// Se monta desde main.jsx, dentro del BrowserRouter.
 import { useEffect, useState } from 'react'
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import Header from './components/layout/Header'
@@ -24,18 +24,16 @@ import NoEncontrado from './views/NoEncontrado'
 // URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
 const API_URL = import.meta.env.VITE_API_URL
 
-// Texto de un error de fetch para mostrárselo al usuario. Si el servidor RESPONDIÓ con un error (400, 403...)
-// usamos su "message". Si ni siquiera llegamos al servidor (apagado, sin red), fetch rechaza la promesa con
-// un error SIN status y el texto del navegador ("Failed to fetch") no le sirve a nadie: damos uno claro.
+// Texto de un error de fetch para mostrárselo al usuario: el "message" del backend si respondió con un
+// error (400, 403...) o uno claro si ni llegamos al servidor (apagado, sin red; ahí el error no tiene status).
 const mensajeDe = (fallo) =>
   fallo.status === undefined
     ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
     : fallo.message
 
-// Lee la respuesta del backend y decide si fue éxito o error. Se usa como .then(leerRespuesta) en todos los
-// fetch de este archivo. fetch NO manda los errores HTTP al .catch(), por eso revisamos response.ok acá:
-// si falló, lanzamos un Error con el "message" del backend y su status. Si salió bien, devuelve cuerpo.data
-// (que es null en los DELETE: el .then siguiente simplemente no lo usa).
+// Lee la respuesta del backend; se usa como .then(leerRespuesta) en todos los fetch de este archivo.
+// fetch NO manda los errores HTTP al .catch(), por eso revisamos response.ok: si falló, lanzamos un Error
+// con el "message" y el status del backend; si no, devuelve cuerpo.data (null en los DELETE).
 const leerRespuesta = (response) =>
   response.json().then((cuerpo) => {
     if (!response.ok) {
@@ -46,12 +44,11 @@ const leerRespuesta = (response) =>
     return cuerpo.data
   })
 
-// Clave con la que se guarda el JWT en localStorage. Está en una constante para escribirla una sola vez.
+// Clave con la que se guarda el JWT en localStorage.
 const CLAVE_TOKEN = 'jwtToken'
 
-// Recalcula el carrito completo a partir de sus ítems. Es la ÚNICA función que calcula
-// subtotales y total: así nunca quedan desincronizados (en producción lo calcula el backend).
-// Recibe el id del carrito y la lista de ítems; devuelve un carrito NUEVO { id, items, totalEstimado }.
+// Recalcula subtotales y total a partir de los ítems (se usa al quitar o vaciar, donde el backend no
+// devuelve la cesta). Recibe el id del carrito y los ítems; devuelve un carrito NUEVO { id, items, totalEstimado }.
 // Math.round(x * 100) / 100 redondea a 2 decimales, como la API.
 const calcularCarrito = (id, items) => {
   const itemsCalculados = items.map((item) => ({
@@ -63,40 +60,30 @@ const calcularCarrito = (id, items) => {
 }
 
 function App() {
-  // Los hooks del Router (useLocation y useNavigate) funcionan acá porque main.jsx envuelve App
-  // con <BrowserRouter>: App está DENTRO del router.
+  // Los hooks del Router funcionan acá porque main.jsx envuelve App con <BrowserRouter>.
   const location = useLocation()
   const navigate = useNavigate()
 
-  // ESTADO DEL CARRITO: vive acá, en el padre más alto. Según la regla de la profe, el estado
-  // vive en el padre y baja a los hijos por props; los hijos le avisan con funciones.
-  // Un objeto con la forma de CarritoResponse de la API: { id, items, totalEstimado }.
-  // Arranca vacío. Cada ítem: { id, platoId, nombrePlato, cantidad, precioBase,
-  // descuentoPorcentaje, precioUnitarioActual, subtotalEstimado }. Ojo: el id del ítem NO es el
-  // id del plato (la API usa el id del ítem para cambiar la cantidad o quitarlo).
+  // ESTADO DE LA CESTA: vive acá, en el padre más alto; baja a los hijos por props y ellos avisan con funciones.
+  // Tiene la forma de CarritoResponse de la API: { id, items, totalEstimado }. Ojo: el id de cada ítem
+  // NO es el id del plato (la API usa el id del ítem para cambiar la cantidad o quitarlo).
   const [carrito, setCarrito] = useState({ id: 1, items: [], totalEstimado: 0 })
 
-  // ESTADO DE LA SESIÓN: null si no hay nadie ingresado, o { token, userId, role, nombre } con la
-  // misma información que devuelve la API al hacer login (role: "CLIENTE", "CHEF" o "ADMIN").
-  // Vive acá, en el padre, porque el Header y las rutas protegidas necesitan saber quién es.
-  // El token también se guarda en localStorage (clave jwtToken), así que al recargar la página la sesión
-  // se restaura con GET /users/me (efecto de más abajo).
+  // ESTADO DE LA SESIÓN: null si no hay nadie ingresado, o { token, userId, role, nombre } (role: "CLIENTE",
+  // "CHEF" o "ADMIN"). Vive acá porque el Header y las rutas protegidas necesitan saber quién es.
+  // Al recargar se restaura con el token guardado en localStorage (efecto de más abajo).
   const [sesion, setSesion] = useState(null)
 
-  // ESTADO: true mientras verificamos el token guardado al abrir la app. Si hay un token guardado
-  // arranca en true, para que las rutas protegidas esperen en lugar de mandarte a /ingreso; si no
-  // hay token, arranca en false porque no hay nada que verificar.
-  // useState acepta una función como valor inicial: se ejecuta una sola vez, al crear el estado.
-  // Decidirlo acá evita llamar a setCargandoSesion de forma sincrónica dentro del efecto
-  // (React lo desaconseja: provoca un redibujado extra, y el lint lo marca).
+  // ESTADO: true mientras verificamos el token guardado, para que las rutas protegidas esperen en lugar de
+  // mandarte a /ingreso. useState acepta una función como valor inicial (se ejecuta una sola vez), y así
+  // arranca en false si no hay token, sin llamar a setCargandoSesion dentro del efecto (el lint lo marca).
   const [cargandoSesion, setCargandoSesion] = useState(() => localStorage.getItem(CLAVE_TOKEN) !== null)
 
   // Estado del aviso (Toast): el texto a mostrar, o null si no hay aviso.
   const [aviso, setAviso] = useState(null)
 
-  // Cierra la sesión porque el backend respondió 401 (token vencido o inválido). Las vistas que hacen
-  // sus propias llamadas (Checkout) la reciben por props. RutaProtegida las manda a /ingreso al ver sesion en null.
-  // Limpia lo mismo que cerrarSesion: la sesión, el token, y la cesta del usuario que se va.
+  // Cierra la sesión porque el backend respondió 401 (token vencido). Las vistas la reciben por props;
+  // RutaProtegida las manda a /ingreso al ver sesion en null. Limpia lo mismo que cerrarSesion.
   const sesionVencida = () => {
     setSesion(null)
     localStorage.removeItem(CLAVE_TOKEN)
@@ -114,10 +101,8 @@ function App() {
     setAviso(mensajeDe(fallo))
   }
 
-  // Agrega un plato a la cesta (paso 12.3b). Si el plato YA está, el backend SUMA la cantidad.
-  // Es una ESCRITURA (POST), por eso va en el handler y nunca en un efecto.
-  // Recibe el plato (tal como lo devolvió GET /platos) y la cantidad. Ya no validamos stock ni estado
-  // acá: lo hace el backend y responde 400 con un mensaje ("no tiene stock suficiente", etc.).
+  // Agrega un plato a la cesta (si ya está, el backend SUMA la cantidad). Es una ESCRITURA (POST): va en el
+  // handler y nunca en un efecto. El stock lo valida el backend (400 "no tiene stock suficiente").
   const agregar = (plato, cantidad) => {
     fetch(`${API_URL}/carrito/items`, {
       method: 'POST',
@@ -136,9 +121,7 @@ function App() {
       .catch(manejarFallo)
   }
 
-  // Cambia la cantidad de un ítem (paso 12.3c): la REEMPLAZA (no suma). Recibe el id del ÍTEM, no del plato.
-  // Es una ESCRITURA (PUT), va en el handler. El stock lo valida el backend (400 "no tiene stock suficiente").
-  // La respuesta es la cesta completa ya actualizada: la guardamos sin volver a pedirla.
+  // Cambia la cantidad de un ítem (PUT): la REEMPLAZA, no suma. Recibe el id del ÍTEM, no del plato.
   const cambiarCantidad = (itemId, cantidad) => {
     if (cantidad < 1) {
       return
@@ -157,10 +140,8 @@ function App() {
       .catch(manejarFallo)
   }
 
-  // Quita un ítem (paso 12.3d). Recibe el id del ÍTEM. Es una ESCRITURA (DELETE), va en el handler.
-  // A diferencia del POST y el PUT, el DELETE responde data: null (no devuelve la cesta), así que
-  // después de confirmar el éxito sacamos el ítem del estado local con filter (sin volver a pedir la cesta).
-  // calcularCarrito recalcula el total con los ítems que quedan.
+  // Quita un ítem (DELETE). Responde data: null, así que tras el éxito lo sacamos del estado con filter
+  // (sin volver a pedir la cesta) y calcularCarrito recalcula el total.
   const quitar = (itemId) => {
     fetch(`${API_URL}/carrito/items/${itemId}`, {
       method: 'DELETE',
@@ -174,8 +155,7 @@ function App() {
       .catch(manejarFallo)
   }
 
-  // Vacía la cesta (paso 12.3e). Es una ESCRITURA (DELETE /carrito), va en el handler.
-  // Responde data: null, así que tras confirmar el éxito dejamos la cesta vacía en el estado local.
+  // Vacía la cesta (DELETE /carrito). Tras el éxito dejamos la cesta vacía en el estado local.
   // No es lo mismo que cerrar sesión: el logout NO toca el servidor, solo limpia la copia local.
   const vaciar = () => {
     fetch(`${API_URL}/carrito`, {
@@ -190,19 +170,15 @@ function App() {
       .catch(manejarFallo)
   }
 
-  // Se llama cuando Checkout ya creó el pedido en el backend (POST /carrito/checkout). El backend ya
-  // vació la cesta del servidor, así que dejamos vacía la copia local. El pedido nuevo lo pide
-  // MisPedidos con GET /orders cuando se abre esa vista.
+  // Se llama cuando Checkout ya creó el pedido. El backend vació la cesta del servidor: vaciamos la copia local.
   const pedidoCreado = () => {
     setCarrito((actual) => calcularCarrito(actual.id, []))
     setAviso('Pedido confirmado')
   }
 
-  // RESTAURAR LA SESIÓN al abrir la app (o al recargar con F5). useEffect ejecuta código DESPUÉS de
-  // dibujar la pantalla; con [] como segundo argumento corre una sola vez, al montarse App.
-  // Es el lugar correcto para un GET (leer datos). Los POST, PUT y DELETE nunca van en un efecto.
-  // En desarrollo React ejecuta los efectos dos veces (Strict Mode): para un GET es inofensivo.
-  // Este es el segundo punto donde se usa localStorage: LEER el token al iniciar.
+  // RESTAURAR LA SESIÓN al abrir la app o recargar con F5. useEffect corre DESPUÉS de dibujar la pantalla;
+  // con [] corre una sola vez, al montarse App. Es el lugar de los GET (en desarrollo corre dos veces por
+  // Strict Mode: para un GET es inofensivo). Acá se LEE el token de localStorage.
   useEffect(() => {
     const token = localStorage.getItem(CLAVE_TOKEN)
 
@@ -211,15 +187,13 @@ function App() {
       return
     }
 
-    // GET /users/me es una ruta privada: mandamos el token en la cabecera Authorization.
-    // El login no devuelve el rol dentro del JWT, por eso lo pedimos al backend.
+    // El rol no viene dentro del JWT: lo pedimos con GET /users/me, mandando el token en Authorization.
     fetch(`${API_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then(leerRespuesta)
       .then((usuario) => setSesion({ token, userId: usuario.id, role: usuario.role, nombre: usuario.nombre }))
       .catch((fallo) => {
-        // Si el servidor RESPONDIÓ con un error (401: token vencido o inválido), el token ya no sirve
-        // y lo borramos. Si ni siquiera llegamos al servidor (status undefined, por ejemplo el backend
-        // apagado), lo conservamos: en el próximo F5 puede servir.
+        // Si el servidor respondió con un error el token ya no sirve y lo borramos; si ni llegamos al
+        // servidor (status undefined, backend apagado) lo conservamos: en el próximo F5 puede servir.
         if (fallo.status !== undefined) {
           localStorage.removeItem(CLAVE_TOKEN)
         }
@@ -227,10 +201,8 @@ function App() {
       .finally(() => setCargandoSesion(false))
   }, [])
 
-  // CARGAR LA CESTA DEL SERVIDOR (paso 12.3a). Es un GET, así que va en un efecto. La dependencia es
-  // [sesion]: corre cuando alguien ingresa o cuando se restaura la sesión con F5. No hay bucle porque
-  // el efecto modifica "carrito", no "sesion". Solo el CLIENTE tiene cesta (el resto recibiría 403).
-  // GET /carrito es privada: lleva el token. El backend la crea vacía si no existía.
+  // CARGAR LA CESTA DEL SERVIDOR. Corre con [sesion]: cuando alguien ingresa o se restaura la sesión.
+  // No hay bucle porque el efecto modifica "carrito", no "sesion". Solo el CLIENTE tiene cesta.
   useEffect(() => {
     if (sesion === null || sesion.role !== 'CLIENTE') {
       return
@@ -240,8 +212,7 @@ function App() {
       .then(leerRespuesta)
       // Guardamos tal cual lo que manda el servidor (él calcula subtotales y total).
       .then((carritoServidor) => setCarrito(carritoServidor))
-      // Acá no usamos manejarFallo: es una función nueva en cada render y obligaría a ponerla en las
-      // dependencias del efecto (se volvería a ejecutar siempre). Por eso repetimos el 401 en línea.
+      // Sin manejarFallo: es una función nueva en cada render y habría que ponerla en las dependencias.
       .catch((fallo) => {
         if (fallo.status === 401) {
           sesionVencida()
@@ -251,13 +222,9 @@ function App() {
       })
   }, [sesion])
 
-  // Inicia sesión: guarda la sesión que le pasan y avisa. Ingreso y Registro la llaman cuando el
-  // backend responde bien, con { token, userId, role, nombre } ya armado.
-  // El token se guarda en DOS lugares:
-  //  - en el estado (sesion): para que React vuelva a dibujar la app con el usuario ingresado;
-  //  - en localStorage: el almacenamiento del navegador, que sobrevive a recargar la página (F5).
-  // localStorage solo se usa para el JWT y solo desde App.jsx: acá (guardar al ingresar), al
-  // iniciar la app (leer, paso 12.1c) y al cerrar sesión (borrar).
+  // Inicia sesión: la llaman Ingreso y Registro cuando el backend responde bien, con la sesión ya armada.
+  // El token se guarda en el estado (para redibujar la app) y en localStorage (sobrevive al F5).
+  // localStorage solo se usa para el JWT, desde App.jsx: acá guardamos, arriba leemos y al salir borramos.
   const iniciarSesion = (nuevaSesion) => {
     setSesion(nuevaSesion)
     localStorage.setItem(CLAVE_TOKEN, nuevaSesion.token)
@@ -270,10 +237,8 @@ function App() {
     setSesion((actual) => ({ ...actual, nombre: usuario.nombre }))
   }
 
-  // Cierra la sesión. Hay que limpiar TODO lo que pertenece al usuario que se va:
-  //  - la sesión (vuelve a null),
-  //  - el token guardado en localStorage (el tercer punto donde se usa: BORRAR al cerrar sesión),
-  //  - la cesta, para que la siguiente persona que use este navegador no herede sus platos.
+  // Cierra la sesión limpiando TODO lo del usuario que se va: la sesión, el token y la cesta
+  // (para que la siguiente persona que use este navegador no herede sus platos).
   const cerrarSesion = () => {
     setSesion(null)
     // removeItem borra SOLO esta clave. Nunca localStorage.clear(), que borraría todo lo demás.
@@ -310,10 +275,9 @@ function App() {
     agregar(plato, cantidad)
   }
 
-  // Envuelve una vista con RutaProtegida, para no repetir las mismas props en cada ruta privada.
-  // Recibe la lista de roles que pueden entrar y la vista (ya armada con sus props); devuelve el
-  // elemento para el "element" de la ruta. No es un componente (no lleva mayúscula): es una función
-  // que devuelve JSX, igual que pantalla() más abajo.
+  // Envuelve una vista con RutaProtegida para no repetir sus props en cada ruta privada. Recibe los roles
+  // que pueden entrar y la vista ya armada; devuelve el "element" de la ruta. No es un componente: es una
+  // función que devuelve JSX, igual que pantalla().
   const protegida = (roles, vista) => (
     <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={roles}>
       {vista}
