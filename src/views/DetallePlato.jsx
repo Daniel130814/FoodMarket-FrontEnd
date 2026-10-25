@@ -14,9 +14,8 @@ import ReviewList from '../components/platos/ReviewList'
 // URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
 const API_URL = import.meta.env.VITE_API_URL
 
-// Lee una respuesta del backend y devuelve lo que viene en "data". Si el servidor respondió con un
-// error (400, 404, 500...) lanza un Error con el "message" del backend y el código en "status".
-// Hace falta porque fetch NO manda los errores HTTP al .catch(): hay que mirar response.ok nosotros.
+// Lee la respuesta del backend; se usa como .then(leerRespuesta). fetch NO manda los errores HTTP al
+// .catch(), por eso revisamos response.ok: si falló lanza un Error con el message y el status del backend.
 const leerRespuesta = (response) =>
   response.json().then((cuerpo) => {
     if (!response.ok) {
@@ -28,22 +27,16 @@ const leerRespuesta = (response) =>
   })
 
 // Props:
-//  - onAdd: función (plato, cantidad) que viene de App. La vista solo avisa "quiero agregar
-//    esto"; App decide si se puede (stock) y muestra el aviso. Así la vista no sabe de reglas.
+//  - onAdd: función (plato, cantidad) de App. La vista solo avisa "quiero agregar esto"; App decide si se puede.
 function DetallePlato({ onAdd }) {
-  // useParams es un hook de react-router: devuelve un objeto con los parámetros
-  // de la URL. Para /plato/3 devuelve { id: '3' }. Ojo: el valor es un STRING.
+  // useParams devuelve los parámetros de la URL: para /plato/3, { id: '3' }. Ojo: el valor es un STRING.
   const { id } = useParams()
 
-  // useNavigate devuelve una función para cambiar de ruta desde el código
-  // (lo usamos en vez de window.location, que está prohibido).
+  // useNavigate devuelve una función para cambiar de ruta desde el código (en vez de window.location).
   const navigate = useNavigate()
 
-  // Estado: cuántas porciones quiere el usuario. Arranca en 1.
-  // Vive ACÁ (en el padre) y no en QuantityStepper porque más adelante el botón
-  // de agregar y el precio también necesitan saber la cantidad.
-  // Los hooks siempre se llaman ANTES de cualquier return: React exige que se
-  // ejecuten en el mismo orden en cada render.
+  // Estado: cuántas porciones quiere el usuario. Vive ACÁ y no en QuantityStepper porque el botón de
+  // agregar y el precio también necesitan saber la cantidad. Los hooks van siempre ANTES de cualquier return.
   const [cantidad, setCantidad] = useState(1)
 
   // ESTADOS de los datos que llegan del backend. Arrancan vacíos y se llenan cuando responde la API.
@@ -59,12 +52,10 @@ function DetallePlato({ onAdd }) {
   const idValido = Number.isInteger(Number(id)) && Number(id) > 0
 
   // ESTADOS de carga y error. cargando arranca en true solo si vamos a pedir el plato (id válido).
-  //  - error: null si todo está bien, o el texto del error si la API falló.
   const [cargando, setCargando] = useState(idValido)
   const [error, setError] = useState(null)
 
-  // Pide el plato y sus reseñas al abrir la vista, y de nuevo si cambia el id. Es un GET, por eso va
-  // en un useEffect. Es una ruta pública: NO mandamos el token.
+  // Pide el plato y sus reseñas al abrir la vista, y de nuevo si cambia el id. Ruta pública: NO mandamos el token.
   useEffect(() => {
     // Con un id inválido no hay nada que pedir.
     if (!idValido) {
@@ -138,9 +129,8 @@ function DetallePlato({ onAdd }) {
   // El plato está agotado cuando la API lo marca con estado AGOTADO (se calcula, no se guarda).
   const agotado = plato.estado === 'AGOTADO'
 
-  // VALORES CALCULADOS a partir del estado (cantidad). Si guardáramos el total en otro
-  // useState habría que acordarse de actualizarlo cada vez que cambia la cantidad: dos datos
-  // que pueden quedar desincronizados. Calculado en cada render, siempre es coherente.
+  // VALORES CALCULADOS a partir del estado (cantidad): si el total fuera otro useState, podría quedar
+  // desincronizado. Calculado en cada render, siempre es coherente.
   const tieneDescuento = plato.descuentoPorcentaje > 0
   const total = plato.precioConDescuento * cantidad
   const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
@@ -149,10 +139,8 @@ function DetallePlato({ onAdd }) {
   const tieneIngredientes = plato.ingredientes.length > 0
   const tieneResenas = resenas.length > 0
 
-  // PROMEDIO de las calificaciones. La API NO lo manda: se calcula acá a partir de las reseñas.
-  // reduce suma todas las calificaciones y se divide por la cantidad. Math.round(x * 10) / 10 lo
-  // redondea a 1 decimal; toLocaleString lo muestra con coma (4,5), como en Argentina.
-  // Si no hay reseñas no dividimos (dividir por 0 daría NaN): el promedio queda en null.
+  // PROMEDIO de las calificaciones (la API NO lo manda): reduce las suma y se divide por la cantidad;
+  // Math.round(x * 10) / 10 redondea a 1 decimal. Sin reseñas no dividimos (daría NaN): queda en null.
   const promedio = tieneResenas
     ? resenas.reduce((acumulado, resena) => acumulado + resena.calificacion, 0) / resenas.length
     : null
