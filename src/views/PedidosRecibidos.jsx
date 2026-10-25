@@ -19,6 +19,19 @@ const mensajeDe = (fallo) =>
     ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
     : fallo.message
 
+// Lee la respuesta del backend: si no fue exitosa lanza un Error con el message y el status HTTP
+// (fetch no manda los errores HTTP al .catch()); si fue exitosa devuelve cuerpo.data.
+// Se usa como .then(leerRespuesta) en todos los fetch de esta vista.
+const leerRespuesta = (response) =>
+  response.json().then((cuerpo) => {
+    if (!response.ok) {
+      const fallo = new Error(cuerpo.message)
+      fallo.status = response.status
+      throw fallo
+    }
+    return cuerpo.data
+  })
+
 // MAPEO de los estados de la API a los textos que se muestran (el mismo que ve el cliente).
 // CANCELADO no está acá a propósito: se muestra aparte, con su propio badge.
 const ETIQUETAS_ESTADO = {
@@ -68,16 +81,7 @@ function PedidosRecibidos({ token, userId, onSesionVencida, onAviso }) {
   // los suyos (si no, 403). Dependencias [token, userId]: no se repite mientras no cambie la sesión.
   useEffect(() => {
     fetch(`${API_URL}/subpedidos/chef/${userId}`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
+      .then(leerRespuesta)
       .then((data) => setSubPedidos(data ?? [])) // lista vacía llega como null
       .catch((fallo) => {
         // 401: el token ya no sirve; App cierra la sesión y la ruta protegida nos manda a /ingreso.
@@ -118,16 +122,7 @@ function PedidosRecibidos({ token, userId, onSesionVencida, onAviso }) {
       },
       body: JSON.stringify({ estado: siguiente }),
     })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
+      .then(leerRespuesta)
       .then((avanzado) => {
         setSubPedidos((actuales) => actuales.map((s) => (s.id === avanzado.id ? avanzado : s)))
         onAviso(`El subpedido n.º ${avanzado.id} ahora está: ${ETIQUETAS_ESTADO[avanzado.estado]}`)
