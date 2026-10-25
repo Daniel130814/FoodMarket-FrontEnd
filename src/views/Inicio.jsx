@@ -11,9 +11,8 @@ import ContenidoAsync from '../components/comunes/ContenidoAsync'
 // URL base del backend. import.meta.env es la forma de Vite de leer las variables del archivo .env.
 const API_URL = import.meta.env.VITE_API_URL
 
-// Lee una respuesta del backend y devuelve lo que viene en "data". Si el servidor respondió con un
-// error (400, 404, 500...) lanza un Error con el "message" del backend y el código en "status".
-// Hace falta porque fetch NO manda los errores HTTP al .catch(): hay que mirar response.ok nosotros.
+// Lee la respuesta del backend; se usa como .then(leerRespuesta). fetch NO manda los errores HTTP al
+// .catch(), por eso revisamos response.ok: si falló lanza un Error con el message y el status del backend.
 const leerRespuesta = (response) =>
   response.json().then((cuerpo) => {
     if (!response.ok) {
@@ -37,17 +36,14 @@ function Inicio({ onAdd }) {
   const [cargandoChefs, setCargandoChefs] = useState(true)
   const [errorChefs, setErrorChefs] = useState(false)
 
-  // ESTADOS de carga y error de la lista de platos.
-  //  - cargando: true hasta que llega la respuesta.
-  //  - error: null si todo está bien, o el texto del error si la API falló.
-  // Si las categorías fallan, solo avisamos debajo de los chips (el resto de la portada se puede usar).
+  // ESTADOS de carga y error de la lista de platos (cargando arranca en true; error es null o el texto).
+  // Si las categorías fallan, solo avisamos debajo de los chips: el resto de la portada se puede usar.
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
   const [errorCategorias, setErrorCategorias] = useState(false)
 
-  // Pide los platos y las categorías una sola vez, al abrir la vista ([] = sin dependencias). Son
-  // GET, por eso van en useEffect. Son rutas públicas: NO mandamos el token.
-  // Cada efecto guarda su resultado en su propio estado y no hace falta volver a pedir nada después.
+  // Pide los platos y las categorías una sola vez, al abrir la vista ([] = sin dependencias). Son rutas
+  // públicas: NO mandamos el token. Cada efecto guarda su resultado en su propio estado.
   useEffect(() => {
     // AbortController permite cancelar el pedido si salimos de la vista antes de que responda.
     const controlador = new AbortController()
@@ -84,7 +80,7 @@ function Inicio({ onAdd }) {
       .catch(() => setErrorCategorias(true))
   }, [])
 
-  // GET /chef-profiles (paso 14e): los perfiles de chef. Ruta pública: NO mandamos el token.
+  // GET /chef-profiles: los perfiles de chef. Ruta pública: NO mandamos el token.
   useEffect(() => {
     fetch(`${API_URL}/chef-profiles`)
       .then(leerRespuesta)
