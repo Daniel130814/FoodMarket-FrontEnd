@@ -18,20 +18,25 @@ const mensajeDe = (fallo) =>
     ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
     : fallo.message
 
+// Lee la respuesta del backend: si no fue exitosa lanza un Error con el message y el status HTTP
+// (fetch no manda los errores HTTP al .catch()); si fue exitosa devuelve cuerpo.data.
+// Se usa como .then(leerRespuesta) en todos los fetch de esta vista.
+const leerRespuesta = (response) =>
+  response.json().then((cuerpo) => {
+    if (!response.ok) {
+      const fallo = new Error(cuerpo.message)
+      fallo.status = response.status
+      throw fallo
+    }
+    return cuerpo.data
+  })
+
 // GET de una ruta PRIVADA: lleva el token. Devuelve una promesa con el "data" de la respuesta (las
-// listas vacías llegan como null, por eso el ?? []) o lanza un Error con el message del backend y el
-// status HTTP. Es una función común (no un hook): recibe datos y devuelve una promesa.
+// listas vacías llegan como null, por eso el ?? []). Es una función común (no un hook).
 const pedirPrivado = (ruta, token) =>
-  fetch(`${API_URL}${ruta}`, { headers: { Authorization: `Bearer ${token}` } }).then((response) =>
-    response.json().then((cuerpo) => {
-      if (!response.ok) {
-        const fallo = new Error(cuerpo.message)
-        fallo.status = response.status
-        throw fallo
-      }
-      return cuerpo.data ?? []
-    })
-  )
+  fetch(`${API_URL}${ruta}`, { headers: { Authorization: `Bearer ${token}` } })
+    .then(leerRespuesta)
+    .then((data) => data ?? [])
 
 // Medios de pago de la API (enum MedioPago) con el texto que ve el cliente.
 const MEDIOS_PAGO = [
@@ -165,16 +170,7 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` }, // ruta privada, sin body
     })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
+      .then(leerRespuesta)
       .then((cancelado) => {
         setPedidos((actuales) => actuales.map((pedido) => (pedido.id === cancelado.id ? cancelado : pedido)))
         onAviso(`Cancelaste el pedido n.º ${pedidoId}`)
@@ -212,16 +208,7 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
       },
       body: JSON.stringify({ medioPago, pedidoId }),
     })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
+      .then(leerRespuesta)
       .then((creado) => {
         setPagos((actuales) => [...actuales, creado])
         onAviso(`Registramos tu pago del pedido n.º ${pedidoId}. Falta que lo aprueben.`)
@@ -263,16 +250,7 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
         platoId,
       }),
     })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
+      .then(leerRespuesta)
       .then(() => {
         setPlatosResenados((actuales) => [...actuales, platoId])
         onAviso(`Gracias por tu reseña de ${platoNombre}`)
