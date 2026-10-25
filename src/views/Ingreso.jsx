@@ -10,10 +10,9 @@ import Logo from '../components/layout/Logo'
 // solo se exponen las que empiezan con VITE_.
 const API_URL = import.meta.env.VITE_API_URL
 
-// Lee una respuesta del backend y devuelve lo que viene en "data". Si el servidor respondió con un
-// error (400, 401, 500...) lanza un Error con el "message" del backend y el código en "status".
-// Hace falta porque fetch NO manda los errores HTTP al .catch(): hay que mirar response.ok nosotros.
-// La usamos dos veces en esta vista (login y GET /users/me), por eso la definimos acá arriba.
+// Lee la respuesta del backend; se usa como .then(leerRespuesta) en el login y en GET /users/me.
+// fetch NO manda los errores HTTP al .catch(), por eso revisamos response.ok: si falló lanza un Error
+// con el message y el status del backend.
 const leerRespuesta = (response) =>
   response.json().then((cuerpo) => {
     if (!response.ok) {
@@ -48,10 +47,9 @@ function Ingreso({ onLogin }) {
   // useNavigate es un hook de React Router que nos permite redirigir al usuario por código
   const navigate = useNavigate()
 
-  // useLocation devuelve la ruta actual y el "state" con el que nos mandaron acá. Si venimos de
-  // una ruta protegida (o de agregar a la cesta sin sesión), location.state.from es esa ruta.
-  // Si entraron directo a /ingreso, location.state es null y el destino es el inicio.
-  // El signo ? evita un error cuando location.state es null.
+  // useLocation devuelve la ruta actual y el "state" con el que nos mandaron acá: si venimos de una ruta
+  // protegida (o de agregar a la cesta sin sesión), location.state.from es esa ruta; si no, el destino es
+  // el inicio. El signo ? evita un error cuando location.state es null.
   const location = useLocation()
   const destino = location.state?.from ?? '/'
 
@@ -100,9 +98,8 @@ function Ingreso({ onLogin }) {
     setErrorGeneral('')
     setEnviando(true)
 
-    // POST al backend. Va dentro de este handler (se ejecuta una vez por envío) y NUNCA en un
-    // useEffect. fetch devuelve una promesa: se encadena con .then() (cuando llega la respuesta),
-    // .catch() (si algo falla) y .finally() (pase lo que pase).
+    // POST al backend, dentro del handler (una vez por envío) y NUNCA en un useEffect. fetch devuelve una
+    // promesa: .then() corre cuando llega la respuesta, .catch() si algo falla y .finally() pase lo que pase.
     fetch(`${API_URL}/api/v1/auth/authenticate`, {
       method: 'POST',
       // headers (en plural) avisa que mandamos JSON; JSON.stringify pasa el objeto a texto JSON.
@@ -111,9 +108,9 @@ function Ingreso({ onLogin }) {
     })
       .then(leerRespuesta)
       .then((auth) =>
-        // La respuesta del login trae { access_token, userId, role } pero NO el nombre. Lo pedimos
-        // con GET /users/me, que es una ruta privada: mandamos el token en la cabecera
-        // Authorization. Devolvemos la promesa para que el siguiente .then() espere el resultado.
+        // El login trae { access_token, userId, role } pero NO el nombre: lo pedimos con GET /users/me
+        // (ruta privada, con el token en Authorization). Devolvemos la promesa para que el siguiente
+        // .then() espere el resultado.
         fetch(`${API_URL}/users/me`, { headers: { Authorization: `Bearer ${auth.access_token}` } })
           .then(leerRespuesta)
           .then((usuario) => ({ auth, usuario }))
