@@ -1,6 +1,4 @@
-// Vista de pedidos recibidos del chef (ruta /pedidos-recibidos, solo rol CHEF). Muestra los subpedidos que
-// le tocan (cada pedido se reparte en un subpedido por chef) y le permite avanzarlos paso a paso:
-// Recibido > Cocinando > En camino > Entregado. El cliente ve cada avance en Mis pedidos.
+// Pedidos recibidos (/pedidos-recibidos, solo CHEF): sus subpedidos (uno por chef en cada pedido), que avanza paso a paso.
 import { useEffect, useState } from 'react'
 import SubPedidoCard from '../components/pedidos/SubPedidoCard'
 import Tabs from '../components/comunes/Tabs'
@@ -8,18 +6,15 @@ import Dialog from '../components/comunes/Dialog'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
 
-// URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL
 
-// Texto de un error de fetch para mostrárselo al usuario: el "message" del backend si respondió con un
-// error, o uno claro si ni llegamos al servidor (apagado, sin red; ahí el error no tiene status).
+// Mensaje de un error de fetch: el del backend, o uno claro si no hubo respuesta (el error no tiene status).
 const mensajeDe = (fallo) =>
   fallo.status === undefined
     ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
     : fallo.message
 
-// Lee la respuesta del backend; se usa como .then(leerRespuesta). fetch NO manda los errores HTTP al
-// .catch(), por eso revisamos response.ok: si falló lanza un Error con el message y el status del backend.
+// Devuelve `data` o lanza un Error con message y status (fetch no manda los errores HTTP al .catch).
 const leerRespuesta = (response) =>
   response.json().then((cuerpo) => {
     if (!response.ok) {
@@ -30,8 +25,7 @@ const leerRespuesta = (response) =>
     return cuerpo.data
   })
 
-// MAPEO de los estados de la API a los textos que se muestran (el mismo que ve el cliente).
-// CANCELADO no está acá a propósito: se muestra aparte, con su propio badge.
+// Estado -> texto, igual que ve el cliente. CANCELADO no está: se muestra aparte, con su propio badge.
 const ETIQUETAS_ESTADO = {
   PENDIENTE: 'Pendiente de confirmación',
   CONFIRMADO: 'Recibido',
@@ -40,49 +34,38 @@ const ETIQUETAS_ESTADO = {
   ENTREGADO: 'Entregado',
 }
 
-// Los estados del seguimiento, en el orden en que avanza un pedido (así lo define la API).
+// Estados del seguimiento, en el orden en que avanza un pedido.
 const ORDEN_ESTADOS = ['PENDIENTE', 'CONFIRMADO', 'EN_PREPARACION', 'ENVIADO', 'ENTREGADO']
 
-// Los pasos que dibuja OrderTrack: cada estado con su texto amigable.
+// Pasos que dibuja OrderTrack.
 const PASOS_SEGUIMIENTO = ORDEN_ESTADOS.map((estado) => ({ estado, etiqueta: ETIQUETAS_ESTADO[estado] }))
 
-// Qué se puede hacer desde cada estado: el siguiente paso y el texto del botón. Es un objeto usado como
-// "diccionario". PENDIENTE no está: la API no deja avanzar hasta que un ADMIN apruebe el pago (da 409).
-// ENTREGADO y CANCELADO tampoco: ya terminaron.
+// Siguiente paso y texto del botón por estado. PENDIENTE no está (hasta que un ADMIN apruebe el pago da 409); ENTREGADO y CANCELADO ya terminaron.
 const ACCIONES = {
   CONFIRMADO: { siguiente: 'EN_PREPARACION', boton: 'Empezar a cocinar' },
   EN_PREPARACION: { siguiente: 'ENVIADO', boton: 'Marcar en camino' },
   ENVIADO: { siguiente: 'ENTREGADO', boton: 'Marcar entregado' },
 }
 
-// Props:
-//  - token: el JWT de la sesión (rutas privadas)
-//  - userId: el id del chef que inició sesión (en la API el chefId es el id de su usuario)
-//  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
-//  - onAviso: función (texto) de App para mostrar un Toast
+// Props: token (JWT), userId (del chef; en la API el chefId es el id de su usuario), onSesionVencida (401), onAviso (Toast).
 function PedidosRecibidos({ token, userId, onSesionVencida, onAviso }) {
-  // ESTADO: los subpedidos de este chef, con la forma de SubPedidoChefResponse de la API.
-  // TODO(backend): el subpedido no trae el número de pedido, la fecha ni el cliente; mostramos solo su id.
+  // TODO(backend): el subpedido no trae el número de pedido, la fecha ni el cliente; se muestra solo su id.
   const [subPedidos, setSubPedidos] = useState([])
 
-  // ESTADOS de carga y error del GET. Arranca cargando.
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
 
-  // ESTADO: pestaña activa. 'curso' o 'anteriores'.
   const [pestana, setPestana] = useState('curso')
 
-  // ESTADO del diálogo: el subpedido que se quiere avanzar, o null si está cerrado.
+  // Diálogo de confirmación: el subpedido a avanzar, o null si está cerrado.
   const [subPedidoAAvanzar, setSubPedidoAAvanzar] = useState(null)
 
-  // GET /subpedidos/chef/{userId} al abrir la vista. Un chef solo puede pedir los suyos (si no, 403).
-  // Con [token, userId] no se repite mientras no cambie la sesión.
+  // Al abrir: GET /subpedidos/chef/{userId} (un chef solo puede pedir los suyos; si no, 403).
   useEffect(() => {
     fetch(`${API_URL}/subpedidos/chef/${userId}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(leerRespuesta)
       .then((data) => setSubPedidos(data ?? [])) // lista vacía llega como null
       .catch((fallo) => {
-        // 401: el token ya no sirve; App cierra la sesión y la ruta protegida nos manda a /ingreso.
         if (fallo.status === 401) {
           onSesionVencida()
           return
@@ -90,13 +73,10 @@ function PedidosRecibidos({ token, userId, onSesionVencida, onAviso }) {
         setError(mensajeDe(fallo))
       })
       .finally(() => setCargando(false))
-    // onSesionVencida queda afuera de las dependencias a propósito: App la crea de nuevo en cada render y
-    // el GET se repetiría sin parar (se resuelve con useCallback cuando se vea en clase).
+    // onSesionVencida queda afuera de las dependencias: App la recrea en cada render y el GET se repetiría.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, userId])
 
-  // Renderizado condicional: si estamos cargando o hubo un error, mostramos eso y cortamos acá.
-  // Los hooks (useState y useEffect) siempre van ANTES de estos return.
   if (cargando) {
     return <LoadingState message="Cargando tus pedidos recibidos..." />
   }
@@ -104,9 +84,7 @@ function PedidosRecibidos({ token, userId, onSesionVencida, onAviso }) {
     return <ErrorState message={error} />
   }
 
-  // Al confirmar el diálogo: PATCH /subpedidos/{id}/estado. Con el subpedido que devuelve la API
-  // reemplazamos el de la lista (map), SIN volver a pedir todos. Cerramos el diálogo ENSEGUIDA para que un
-  // segundo clic no repita la acción.
+  // Avanza el subpedido (PATCH /subpedidos/{id}/estado). El diálogo se cierra enseguida para que un segundo clic no repita la acción.
   const confirmarAvance = () => {
     const subPedido = subPedidoAAvanzar
     const siguiente = ACCIONES[subPedido.estado].siguiente
@@ -130,14 +108,11 @@ function PedidosRecibidos({ token, userId, onSesionVencida, onAviso }) {
           onSesionVencida()
           return
         }
-        // 409 (transición inválida o pedido todavía sin pago aprobado), 403, 404: mensaje del backend.
         onAviso(mensajeDe(fallo))
       })
   }
 
-  // VALORES CALCULADOS (no se guardan aparte): de más nuevo a más viejo (el id crece con el tiempo),
-  // separados en lo que sigue en curso y lo que ya terminó. [...subPedidos] copia el array porque sort
-  // modifica el original y el estado nunca se modifica.
+  // De más nuevo a más viejo (el id crece con el tiempo; se ordena una copia) y separados en curso y anteriores.
   const ordenados = [...subPedidos].sort((a, b) => b.id - a.id)
   const enCurso = ordenados.filter((s) => s.estado !== 'ENTREGADO' && s.estado !== 'CANCELADO')
   const anteriores = ordenados.filter((s) => s.estado === 'ENTREGADO' || s.estado === 'CANCELADO')
@@ -159,14 +134,12 @@ function PedidosRecibidos({ token, userId, onSesionVencida, onAviso }) {
         <Tabs tabs={pestanas} activeId={pestana} onChange={setPestana} label="Pedidos recibidos" />
 
         <div role="tabpanel" className="mt-8 space-y-6">
-          {/* Renderizado condicional: si la pestaña no tiene subpedidos, lo decimos */}
           {visibles.length === 0 && (
             <p className="text-body-md text-on-surface-variant">
               {pestana === 'curso' ? 'No tenés pedidos en curso.' : 'Todavía no tenés pedidos anteriores.'}
             </p>
           )}
-          {/* map dibuja una tarjeta por subpedido; key = id, único y estable.
-              accion: el botón del paso siguiente, o null si no se puede avanzar desde ese estado. */}
+          {/* accion: el botón del paso siguiente, o null si no se puede avanzar desde ese estado */}
           {visibles.map((subPedido) => (
             <SubPedidoCard
               key={subPedido.id}
@@ -179,8 +152,7 @@ function PedidosRecibidos({ token, userId, onSesionVencida, onAviso }) {
         </div>
       </div>
 
-      {/* Diálogo de confirmación, controlado por estado: avanzar no se puede deshacer. Mientras está
-          cerrado (subPedidoAAvanzar === null) pasamos textos vacíos: Dialog no dibuja nada si open es false. */}
+      {/* Diálogo: avanzar no se puede deshacer. Cerrado, los textos van vacíos (Dialog no dibuja nada con open en false) */}
       <Dialog
         open={subPedidoAAvanzar !== null}
         title={subPedidoAAvanzar === null ? '' : `${ACCIONES[subPedidoAAvanzar.estado].boton}: subpedido n.º ${subPedidoAAvanzar.id}`}
