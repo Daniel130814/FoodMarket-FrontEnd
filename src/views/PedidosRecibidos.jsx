@@ -11,17 +11,15 @@ import ErrorState from '../components/comunes/ErrorState'
 // URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL
 
-// Texto de un error de fetch para mostrárselo al usuario. Si el servidor RESPONDIÓ con un error (400, 403...)
-// usamos su "message". Si ni siquiera llegamos al servidor (apagado, sin red), fetch rechaza la promesa con
-// un error SIN status y el texto del navegador ("Failed to fetch") no le sirve a nadie: damos uno claro.
+// Texto de un error de fetch para mostrárselo al usuario: el "message" del backend si respondió con un
+// error, o uno claro si ni llegamos al servidor (apagado, sin red; ahí el error no tiene status).
 const mensajeDe = (fallo) =>
   fallo.status === undefined
     ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
     : fallo.message
 
-// Lee la respuesta del backend: si no fue exitosa lanza un Error con el message y el status HTTP
-// (fetch no manda los errores HTTP al .catch()); si fue exitosa devuelve cuerpo.data.
-// Se usa como .then(leerRespuesta) en todos los fetch de esta vista.
+// Lee la respuesta del backend; se usa como .then(leerRespuesta). fetch NO manda los errores HTTP al
+// .catch(), por eso revisamos response.ok: si falló lanza un Error con el message y el status del backend.
 const leerRespuesta = (response) =>
   response.json().then((cuerpo) => {
     if (!response.ok) {
@@ -77,8 +75,8 @@ function PedidosRecibidos({ token, userId, onSesionVencida, onAviso }) {
   // ESTADO del diálogo: el subpedido que se quiere avanzar, o null si está cerrado.
   const [subPedidoAAvanzar, setSubPedidoAAvanzar] = useState(null)
 
-  // GET /subpedidos/chef/{userId} al abrir la vista. Ruta privada: lleva el token. Un chef solo puede pedir
-  // los suyos (si no, 403). Dependencias [token, userId]: no se repite mientras no cambie la sesión.
+  // GET /subpedidos/chef/{userId} al abrir la vista. Un chef solo puede pedir los suyos (si no, 403).
+  // Con [token, userId] no se repite mientras no cambie la sesión.
   useEffect(() => {
     fetch(`${API_URL}/subpedidos/chef/${userId}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(leerRespuesta)
@@ -92,8 +90,8 @@ function PedidosRecibidos({ token, userId, onSesionVencida, onAviso }) {
         setError(mensajeDe(fallo))
       })
       .finally(() => setCargando(false))
-    // onSesionVencida queda afuera de las dependencias a propósito (App la crea de nuevo en cada render
-    // y el GET se repetiría sin parar). Se resuelve con useCallback cuando se vea en clase.
+    // onSesionVencida queda afuera de las dependencias a propósito: App la crea de nuevo en cada render y
+    // el GET se repetiría sin parar (se resuelve con useCallback cuando se vea en clase).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, userId])
 
@@ -106,9 +104,9 @@ function PedidosRecibidos({ token, userId, onSesionVencida, onAviso }) {
     return <ErrorState message={error} />
   }
 
-  // Al confirmar el diálogo: PATCH /subpedidos/{id}/estado { estado } (paso 14c). Es una escritura: va en el
-  // handler. La API devuelve el subpedido ya avanzado; con él reemplazamos el de la lista (map), SIN volver
-  // a pedir todos. Cerramos el diálogo ENSEGUIDA para que un segundo clic no repita la acción.
+  // Al confirmar el diálogo: PATCH /subpedidos/{id}/estado. Con el subpedido que devuelve la API
+  // reemplazamos el de la lista (map), SIN volver a pedir todos. Cerramos el diálogo ENSEGUIDA para que un
+  // segundo clic no repita la acción.
   const confirmarAvance = () => {
     const subPedido = subPedidoAAvanzar
     const siguiente = ACCIONES[subPedido.estado].siguiente
