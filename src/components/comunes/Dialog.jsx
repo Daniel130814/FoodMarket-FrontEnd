@@ -1,31 +1,19 @@
-// Ventana de confirmación (diálogo modal) hecha con estado. Reemplaza a confirm(), que está prohibido.
-// Se usa en views/MisPedidos (cancelar un pedido) y views/MisPublicaciones (eliminar plato y aplicar descuento).
-// Componente "tonto": el padre decide cuándo se muestra (open) y qué pasa al confirmar o cancelar.
+// Diálogo modal de confirmación hecho con estado (reemplaza a confirm()). El padre decide cuándo se muestra y qué pasa al confirmar.
 
-// Props:
-//  - open: true para mostrarlo, false para esconderlo (lo guarda el padre con useState)
-//  - title / message: textos del diálogo
-//  - confirmLabel: texto del botón que confirma
-//  - confirmVariant: color del botón que confirma: 'danger' (rojo, por defecto) o 'primary'
-//  - children: contenido extra entre el mensaje y los botones (por ejemplo, un campo de texto).
-//    children es la prop especial con todo lo que se escribe ENTRE las etiquetas <Dialog>...</Dialog>.
-//  - cancelLabel: texto del botón que cierra sin hacer nada
-//  - onConfirm: función del padre; se llama al tocar el botón que confirma
-//  - onCancel: función del padre; se llama al tocar el otro botón o el fondo oscuro
+// Props: open, title, message, confirmLabel, confirmVariant ('danger' por defecto o 'primary'), cancelLabel,
+// children (contenido extra entre el mensaje y los botones), onConfirm, onCancel (también al tocar el fondo).
 function Dialog({ open, title, message, confirmLabel, confirmVariant = 'danger', cancelLabel, onConfirm, onCancel, children }) {
-  // Si no está abierto no dibujamos nada. null es "no mostrar nada" en React.
+  // Cerrado: no dibuja nada.
   if (!open) {
     return null
   }
 
   return (
-    // Fondo oscuro que cubre toda la pantalla. Al tocarlo se cancela.
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-[rgba(24,36,11,0.45)] p-4"
       onClick={onCancel}
     >
-      {/* role="dialog" y aria-modal avisan a los lectores de pantalla que es una ventana modal.
-          stopPropagation evita que un toque DENTRO del diálogo llegue al fondo y lo cierre. */}
+      {/* stopPropagation evita que un toque dentro del diálogo llegue al fondo y lo cierre */}
       <div
         role="dialog"
         aria-modal="true"
