@@ -1,4 +1,4 @@
-// Pie de página de la app. Se muestra en todas las vistas menos Ingreso y Registro (lo dibuja App.jsx).
+// Pie de página (todas las vistas menos Ingreso y Registro).
 import Logo from './Logo'
 
 // No recibe props: es contenido fijo.
