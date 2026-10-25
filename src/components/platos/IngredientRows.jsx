@@ -1,7 +1,6 @@
-// Filas de ingredientes de un plato: ingrediente del catálogo, cantidad y unidad. Se usa en views/PublicarPlato.
-// Componente "tonto": las filas y las funciones vienen del padre.
+// Filas de ingredientes de un plato (ingrediente del catálogo, cantidad y unidad); las filas y funciones vienen del padre.
 
-// Las unidades de medida que acepta la API (ENDPOINTS.md, sección 4) y cómo se muestran.
+// Unidades de medida de la API (ENDPOINTS.md, sección 4) y cómo se muestran.
 const UNIDADES = [
   { valor: 'GRAMOS', etiqueta: 'Gramos (g)' },
   { valor: 'KILOGRAMOS', etiqueta: 'Kilogramos (kg)' },
@@ -10,20 +9,14 @@ const UNIDADES = [
   { valor: 'UNIDAD', etiqueta: 'Unidades (u)' },
 ]
 
-// Props:
-//  - rows: array de filas { ingredienteId, cantidad, unidadMedida } (lo guarda el padre)
-//  - catalog: ingredientes disponibles { id, nombre, descripcion }
-//  - onChange: función del padre (posición, campo, valor); se llama al cambiar un campo de una fila
-//  - onAdd: función del padre sin argumentos; agrega una fila vacía
-//  - onRemove: función del padre (posición); quita esa fila
-//  - error: texto del error de los ingredientes, o null si no hay
+// Props: rows ({ ingredienteId, cantidad, unidadMedida }), catalog ({ id, nombre, descripcion }), onChange (posición,
+// campo, valor), onAdd (agrega una fila vacía), onRemove (posición), error (texto o null).
 function IngredientRows({ rows, catalog, onChange, onAdd, onRemove, error }) {
   return (
     <fieldset>
       <legend className="label">Ingredientes</legend>
       <ul className="space-y-3">
-        {/* map: una fila por ingrediente. Las filas no tienen un id propio, así que usamos la
-            posición (index) como key; los valores los controla el padre. */}
+        {/* Las filas no tienen id propio: la posición hace de key (válido porque el padre controla los valores) */}
         {rows.map((fila, index) => (
           <li key={index} className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_110px_160px_auto] sm:items-center">
             <select
