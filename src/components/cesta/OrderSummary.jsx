@@ -1,17 +1,10 @@
-// Resumen del pedido: platos, envío y total. Se usa en views/Carrito y views/Checkout.
+// Resumen del pedido: platos, envío y total.
 import Button from '../comunes/Button'
 
-// Props:
-//  - units: cantidad total de porciones
-//  - subtotal: suma de los platos
-//  - shipping: costo de envío
-//  - onConfirm: función que se llama al tocar el botón de acción
-//  - buttonLabel: texto del botón ("Continuar con la compra" en la Cesta, "Confirmar pedido" en el Checkout)
-//  - disabled: true para deshabilitar el botón (por ejemplo, si falta elegir un domicilio)
+// Props: units (porciones), subtotal, shipping, onConfirm, buttonLabel (Cesta o Checkout), disabled (por ejemplo, sin domicilio elegido).
 function OrderSummary({ units, subtotal, shipping, onConfirm, buttonLabel = 'Confirmar pedido', disabled = false }) {
   const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
 
-  // El total se calcula acá a partir de lo que recibe; no se guarda en ningún estado
   const total = subtotal + shipping
 
   return (
