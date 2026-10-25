@@ -14,17 +14,15 @@ import ErrorState from '../components/comunes/ErrorState'
 // URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL
 
-// Texto de un error de fetch para mostrárselo al usuario. Si el servidor RESPONDIÓ con un error (400, 403...)
-// usamos su "message". Si ni siquiera llegamos al servidor (apagado, sin red), fetch rechaza la promesa con
-// un error SIN status y el texto del navegador ("Failed to fetch") no le sirve a nadie: damos uno claro.
+// Texto de un error de fetch para mostrárselo al usuario: el "message" del backend si respondió con un
+// error, o uno claro si ni llegamos al servidor (apagado, sin red; ahí el error no tiene status).
 const mensajeDe = (fallo) =>
   fallo.status === undefined
     ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
     : fallo.message
 
-// Lee una respuesta del backend y devuelve lo que viene en "data". Si el servidor respondió con un error
-// lanza un Error con el "message" del backend y el código en "status" (fetch NO manda los errores HTTP al
-// .catch(): hay que mirar response.ok nosotros). Se usa como .then(leerRespuesta) en todos los fetch de esta vista.
+// Lee la respuesta del backend; se usa como .then(leerRespuesta). fetch NO manda los errores HTTP al
+// .catch(), por eso revisamos response.ok: si falló lanza un Error con el message y el status del backend.
 const leerRespuesta = (response) =>
   response.json().then((cuerpo) => {
     if (!response.ok) {
@@ -35,16 +33,14 @@ const leerRespuesta = (response) =>
     return cuerpo.data
   })
 
-// GET de un catálogo público (categorías o ingredientes): no lleva token. Devuelve una promesa con la
-// lista (las listas vacías llegan como null, por eso el ?? []). Es una función común, no un hook.
+// GET de un catálogo público (categorías o ingredientes): no lleva token. Las listas vacías llegan como null.
 const pedirCatalogo = (ruta) =>
   fetch(`${API_URL}${ruta}`)
     .then(leerRespuesta)
     .then((data) => data ?? [])
 
-// GET de UN plato (paso 3.2.a). Lleva el token a propósito, aunque la ruta es pública: un plato en BORRADOR
-// o PAUSADO solo lo devuelve el backend a su chef dueño (con token); sin token da 404. signal es la señal
-// de un AbortController, para poder cancelar el pedido. Es una función común, no un hook.
+// GET de UN plato. Lleva el token a propósito, aunque la ruta es pública: un plato en BORRADOR o PAUSADO
+// solo lo devuelve el backend a su chef dueño; sin token da 404. signal es la de un AbortController.
 const pedirPlato = (platoId, token, signal) =>
   fetch(`${API_URL}/platos/${platoId}`, { headers: { Authorization: `Bearer ${token}` }, signal }).then(leerRespuesta)
 
@@ -72,10 +68,9 @@ const subirImagen = (platoId, archivo, token) => {
   }).then(leerRespuesta)
 }
 
-// Sube varias imágenes UNA POR UNA, en orden: cada subida espera a que termine la anterior. No van en
-// paralelo porque el backend agrega cada URL a la lista del plato y dos subidas a la vez podrían pisarse.
-// reduce recorre el array y va encadenando las promesas; arranca con el plato recién guardado.
-// Devuelve una promesa con el plato tal como quedó después de la última subida.
+// Sube varias imágenes UNA POR UNA, en orden: no van en paralelo porque el backend agrega cada URL a la
+// lista del plato y dos subidas a la vez podrían pisarse. reduce encadena las promesas, arrancando con el
+// plato recién guardado, y devuelve el plato como quedó después de la última subida.
 const subirImagenes = (plato, archivos, token) =>
   archivos.reduce(
     (cadena, archivo) => cadena.then((actual) => subirImagen(actual.id, archivo, token)),
@@ -118,10 +113,8 @@ const aFormulario = (plato, categorias) => ({
 // Devuelve las URLs sin espacios y sin los campos vacíos (la API rechaza URLs en blanco).
 const urlsLimpias = (urls) => urls.map((url) => url.trim()).filter((url) => url !== '')
 
-// Valida el formulario con las reglas de PlatoRequest (ENDPOINTS.md, sección 3.3).
-// Devuelve un objeto con un mensaje por cada campo con error; vacío si todo está bien.
-// cantidadArchivos: cuántas imágenes se eligieron desde el equipo; cuentan como imágenes del plato.
-// Es una función común (no un hook): recibe datos y devuelve datos.
+// Valida el formulario con las reglas de PlatoRequest (ENDPOINTS.md, sección 3.3). Devuelve un mensaje por
+// cada campo con error (objeto vacío si está todo bien). cantidadArchivos: las imágenes elegidas desde el equipo.
 const validar = (datos, cantidadArchivos) => {
   const ids = datos.ingredientes.map((fila) => fila.ingredienteId)
   const hayFilaIncompleta = datos.ingredientes.some((fila) => fila.ingredienteId === '' || !(Number(fila.cantidad) > 0))
@@ -147,8 +140,7 @@ const validar = (datos, cantidadArchivos) => {
 //  - token: el JWT de la sesión, para el GET del plato a editar y para el POST y el PUT de platos
 //  - userId: el id del chef con sesión; sirve para no dejar editar un plato que es de otro chef
 //  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
-//  - onAviso: función (texto) de App para mostrar un Toast. La vista hace el POST o el PUT y, cuando el
-//    backend responde bien, avisa y vuelve a Mis publicaciones, que pide su lista al abrirse.
+//  - onAviso: función (texto) de App para mostrar un Toast. Al guardar bien, avisa y vuelve a Mis publicaciones.
 function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
   const navigate = useNavigate()
 
@@ -157,8 +149,7 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
   const { id } = useParams()
   const editando = id !== undefined
 
-  // ESTADOS del plato que se edita (GET /platos/{id}): el plato tal como lo devolvió el backend (null hasta
-  // que responde) y si el backend dijo que no existe o no es visible para este chef (404).
+  // ESTADOS del plato que se edita: el que devolvió el backend (null hasta que responde) y si dijo 404.
   const [plato, setPlato] = useState(null)
   const [platoNoExiste, setPlatoNoExiste] = useState(false)
 
@@ -171,9 +162,9 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
   const cargandoPlato = editando && !platoCargado && !platoNoExiste
   const platoAEditar = platoCargado && plato.chefId === userId ? plato : undefined
 
-  // ESTADO: lo que el chef fue escribiendo en el formulario (todos los campos en un solo objeto), o null
-  // mientras no tocó nada. No lo inicializamos con los datos del plato porque useState solo usa su valor
-  // inicial en el primer render, y en ese momento todavía pueden faltar el plato o las categorías.
+  // ESTADO: lo que el chef fue escribiendo (todos los campos en un objeto), o null mientras no tocó nada.
+  // No se inicializa con el plato porque useState usa su valor inicial solo en el primer render, cuando
+  // todavía pueden faltar el plato o las categorías.
   const [edicion, setDatos] = useState(null)
 
   // ESTADO: un mensaje de error por campo (objeto vacío = sin errores).
@@ -193,13 +184,11 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
   const [guardando, setGuardando] = useState(false)
   const [errorGuardar, setErrorGuardar] = useState(null)
 
-  // VALOR CALCULADO: los datos que muestra el formulario. Si el chef ya escribió algo, es su borrador;
-  // si no, sale del plato que se edita (o vacío si estamos creando). Se recalcula en cada render, así
-  // siempre usa el plato y las categorías más recientes, sin necesidad de un efecto.
+  // VALOR CALCULADO: los datos que muestra el formulario. Si el chef ya escribió algo, su borrador; si no,
+  // el plato que se edita (o vacío si estamos creando). Se recalcula en cada render, sin necesidad de un efecto.
   const datos = edicion ?? (platoAEditar === undefined ? FORM_VACIO : aFormulario(platoAEditar, categorias))
 
-  // GET de los dos catálogos al abrir la vista (paso 13b). Promise.all espera a que lleguen LOS DOS y
-  // entrega los resultados juntos, en el mismo orden. Dependencias []: se piden una sola vez.
+  // GET de los dos catálogos al abrir la vista. Promise.all espera a que lleguen LOS DOS; con [] se piden una sola vez.
   useEffect(() => {
     Promise.all([pedirCatalogo('/categories'), pedirCatalogo('/ingredientes')])
       .then(([listaCategorias, listaIngredientes]) => {
@@ -210,10 +199,8 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
       .finally(() => setCargando(false))
   }, [])
 
-  // GET /platos/{id} al editar (paso 3.2.a): pide el plato con su propio fetch en vez de buscarlo en la lista
-  // de App. Así /publicar/:id funciona aunque recargues (F5) y también con borradores y pausados. Es un GET:
-  // va en un efecto, con [id, token] como dependencias, y se salta cuando estamos creando (/publicar).
-  // El efecto modifica "plato", no "id", por eso no hay bucle.
+  // GET /platos/{id} al editar: así /publicar/:id funciona aunque recargues (F5) y también con borradores
+  // y pausados. Se salta cuando estamos creando (/publicar). No hay bucle: el efecto modifica "plato", no "id".
   useEffect(() => {
     if (!editando) {
       return
@@ -243,7 +230,7 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
 
     return () => controlador.abort()
     // onSesionVencida queda afuera de las dependencias a propósito: App la crea de nuevo en cada render y
-    // el GET se repetiría sin parar. (Se resuelve con useCallback cuando se vea en clase.)
+    // el GET se repetiría sin parar (se resuelve con useCallback cuando se vea en clase).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, token])
 
@@ -267,9 +254,8 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
     )
   }
 
-  // Un único handler para los inputs simples (nombre, descripción, precio, stock y estado).
-  // event.target.name dice qué campo cambió y value qué tiene ahora ([name]: value es una
-  // "clave calculada"). Al corregir un campo limpiamos su error.
+  // Un único handler para los inputs simples: event.target.name dice qué campo cambió y value qué tiene
+  // ahora ([name]: value es una "clave calculada"). Al corregir un campo limpiamos su error.
   const handleChange = (event) => {
     const { name, value } = event.target
     setDatos({ ...datos, [name]: value })
@@ -329,9 +315,8 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
     setDatos({ ...datos, ingredientes: datos.ingredientes.filter((_, i) => i !== posicion) })
   }
 
-  // Envío: validamos y, si todo está bien, armamos el cuerpo de PlatoRequest y se lo pasamos a App.
-  // IMPORTANTE: mandamos TODOS los campos siempre, porque en la API el PUT reemplaza el plato
-  // entero (lo que no se manda se borra).
+  // Envío: validamos y, si todo está bien, armamos el cuerpo de PlatoRequest. Mandamos TODOS los campos
+  // siempre, porque el PUT reemplaza el plato entero (lo que no se manda se borra).
   const handleSubmit = (event) => {
     event.preventDefault()
 
@@ -356,19 +341,17 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
       })),
     }
 
-    // El backend exige al menos una imagen para publicar. Si el chef quiere PUBLICAR y sus únicas imágenes
-    // son archivos (no hay URLs), el plato todavía no tiene ninguna al guardarlo: lo guardamos primero como
-    // BORRADOR, subimos los archivos y al final lo publicamos con un PUT. En los demás casos no hace falta.
+    // El backend exige al menos una imagen para publicar. Si el chef quiere PUBLICAR y sus únicas imágenes son
+    // archivos, el plato todavía no tiene ninguna al guardarlo: va primero como BORRADOR y se publica al final.
     const publicarSoloConArchivos =
       datos.estado === 'PUBLICADO' && archivos.length > 0 && platoRequest.imagenesUrls.length === 0
     const primerPedido = publicarSoloConArchivos ? { ...platoRequest, estado: 'BORRADOR' } : platoRequest
 
-    // Guardar es un proceso en TIEMPOS (todo dentro del handler, nunca en un efecto):
-    //  1. Crear (POST /platos/createPlato) o editar (PUT /platos/{id}) el plato con su JSON. El PUT
-    //     REEMPLAZA el plato entero: por eso el pedido lleva siempre todos los campos.
+    // Guardar es un proceso en TIEMPOS, todo dentro del handler:
+    //  1. Crear (POST /platos/createPlato) o editar (PUT /platos/{id}) el plato con su JSON.
     //  2. Subir los archivos elegidos, uno por uno (POST /platos/{id}/imagenes, multipart).
-    //  3. Solo si hacía falta (publicarSoloConArchivos): PUT final con el estado PUBLICADO y la lista
-    //     completa de imágenes, que es la que devolvió la última subida.
+    //  3. Solo si hacía falta (publicarSoloConArchivos): PUT final con PUBLICADO y la lista de imágenes
+    //     que devolvió la última subida.
     setGuardando(true)
     setErrorGuardar(null)
     fetch(editando ? `${API_URL}/platos/${platoAEditar.id}` : `${API_URL}/platos/createPlato`, {
@@ -394,16 +377,16 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
                 }).then(leerRespuesta)
               : conImagenes
           )
-          // Si falla un paso DESPUÉS de guardar el plato, marcamos el error con el id del plato: más abajo
-          // lo necesitamos para no crear un plato duplicado si el chef vuelve a intentar.
+          // Si falla un paso DESPUÉS de guardar el plato, marcamos el error con su id (más abajo lo
+          // usamos para no crear un plato duplicado si el chef vuelve a intentar).
           .catch((fallo) => {
             fallo.platoId = guardado.id
             throw fallo
           })
       )
       .then((resultado) => {
-        // Avisamos y volvemos a la lista. Mis publicaciones se monta de nuevo y pide sus platos con
-        // GET /platos/mis-platos: es el GET de una vista que se abre, no un re-GET después de escribir.
+        // Avisamos y volvemos a la lista: Mis publicaciones se monta de nuevo y pide sus platos (es el GET
+        // de una vista que se abre, no un re-GET después de escribir).
         onAviso(editando ? `Guardaste los cambios de ${resultado.nombre}` : `Creaste ${resultado.nombre}`)
         navigate('/mis-publicaciones')
       })
@@ -412,8 +395,8 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
           onSesionVencida()
           return
         }
-        // El plato se creó pero falló la subida o la publicación: si nos quedáramos en /publicar, el
-        // siguiente "Guardar" lo crearía de nuevo. Pasamos a editarlo (/publicar/{id}) y avisamos qué pasó.
+        // El plato se creó pero falló la subida o la publicación: pasamos a /publicar/{id} para que el
+        // siguiente "Guardar" lo edite en lugar de crearlo de nuevo.
         if (!editando && fallo.platoId !== undefined) {
           onAviso(`Creamos el plato, pero no pudimos terminar de cargar las imágenes: ${mensajeDe(fallo)}`)
           // Cambiar de /publicar a /publicar/:id NO desmonta la vista (es el mismo componente), así que el
