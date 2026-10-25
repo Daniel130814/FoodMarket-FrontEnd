@@ -15,17 +15,15 @@ const ENVIO = 3200
 // URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL
 
-// Texto de un error de fetch para mostrárselo al usuario. Si el servidor RESPONDIÓ con un error (400, 403...)
-// usamos su "message". Si ni siquiera llegamos al servidor (apagado, sin red), fetch rechaza la promesa con
-// un error SIN status y el texto del navegador ("Failed to fetch") no le sirve a nadie: damos uno claro.
+// Texto de un error de fetch para mostrárselo al usuario: el "message" del backend si respondió con un
+// error, o uno claro si ni llegamos al servidor (apagado, sin red; ahí el error no tiene status).
 const mensajeDe = (fallo) =>
   fallo.status === undefined
     ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
     : fallo.message
 
-// Lee la respuesta del backend: si no fue exitosa lanza un Error con el message y el status HTTP
-// (fetch no manda los errores HTTP al .catch()); si fue exitosa devuelve cuerpo.data.
-// Se usa como .then(leerRespuesta) en todos los fetch de esta vista.
+// Lee la respuesta del backend; se usa como .then(leerRespuesta). fetch NO manda los errores HTTP al
+// .catch(), por eso revisamos response.ok: si falló lanza un Error con el message y el status del backend.
 const leerRespuesta = (response) =>
   response.json().then((cuerpo) => {
     if (!response.ok) {
@@ -56,8 +54,8 @@ const CAMPOS_OBLIGATORIOS = ['calle', 'numero', 'ciudad', 'provincia', 'codigoPo
 //  - cartCount: total de unidades (ya calculado por App)
 //  - token: el JWT de la sesión, para las llamadas privadas (GET y POST de domicilios)
 //  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
-//  - onPedidoCreado: función (pedido) de App. Checkout hace el POST /carrito/checkout y, cuando el backend
-//    responde bien, le entrega el pedido creado; App lo suma a los pedidos, vacía la cesta y avisa.
+//  - onPedidoCreado: función (pedido) de App. Checkout hace el POST y, si el backend responde bien, se la llama:
+//    App vacía la copia local de la cesta y avisa (por ahora no usa el pedido).
 function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }) {
   const navigate = useNavigate()
   const { items, totalEstimado } = carrito
@@ -88,8 +86,7 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
   // doble clic no cree dos pedidos.
   const [confirmando, setConfirmando] = useState(false)
 
-  // GET /domicilios al abrir la vista (paso 12.4a). Es ruta privada: lleva el token.
-  // Dependencias [token]: solo se vuelve a ejecutar si cambia el token (el efecto no lo modifica).
+  // GET /domicilios al abrir la vista. Con [token] solo se repite si cambia el token (el efecto no lo modifica).
   useEffect(() => {
     fetch(`${API_URL}/domicilios`, { headers: { Authorization: `Bearer ${token}` } })
       .then(leerRespuesta)
@@ -104,7 +101,7 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
       })
       .finally(() => setCargando(false))
   // onSesionVencida queda afuera de las dependencias a propósito: App la crea de nuevo en cada render y
-  // el GET se repetiría sin parar. (Se resuelve con useCallback cuando se vea en clase.)
+  // el GET se repetiría sin parar (se resuelve con useCallback cuando se vea en clase).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
@@ -165,7 +162,7 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
       indicacionesEntrega: opcional(formDomicilio.indicacionesEntrega),
     }
 
-    // POST /domicilios/createDomicilio (paso 12.4a): escritura dentro del handler del submit.
+    // POST /domicilios/createDomicilio, dentro del handler del submit.
     fetch(`${API_URL}/domicilios/createDomicilio`, {
       method: 'POST',
       headers: {
@@ -200,10 +197,9 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
     setErroresForm({})
   }
 
-  // Confirmar pedido (paso 12.4b). Requiere un domicilio elegido (el botón ya está deshabilitado sin uno).
-  // POST /carrito/checkout { domicilioEntregaId }: el backend valida el stock, descuenta, arma un subpedido
-  // por chef, vacía la cesta del servidor y devuelve el pedido (OrderResponse). Es una escritura: va acá
-  // en el handler del clic, nunca en un efecto.
+  // Confirmar pedido (el botón ya está deshabilitado sin domicilio elegido). POST /carrito/checkout: el
+  // backend valida el stock, lo descuenta, arma un subpedido por chef, vacía la cesta del servidor y
+  // devuelve el pedido.
   const confirmar = () => {
     setConfirmando(true)
     setConflictos([])
