@@ -9,16 +9,15 @@ import Alert from '../components/comunes/Alert'
 // URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL
 
-// Texto de un error de fetch para mostrárselo al usuario. Si el servidor RESPONDIÓ con un error (400, 403...)
-// usamos su "message". Si ni siquiera llegamos al servidor, fetch rechaza la promesa con un error SIN status.
+// Texto de un error de fetch para mostrárselo al usuario: el "message" del backend si respondió con un
+// error, o uno claro si ni llegamos al servidor (apagado, sin red; ahí el error no tiene status).
 const mensajeDe = (fallo) =>
   fallo.status === undefined
     ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
     : fallo.message
 
-// Lee una respuesta del backend y devuelve lo que viene en "data". Si el servidor respondió con un
-// error lanza un Error con el "message" del backend y el código en "status" (fetch NO manda los
-// errores HTTP al .catch(): hay que mirar response.ok nosotros).
+// Lee la respuesta del backend; se usa como .then(leerRespuesta). fetch NO manda los errores HTTP al
+// .catch(), por eso revisamos response.ok: si falló lanza un Error con el message y el status del backend.
 const leerRespuesta = (response) =>
   response.json().then((cuerpo) => {
     if (!response.ok) {
@@ -52,9 +51,9 @@ const validar = (datos) => ({
   ...(!/\S+@\S+\.\S+/.test(datos.email.trim()) && { email: 'Escribí un correo válido.' }),
 })
 
-// Valida el formulario del cambio de contraseña con las reglas de CambioPasswordRequest (ENDPOINTS.md,
-// sección 3.2): la actual es obligatoria y la nueva tiene mínimo 8 caracteres. "repetir" no existe en la
-// API: lo pedimos nosotros para evitar un error de tipeo al escribir la contraseña nueva.
+// Valida el cambio de contraseña con las reglas de CambioPasswordRequest (ENDPOINTS.md, sección 3.2): la
+// actual es obligatoria y la nueva tiene mínimo 8 caracteres. "repetir" no existe en la API: lo pedimos
+// nosotros para evitar un error de tipeo.
 const validarPassword = (datos) => ({
   ...(datos.actual === '' && { actual: 'Escribí tu contraseña actual.' }),
   ...(datos.nueva.length < 8 && { nueva: 'La contraseña nueva tiene que tener al menos 8 caracteres.' }),
@@ -67,8 +66,8 @@ const PASSWORD_VACIA = { actual: '', nueva: '', repetir: '' }
 // Props:
 //  - token: el JWT de la sesión, para GET y PUT /users/me y PUT /users/me/password (rutas privadas)
 //  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
-//  - onPerfilActualizado: función (usuario) de App. La vista hace el PUT y, cuando el backend responde bien,
-//    le entrega el usuario ya guardado para que App actualice el nombre del Header.
+//  - onPerfilActualizado: función (usuario) de App. Se le entrega el usuario guardado para que actualice el
+//    nombre del Header.
 //  - onAviso: función (texto) de App para mostrar un Toast
 function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
   // ESTADO de los datos que llegan del backend: el usuario (null hasta que responde la API).
@@ -111,7 +110,7 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
       })
       .finally(() => setCargando(false))
     // onSesionVencida queda afuera de las dependencias a propósito: App la crea de nuevo en cada render y
-    // el GET se repetiría sin parar. (Se resuelve con useCallback cuando se vea en clase.)
+    // el GET se repetiría sin parar (se resuelve con useCallback cuando se vea en clase).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
@@ -125,8 +124,8 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
     }
   }
 
-  // Guarda los cambios con PUT /users/me. Es una escritura: va en el handler del submit, nunca en un efecto.
-  // Con el usuario que devuelve el backend actualizamos el estado local, SIN volver a pedirlo.
+  // Guarda los cambios con PUT /users/me. Con el usuario que devuelve el backend actualizamos el estado
+  // local, SIN volver a pedirlo.
   const handleSubmit = (event) => {
     event.preventDefault()
 
@@ -182,9 +181,8 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
     }
   }
 
-  // Cambia la contraseña con PUT /users/me/password { actual, nueva }. Es una escritura: va en el handler
-  // del submit. La respuesta trae data: null (no hay nada que guardar en el estado), así que solo vaciamos
-  // los campos y avisamos. El token vigente sigue siendo válido: no hace falta volver a ingresar.
+  // Cambia la contraseña con PUT /users/me/password { actual, nueva }. La respuesta trae data: null (nada
+  // que guardar en el estado): solo vaciamos los campos y avisamos. El token sigue siendo válido.
   const handlePasswordSubmit = (event) => {
     event.preventDefault()
 
