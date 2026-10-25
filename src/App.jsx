@@ -32,6 +32,20 @@ const mensajeDe = (fallo) =>
     ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
     : fallo.message
 
+// Lee la respuesta del backend y decide si fue éxito o error. Se usa como .then(leerRespuesta) en todos los
+// fetch de este archivo. fetch NO manda los errores HTTP al .catch(), por eso revisamos response.ok acá:
+// si falló, lanzamos un Error con el "message" del backend y su status. Si salió bien, devuelve cuerpo.data
+// (que es null en los DELETE: el .then siguiente simplemente no lo usa).
+const leerRespuesta = (response) =>
+  response.json().then((cuerpo) => {
+    if (!response.ok) {
+      const fallo = new Error(cuerpo.message)
+      fallo.status = response.status
+      throw fallo
+    }
+    return cuerpo.data
+  })
+
 // Clave con la que se guarda el JWT en localStorage. Está en una constante para escribirla una sola vez.
 const CLAVE_TOKEN = 'jwtToken'
 
@@ -90,6 +104,16 @@ function App() {
     setAviso('Tu sesión venció, ingresá de nuevo')
   }
 
+  // Maneja el error de un fetch a una ruta privada: si es 401 el token ya no sirve y cerramos la sesión;
+  // si no, mostramos el mensaje en el Toast. Se usa como .catch(manejarFallo).
+  const manejarFallo = (fallo) => {
+    if (fallo.status === 401) {
+      sesionVencida()
+      return
+    }
+    setAviso(mensajeDe(fallo))
+  }
+
   // Agrega un plato a la cesta (paso 12.3b). Si el plato YA está, el backend SUMA la cantidad.
   // Es una ESCRITURA (POST), por eso va en el handler y nunca en un efecto.
   // Recibe el plato (tal como lo devolvió GET /platos) y la cantidad. Ya no validamos stock ni estado
@@ -103,29 +127,13 @@ function App() {
       },
       body: JSON.stringify({ platoId: plato.id, cantidad }),
     })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
+      .then(leerRespuesta)
       // La respuesta es la cesta COMPLETA ya actualizada: la guardamos tal cual, sin volver a pedirla.
       .then((carritoServidor) => {
         setCarrito(carritoServidor)
         setAviso(`Agregaste ${plato.nombre} a tu carrito`)
       })
-      .catch((fallo) => {
-        // 401: el token ya no sirve, cerramos la sesión (en un solo lugar: sesionVencida).
-        if (fallo.status === 401) {
-          sesionVencida()
-          return
-        }
-        setAviso(mensajeDe(fallo))
-      })
+      .catch(manejarFallo)
   }
 
   // Cambia la cantidad de un ítem (paso 12.3c): la REEMPLAZA (no suma). Recibe el id del ÍTEM, no del plato.
@@ -144,25 +152,9 @@ function App() {
       },
       body: JSON.stringify({ cantidad }),
     })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
+      .then(leerRespuesta)
       .then((carritoServidor) => setCarrito(carritoServidor))
-      .catch((fallo) => {
-        // 401: el token ya no sirve, cerramos la sesión (en un solo lugar: sesionVencida).
-        if (fallo.status === 401) {
-          sesionVencida()
-          return
-        }
-        setAviso(mensajeDe(fallo))
-      })
+      .catch(manejarFallo)
   }
 
   // Quita un ítem (paso 12.3d). Recibe el id del ÍTEM. Es una ESCRITURA (DELETE), va en el handler.
@@ -174,27 +166,12 @@ function App() {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${sesion.token}` }, // ruta privada
     })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-        })
-      )
+      .then(leerRespuesta)
       .then(() =>
         // La forma con función evita usar un "carrito" viejo si cambió mientras esperábamos la respuesta.
         setCarrito((actual) => calcularCarrito(actual.id, actual.items.filter((item) => item.id !== itemId)))
       )
-      .catch((fallo) => {
-        // 401: el token ya no sirve, cerramos la sesión (en un solo lugar: sesionVencida).
-        if (fallo.status === 401) {
-          sesionVencida()
-          return
-        }
-        setAviso(mensajeDe(fallo))
-      })
+      .catch(manejarFallo)
   }
 
   // Vacía la cesta (paso 12.3e). Es una ESCRITURA (DELETE /carrito), va en el handler.
@@ -205,27 +182,12 @@ function App() {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${sesion.token}` }, // ruta privada
     })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-        })
-      )
+      .then(leerRespuesta)
       .then(() => {
         setCarrito((actual) => calcularCarrito(actual.id, []))
         setAviso('Vaciaste tu cesta')
       })
-      .catch((fallo) => {
-        // 401: el token ya no sirve, cerramos la sesión (en un solo lugar: sesionVencida).
-        if (fallo.status === 401) {
-          sesionVencida()
-          return
-        }
-        setAviso(mensajeDe(fallo))
-      })
+      .catch(manejarFallo)
   }
 
   // Se llama cuando Checkout ya creó el pedido en el backend (POST /carrito/checkout). El backend ya
@@ -252,17 +214,7 @@ function App() {
     // GET /users/me es una ruta privada: mandamos el token en la cabecera Authorization.
     // El login no devuelve el rol dentro del JWT, por eso lo pedimos al backend.
     fetch(`${API_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((response) =>
-        // fetch NO manda los errores HTTP al .catch(): revisamos response.ok nosotros.
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
+      .then(leerRespuesta)
       .then((usuario) => setSesion({ token, userId: usuario.id, role: usuario.role, nombre: usuario.nombre }))
       .catch((fallo) => {
         // Si el servidor RESPONDIÓ con un error (401: token vencido o inválido), el token ya no sirve
@@ -285,20 +237,12 @@ function App() {
     }
 
     fetch(`${API_URL}/carrito`, { headers: { Authorization: `Bearer ${sesion.token}` } })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
+      .then(leerRespuesta)
       // Guardamos tal cual lo que manda el servidor (él calcula subtotales y total).
       .then((carritoServidor) => setCarrito(carritoServidor))
+      // Acá no usamos manejarFallo: es una función nueva en cada render y obligaría a ponerla en las
+      // dependencias del efecto (se volvería a ejecutar siempre). Por eso repetimos el 401 en línea.
       .catch((fallo) => {
-        // 401 en ruta privada: el token ya no sirve, cerramos la sesión (en un solo lugar: sesionVencida).
         if (fallo.status === 401) {
           sesionVencida()
           return
