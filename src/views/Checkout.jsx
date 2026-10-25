@@ -23,6 +23,19 @@ const mensajeDe = (fallo) =>
     ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
     : fallo.message
 
+// Lee la respuesta del backend: si no fue exitosa lanza un Error con el message y el status HTTP
+// (fetch no manda los errores HTTP al .catch()); si fue exitosa devuelve cuerpo.data.
+// Se usa como .then(leerRespuesta) en todos los fetch de esta vista.
+const leerRespuesta = (response) =>
+  response.json().then((cuerpo) => {
+    if (!response.ok) {
+      const fallo = new Error(cuerpo.message)
+      fallo.status = response.status
+      throw fallo
+    }
+    return cuerpo.data
+  })
+
 // Formulario de domicilio vacío: todos los campos como texto vacío.
 const FORM_VACIO = {
   calle: '',
@@ -79,16 +92,7 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
   // Dependencias [token]: solo se vuelve a ejecutar si cambia el token (el efecto no lo modifica).
   useEffect(() => {
     fetch(`${API_URL}/domicilios`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
+      .then(leerRespuesta)
       .then((data) => setDomicilios(data ?? [])) // lista vacía llega como null
       .catch((fallo) => {
         // 401: el token ya no sirve; App cierra la sesión y la ruta protegida nos manda a /ingreso.
@@ -170,16 +174,7 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
       },
       body: JSON.stringify(datos),
     })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
+      .then(leerRespuesta)
       // Sumamos el domicilio creado (con el id que asignó el backend) SIN volver a pedir la lista.
       .then((creado) => {
         setDomicilios((actuales) => [...actuales, creado])
@@ -221,16 +216,7 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
       },
       body: JSON.stringify({ domicilioEntregaId: domicilioElegidoId }),
     })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
+      .then(leerRespuesta)
       .then((pedido) => {
         // App suma el pedido y vacía la cesta; nosotros vamos a "Mis pedidos".
         onPedidoCreado(pedido)
