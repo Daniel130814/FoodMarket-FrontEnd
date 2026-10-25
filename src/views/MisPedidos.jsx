@@ -1,5 +1,4 @@
-// Vista de Mis pedidos (ruta /pedidos). Se abre al confirmar el pedido en el checkout.
-// Muestra los pedidos del cliente en dos pestañas (En curso / Anteriores) y permite cancelar los pendientes.
+// Mis pedidos (/pedidos, CLIENTE): pedidos en curso y anteriores; permite cancelar los pendientes, pagar y reseñar.
 import { useEffect, useState } from 'react'
 import OrderCard from '../components/pedidos/OrderCard'
 import Tabs from '../components/comunes/Tabs'
@@ -7,18 +6,15 @@ import Dialog from '../components/comunes/Dialog'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
 
-// URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL
 
-// Texto de un error de fetch para mostrárselo al usuario: el "message" del backend si respondió con un
-// error, o uno claro si ni llegamos al servidor (apagado, sin red; ahí el error no tiene status).
+// Mensaje de un error de fetch: el del backend, o uno claro si no hubo respuesta (el error no tiene status).
 const mensajeDe = (fallo) =>
   fallo.status === undefined
     ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
     : fallo.message
 
-// Lee la respuesta del backend; se usa como .then(leerRespuesta). fetch NO manda los errores HTTP al
-// .catch(), por eso revisamos response.ok: si falló lanza un Error con el message y el status del backend.
+// Devuelve `data` o lanza un Error con message y status (fetch no manda los errores HTTP al .catch).
 const leerRespuesta = (response) =>
   response.json().then((cuerpo) => {
     if (!response.ok) {
@@ -29,13 +25,12 @@ const leerRespuesta = (response) =>
     return cuerpo.data
   })
 
-// GET de una ruta PRIVADA: lleva el token. Las listas vacías llegan como null, por eso el ?? [].
+// GET con token; las listas vacías llegan como null.
 const pedirPrivado = (ruta, token) =>
   fetch(`${API_URL}${ruta}`, { headers: { Authorization: `Bearer ${token}` } })
     .then(leerRespuesta)
     .then((data) => data ?? [])
 
-// Medios de pago de la API (enum MedioPago) con el texto que ve el cliente.
 const MEDIOS_PAGO = [
   { valor: 'TARJETA_CREDITO', etiqueta: 'Tarjeta de crédito' },
   { valor: 'TARJETA_DEBITO', etiqueta: 'Tarjeta de débito' },
@@ -43,9 +38,7 @@ const MEDIOS_PAGO = [
   { valor: 'EFECTIVO', etiqueta: 'Efectivo' },
 ]
 
-// MAPEO de los estados de la API a los textos que ve el cliente. Es un objeto usado como
-// "diccionario": ETIQUETAS_ESTADO['EN_PREPARACION'] devuelve 'Cocinando'.
-// CANCELADO no está acá a propósito: se muestra aparte, con su propio badge.
+// Estado del pedido -> texto para el cliente. CANCELADO no está: se muestra aparte, con su propio badge.
 const ETIQUETAS_ESTADO = {
   PENDIENTE: 'Pendiente de confirmación',
   CONFIRMADO: 'Recibido',
@@ -54,51 +47,40 @@ const ETIQUETAS_ESTADO = {
   ENTREGADO: 'Entregado',
 }
 
-// Los estados del seguimiento, en el orden en que avanza un pedido (así lo define la API).
+// Estados del seguimiento, en el orden en que avanza un pedido.
 const ORDEN_ESTADOS = ['PENDIENTE', 'CONFIRMADO', 'EN_PREPARACION', 'ENVIADO', 'ENTREGADO']
 
-// Los pasos que dibuja OrderTrack: cada estado con su texto amigable.
+// Pasos que dibuja OrderTrack.
 const PASOS_SEGUIMIENTO = ORDEN_ESTADOS.map((estado) => ({ estado, etiqueta: ETIQUETAS_ESTADO[estado] }))
 
-// Props:
-//  - token: el JWT de la sesión, para las llamadas privadas
-//  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
-//  - onAviso: función (texto) de App para mostrar un Toast
+// Props: token (JWT), onSesionVencida (cierra la sesión ante un 401), onAviso (muestra un Toast).
 function MisPedidos({ token, onSesionVencida, onAviso }) {
-  // ESTADO: los pedidos del cliente (OrderResponse). Viven acá porque solo esta vista los usa.
   const [pedidos, setPedidos] = useState([])
 
-  // ESTADO: los pagos del cliente (PagoResponse). Un pedido puede tener varios (uno rechazado y un reintento).
+  // Un pedido puede tener varios pagos (uno rechazado y un reintento).
   const [pagos, setPagos] = useState([])
 
-  // ESTADOS de carga y error del GET. Arranca cargando.
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
 
-  // ESTADO: pestaña activa. 'curso' o 'anteriores'.
   const [pestana, setPestana] = useState('curso')
 
-  // ESTADO del diálogo de cancelación: el id del pedido que se quiere cancelar, o null si el
-  // diálogo está cerrado. Un solo estado sirve para "¿está abierto?" y "¿cuál pedido?".
+  // Diálogo de cancelación: id del pedido, o null si está cerrado.
   const [pedidoACancelarId, setPedidoACancelarId] = useState(null)
 
-  // ESTADOS del diálogo de pago: el id del pedido que se quiere pagar (null = cerrado) y el medio de pago
-  // elegido en el selector.
+  // Diálogo de pago: id del pedido (null = cerrado) y medio de pago elegido.
   const [pedidoAPagarId, setPedidoAPagarId] = useState(null)
   const [medioPago, setMedioPago] = useState('TARJETA_CREDITO')
 
-  // ESTADOS del diálogo de reseña: el plato que se quiere reseñar (el detalle del pedido, o null = cerrado),
-  // la calificación y el comentario que escribe el cliente (todo texto: viene de inputs).
+  // Diálogo de reseña: plato a reseñar (null = cerrado), calificación y comentario.
   const [platoAResenar, setPlatoAResenar] = useState(null)
   const [calificacion, setCalificacion] = useState('5')
   const [comentario, setComentario] = useState('')
 
-  // ESTADO: ids de los platos que el cliente ya reseñó. La API no tiene "mis reseñas", así que anotamos los
-  // que reseñó en esta sesión (y los que la API avisó que ya tenían reseña, con un 409).
+  // Platos ya reseñados: la API no tiene "mis reseñas", así que se anotan los de esta sesión y los que dieron 409.
   const [platosResenados, setPlatosResenados] = useState([])
 
-  // GET /orders y GET /pagos al abrir la vista (solo lo de este cliente). Promise.all espera a que lleguen
-  // LOS DOS; con [token] no se repite mientras no cambie la sesión.
+  // Al abrir: GET /orders y GET /pagos juntos (Promise.all).
   useEffect(() => {
     Promise.all([pedirPrivado('/orders', token), pedirPrivado('/pagos', token)])
       .then(([listaPedidos, listaPagos]) => {
@@ -106,7 +88,6 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
         setPagos(listaPagos)
       })
       .catch((fallo) => {
-        // 401: el token ya no sirve; App cierra la sesión y la ruta protegida nos manda a /ingreso.
         if (fallo.status === 401) {
           onSesionVencida()
           return
@@ -114,13 +95,10 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
         setError(mensajeDe(fallo))
       })
       .finally(() => setCargando(false))
-    // onSesionVencida queda afuera de las dependencias a propósito (App la crea de nuevo en cada render
-    // y el GET se repetiría sin parar). Se resuelve con useCallback cuando se vea en clase.
+    // onSesionVencida queda afuera de las dependencias: App la recrea en cada render y el GET se repetiría.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
-  // Renderizado condicional: si estamos cargando o hubo un error, mostramos eso y cortamos acá.
-  // Los hooks (useState) siempre van ANTES de estos return.
   if (cargando) {
     return <LoadingState message="Cargando tus pedidos..." />
   }
@@ -128,8 +106,7 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
     return <ErrorState message={error} />
   }
 
-  // Último pago de un pedido (el más nuevo por fecha) o null si no tiene: filter se queda con los pagos de
-  // ese pedido, sort los ordena del más nuevo al más viejo y [0] toma el primero.
+  // Último pago de un pedido (el más nuevo por fecha) o null si no tiene.
   const ultimoPago = (pedidoId) => {
     const delPedido = pagos
       .filter((pago) => pago.pedidoId === pedidoId)
@@ -137,11 +114,7 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
     return delPedido.length === 0 ? null : delPedido[0]
   }
 
-  // VALORES CALCULADOS a partir de la prop pedidos y del estado (no se guardan aparte):
-  //  1) ordenados: copia con [...pedidos] (sort modifica el array, y las props no se modifican),
-  //     de más nuevo a más viejo. Las fechas ISO se pueden comparar como texto.
-  //  2) enCurso: todo lo que NO terminó (ni entregado ni cancelado).
-  //  3) anteriores: lo que ya terminó (entregado o cancelado).
+  // Pedidos de más nuevo a más viejo (se ordena una copia: sort modifica el array) y separados en curso y anteriores.
   const ordenados = [...pedidos].sort((a, b) => b.fechaCreacion.localeCompare(a.fechaCreacion))
   const enCurso = ordenados.filter((pedido) => pedido.estado !== 'ENTREGADO' && pedido.estado !== 'CANCELADO')
   const anteriores = ordenados.filter((pedido) => pedido.estado === 'ENTREGADO' || pedido.estado === 'CANCELADO')
@@ -152,8 +125,7 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
     { id: 'anteriores', label: 'Anteriores', count: anteriores.length },
   ]
 
-  // Al confirmar el diálogo: PATCH /orders/{id}/cancelar. El backend repone el stock y devuelve el pedido
-  // cancelado, que reemplaza al de la lista (map) SIN volver a pedir todos. Solo se cancelan los PENDIENTE (si no, 409).
+  // Cancela un pedido (PATCH /orders/{id}/cancelar). Solo los PENDIENTE (si no, 409); el backend repone el stock.
   const confirmarCancelacion = () => {
     const pedidoId = pedidoACancelarId
     setPedidoACancelarId(null)
@@ -172,20 +144,17 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
           onSesionVencida()
           return
         }
-        // 409 (ya no está pendiente), 403, 404: mostramos el mensaje del backend.
         onAviso(mensajeDe(fallo))
       })
   }
 
-  // Abre el diálogo de pago para ese pedido, con el medio de pago por defecto.
   const abrirPago = (pedidoId) => {
     setMedioPago('TARJETA_CREDITO')
     setPedidoAPagarId(pedidoId)
   }
 
-  // Al confirmar el diálogo: POST /pagos/createPago. El monto lo fija el servidor y el pago nace PENDIENTE:
-  // lo aprueba un ADMIN. Lo sumamos a la lista SIN volver a pedir todo. Cerramos el diálogo ENSEGUIDA
-  // (antes del fetch) para que un segundo clic no cree un pago duplicado.
+  // Paga un pedido (POST /pagos/createPago): el monto lo fija el servidor y el pago nace PENDIENTE hasta que lo
+  // apruebe un ADMIN. El diálogo se cierra enseguida para que un segundo clic no cree un pago duplicado.
   const confirmarPago = () => {
     const pedidoId = pedidoAPagarId
     setPedidoAPagarId(null)
@@ -208,21 +177,17 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
           onSesionVencida()
           return
         }
-        // 409 (ya hay un pago aprobado o el pedido está cancelado), 400 (pagos bloqueados), 403, 404.
         onAviso(mensajeDe(fallo))
       })
   }
 
-  // Abre el diálogo de reseña para ese plato (detalle del pedido), con la calificación y el comentario en limpio.
   const abrirResena = (detalle) => {
     setCalificacion('5')
     setComentario('')
     setPlatoAResenar(detalle)
   }
 
-  // Al confirmar el diálogo: POST /resenas/createResena. Cerramos el diálogo ENSEGUIDA (evita duplicados).
-  // El comentario es opcional: vacío lo omitimos (JSON.stringify ignora undefined). Errores de la API:
-  // 400 (el plato no fue comprado en un subpedido entregado) y 409 (ya lo reseñaste).
+  // Reseña un plato (POST /resenas/createResena); el comentario es opcional. 400 si no lo recibió, 409 si ya lo reseñó.
   const confirmarResena = () => {
     const { platoId, platoNombre } = platoAResenar
     setPlatoAResenar(null)
@@ -249,7 +214,7 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
           onSesionVencida()
           return
         }
-        // 409: ya existía una reseña de este plato; lo marcamos como reseñado para no ofrecer el botón de nuevo.
+        // 409: ya existía la reseña; se marca como reseñado para no ofrecer el botón de nuevo.
         if (fallo.status === 409) {
           setPlatosResenados((actuales) => [...actuales, platoId])
         }
@@ -268,13 +233,11 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
         <Tabs tabs={pestanas} activeId={pestana} onChange={setPestana} label="Pedidos" />
 
         <div role="tabpanel" className="mt-8 space-y-6">
-          {/* Renderizado condicional: si la pestaña no tiene pedidos, lo decimos */}
           {pedidosVisibles.length === 0 && (
             <p className="text-body-md text-on-surface-variant">
               {pestana === 'curso' ? 'No tenés pedidos en curso.' : 'Todavía no tenés pedidos anteriores.'}
             </p>
           )}
-          {/* map dibuja una tarjeta por pedido; key usa su id único y estable. */}
           {pedidosVisibles.map((pedido) => (
             <OrderCard
               key={pedido.id}
@@ -290,7 +253,6 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
         </div>
       </div>
 
-      {/* Diálogo de confirmación, controlado por estado: se abre cuando pedidoACancelarId tiene un id */}
       <Dialog
         open={pedidoACancelarId !== null}
         title={`¿Cancelar el pedido n.º ${pedidoACancelarId}?`}
@@ -301,8 +263,7 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
         onCancel={() => setPedidoACancelarId(null)}
       />
 
-      {/* Diálogo de reseña: children = la calificación (1 a 5) y el comentario. Controlado por estado
-          (platoAResenar). Mientras está cerrado pasamos un título vacío: Dialog no dibuja nada si open es false. */}
+      {/* Diálogo de reseña: cerrado, el título va vacío (Dialog no dibuja nada con open en false) */}
       <Dialog
         open={platoAResenar !== null}
         title={platoAResenar === null ? '' : `Reseñar ${platoAResenar.platoNombre}`}
@@ -325,7 +286,6 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
         <textarea id="comentario" className="field" value={comentario} onChange={(event) => setComentario(event.target.value)} />
       </Dialog>
 
-      {/* Diálogo de pago: children = el selector del medio de pago. Controlado por estado (pedidoAPagarId). */}
       <Dialog
         open={pedidoAPagarId !== null}
         title={`Pagar el pedido n.º ${pedidoAPagarId}`}
