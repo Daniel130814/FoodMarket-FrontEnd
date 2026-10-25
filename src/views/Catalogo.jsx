@@ -54,6 +54,19 @@ const ordenarPlatos = (platos, orden) => {
   return copia
 }
 
+// Valida los precios del filtro igual que la API (que devuelve 400 si hay precios negativos o si el
+// mínimo es mayor que el máximo). Recibe los filtros y devuelve el mensaje de error, o null si están bien.
+// Cada if con return corta en el primer caso, así no hace falta anidar condicionales.
+const validarPrecios = (filtros) => {
+  if (Number(filtros.precioMin) < 0 || Number(filtros.precioMax) < 0) {
+    return 'Los precios no pueden ser negativos.'
+  }
+  if (filtros.precioMin !== '' && filtros.precioMax !== '' && Number(filtros.precioMin) > Number(filtros.precioMax)) {
+    return 'El precio mínimo no puede ser mayor que el máximo.'
+  }
+  return null
+}
+
 // Props:
 //  - onAdd: función (plato, cantidad) de App. Catalogo no la usa: solo la reenvía a cada PlatoCard.
 function Catalogo({ onAdd }) {
@@ -78,18 +91,9 @@ function Catalogo({ onAdd }) {
   // ESTADO de la paginación: cuántas "páginas" de platos se están mostrando. Empieza en 1.
   const [paginaActual, setPaginaActual] = useState(1)
 
-  // VALIDACIÓN de precios, igual que la API (devuelve 400 si hay precios negativos o si el
-  // mínimo es mayor que el máximo). Es un valor calculado: no se guarda en un estado.
-  // La hacemos ANTES de pedir los platos para no mandarle al backend un filtro inválido.
-  const hayNegativos = Number(filtros.precioMin) < 0 || Number(filtros.precioMax) < 0
-  const minMayorQueMax =
-    filtros.precioMin !== '' && filtros.precioMax !== '' && Number(filtros.precioMin) > Number(filtros.precioMax)
-  // Ternario encadenado: si pasa lo primero, ese mensaje; si no, si pasa lo segundo, el otro; si no, null.
-  const errorPrecios = hayNegativos
-    ? 'Los precios no pueden ser negativos.'
-    : minMayorQueMax
-      ? 'El precio mínimo no puede ser mayor que el máximo.'
-      : null
+  // Error de precios: es un valor calculado, no se guarda en un estado. Se calcula ANTES de pedir los
+  // platos para no mandarle al backend un filtro inválido.
+  const errorPrecios = validarPrecios(filtros)
 
   // Los valores que realmente se mandan al backend. Si los precios son inválidos, no se mandan.
   const nombre = filtros.nombre.trim()
