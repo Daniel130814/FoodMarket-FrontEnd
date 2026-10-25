@@ -1,15 +1,9 @@
-// Selector de cantidad (− 1 +). Se usa en views/DetallePlato (cantidad a pedir), components/CartItem
-// (cantidad en la cesta) y components/PublicationRow (stock de un plato del chef).
-// No guarda la cantidad: la recibe del padre y le avisa cuando el usuario la cambia.
+// Selector de cantidad (− 1 +). No guarda la cantidad: la recibe del padre y le avisa cuando cambia.
 
-// Props:
-//  - value: cantidad actual (la maneja el padre con useState)
-//  - min / max: límites permitidos (en el detalle: 1 y el stock del plato; en el stock del chef: 0 y 99)
-//  - onChange: función del padre; la llamamos con la nueva cantidad
+// Props: value, min y max (límites; en el detalle 1 y el stock, en el stock del chef 0 y 99), onChange (nueva cantidad).
 function QuantityStepper({ value, min = 1, max, onChange }) {
   return (
     <div className="qty qty--lg">
-      {/* Se deshabilita al llegar al mínimo, así no se puede bajar de min */}
       <button
         type="button"
         onClick={() => onChange(value - 1)}
@@ -19,7 +13,6 @@ function QuantityStepper({ value, min = 1, max, onChange }) {
         <span className="material-symbols-outlined">remove</span>
       </button>
       <output aria-live="polite">{value}</output>
-      {/* Se deshabilita al llegar al máximo (el stock del plato) */}
       <button
         type="button"
         onClick={() => onChange(value + 1)}
