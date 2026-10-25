@@ -1,9 +1,6 @@
-// Formulario para cargar un domicilio nuevo. Se usa en views/Checkout.
-// Componente "tonto": los datos, los errores y las funciones vienen del padre (Checkout).
+// Formulario para cargar un domicilio nuevo; los datos, errores y funciones vienen de Checkout.
 
-// Los campos del formulario, en el orden en que se dibujan. Con un array y map evitamos repetir
-// el mismo bloque de label + input diez veces. required marca los obligatorios (los que la API
-// valida con @NotBlank); el resto son opcionales.
+// Campos del formulario, en orden. required marca los que la API exige (@NotBlank).
 const CAMPOS = [
   { name: 'calle', label: 'Calle', required: true, autoComplete: 'address-line1' },
   { name: 'numero', label: 'Número', required: true, autoComplete: 'off' },
@@ -15,18 +12,12 @@ const CAMPOS = [
   { name: 'indicacionesEntrega', label: 'Indicaciones de entrega (opcional)', required: false, autoComplete: 'off' },
 ]
 
-// Props:
-//  - datos: objeto con el valor de cada campo { calle, numero, piso, ... } (lo guarda el padre)
-//  - errores: objeto con el mensaje de error de cada campo, o vacío si no hay
-//  - onChange: función del padre; recibe el evento del input (el padre lee event.target)
-//  - onSubmit: función del padre; recibe el evento del formulario
-//  - onCancel: función del padre; se llama al tocar "Cancelar"
+// Props: datos (valor de cada campo), errores (mensaje por campo), onChange (evento del input), onSubmit (evento del formulario), onCancel.
 function DomicilioForm({ datos, errores, onChange, onSubmit, onCancel }) {
   return (
     <form className="mt-5 rounded-lg border border-hairline bg-surface-container-lowest p-5" onSubmit={onSubmit} noValidate>
       <h3 className="font-display text-title-md text-primary">Nuevo domicilio</h3>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        {/* map: un campo por cada elemento de CAMPOS. key = name, único */}
         {CAMPOS.map((campo) => (
           <div key={campo.name} className={campo.name === 'indicacionesEntrega' ? 'sm:col-span-2' : ''}>
             <label className="label" htmlFor={`dom-${campo.name}`}>{campo.label}</label>
@@ -40,7 +31,6 @@ function DomicilioForm({ datos, errores, onChange, onSubmit, onCancel }) {
               onChange={onChange}
               aria-invalid={errores[campo.name] ? 'true' : 'false'}
             />
-            {/* Renderizado condicional: el error solo aparece si ese campo tiene uno */}
             {errores[campo.name] && (
               <p className="hint hint--error">
                 <span className="material-symbols-outlined text-[18px]" aria-hidden="true">error</span>
