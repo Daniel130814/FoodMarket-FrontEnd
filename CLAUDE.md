@@ -146,6 +146,8 @@ Mientras no responda, se usa el comportamiento por defecto. Cada decisión tiene
 
 ## 6. Plantillas de código aprobadas
 
+> **Cómo se aplican hoy:** el bloque `response.json().then((cuerpo) => ...)` de las plantillas va definido **una sola vez** arriba de cada archivo como `const leerRespuesta = (response) => ...` y se usa como `.then(leerRespuesta)` en todos sus `fetch` (sin archivos compartidos: decisión #3). En `App.jsx` el `.catch` repetido de las escrituras también está en una función, `manejarFallo`. Excepciones a propósito: el `DELETE /platos/{id}` de `MisPublicaciones` lee `cuerpo.message` (no `data`) para saber si el plato se borró o quedó pausado, y el efecto de la cesta de `App` repite el 401 en línea porque `manejarFallo` no puede ir en sus dependencias.
+
 **GET al montar la vista**
 
 ```jsx
@@ -331,6 +333,11 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
   - [x] Extra: cambio de contraseña en `Perfil` (`PUT /users/me/password`), con su propio formulario, validación y error junto al campo. Probado con el backend real.
   - [x] Extra: el `message` del `DELETE /platos/{id}` ya se muestra en el Toast (desde el 3.2).
   - [x] Extra: cambio de rol en el detalle de usuario de `Admin` (`PATCH /users/{userId}/role`), con selector y botón propios y los errores 400 y 409 del backend en el diálogo. Probado con el backend real: éxito, 409 y el 400 "No podés quitarte a vos mismo el rol ADMIN".
+- [x] **Simplificación del código (25/10)**, refactor sin cambiar comportamiento, un commit por archivo:
+  - [x] 1 `App.jsx`: `protegida(roles, vista)` envuelve `RutaProtegida` (9 repeticiones menos) y `formularioPlato` se arma una vez para `/publicar` y `/publicar/:id`.
+  - [x] 2 Una sola lectura de respuesta por archivo (`leerRespuesta`; en `App` también `manejarFallo`) en `App`, `Admin`, `MisPedidos`, `Checkout`, `PublicarPlato`, `PedidosRecibidos`, `MisPublicaciones` y `Registro`: de 31 bloques copiados a uno por archivo. El 2c pasó el ternario de dos niveles de `Catalogo` a `validarPrecios(filtros)` con `if` y `return`.
+  - [x] 3 Comentarios más cortos en `App` y las 12 vistas (sin referencias a pasos viejos ni explicaciones repetidas; se mantienen encabezados, props y la primera aparición de cada concepto).
+  - Verificado: lint, build y, en el navegador, rutas privadas sin sesión (las 9 redirigen a `/ingreso`), validación del formulario de `Registro` y los tres casos de `validarPrecios` en `Catalogo`. **Sin probar con sesión real** (rol equivocado → `/`, cesta, pedidos, vistas del chef y de admin, 401 de token vencido).
 
 **`TODO(backend)` que quedan:** `PATCH` de stock y de estado del plato; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; nombre y taller del chef en `ChefProfileResponse` (la tarjeta de Inicio muestra solo especialidad, biografía, descripción, foto y reputación); `pedidoId`, fecha y cliente en los subpedidos; `clienteNombre` en las reseñas. (Ya resueltos el 24/10: "mis platos", `GET /platos/{id}` para el dueño, cambio de rol, cambio de contraseña, subida de imágenes y el `message` del `DELETE`.)
 
