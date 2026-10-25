@@ -77,21 +77,26 @@ const ROLES = ['CLIENTE', 'CHEF', 'ADMIN']
 // Formulario de usuario vacío. role arranca en CLIENTE.
 const FORM_VACIO = { username: '', nombre: '', apellido: '', email: '', password: '', role: 'CLIENTE' }
 
+// Lee la respuesta del backend: si no fue exitosa lanza un Error con el message y el status HTTP
+// (fetch no manda los errores HTTP al .catch()); si fue exitosa devuelve cuerpo.data.
+// Se usa como .then(leerRespuesta) en todos los fetch de esta vista.
+const leerRespuesta = (response) =>
+  response.json().then((cuerpo) => {
+    if (!response.ok) {
+      const fallo = new Error(cuerpo.message)
+      fallo.status = response.status
+      throw fallo
+    }
+    return cuerpo.data
+  })
+
 // GET de una ruta PRIVADA: lleva el token. Devuelve una promesa con el "data" de la respuesta (las
-// listas vacías llegan como null, por eso el ?? []) o lanza un Error con el message del backend y el
-// status HTTP. Es una función común (no un hook): recibe datos y devuelve una promesa.
+// listas vacías llegan como null, por eso el ?? []). Es una función común (no un hook).
 // signal es opcional: la señal de un AbortController, para poder cancelar el pedido (ver el efecto del detalle).
 const pedirPrivado = (ruta, token, signal) =>
-  fetch(`${API_URL}${ruta}`, { headers: { Authorization: `Bearer ${token}` }, signal }).then((response) =>
-    response.json().then((cuerpo) => {
-      if (!response.ok) {
-        const fallo = new Error(cuerpo.message)
-        fallo.status = response.status
-        throw fallo
-      }
-      return cuerpo.data ?? []
-    })
-  )
+  fetch(`${API_URL}${ruta}`, { headers: { Authorization: `Bearer ${token}` }, signal })
+    .then(leerRespuesta)
+    .then((data) => data ?? [])
 
 // Valida el formulario con las reglas de UserRequest (ENDPOINTS.md, sección 3.2).
 // Devuelve un objeto con un mensaje por cada campo con error; vacío si todo está bien.
@@ -251,16 +256,7 @@ function Admin({ token, onSesionVencida, onAviso }) {
       },
       body: JSON.stringify({ estado }),
     })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
+      .then(leerRespuesta)
       .then((actualizado) => {
         setPagos((actuales) => actuales.map((pago) => (pago.id === actualizado.id ? actualizado : pago)))
         onAviso(`${TEXTOS_ACCION[estado].aviso} n.º ${pagoId}`)
@@ -322,16 +318,7 @@ function Admin({ token, onSesionVencida, onAviso }) {
         role: form.role,
       }),
     })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
+      .then(leerRespuesta)
       .then((creado) => {
         setUsuarios((actuales) => [...actuales, creado])
         cerrarForm()
@@ -400,16 +387,7 @@ function Admin({ token, onSesionVencida, onAviso }) {
         email: formEdicion.email.trim(),
       }),
     })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
+      .then(leerRespuesta)
       .then((editado) => {
         setUsuarios((actuales) => actuales.map((usuario) => (usuario.id === editado.id ? editado : usuario)))
         cerrarDetalle()
@@ -452,16 +430,7 @@ function Admin({ token, onSesionVencida, onAviso }) {
       },
       body: JSON.stringify({ role: rolElegido }),
     })
-      .then((response) =>
-        response.json().then((cuerpo) => {
-          if (!response.ok) {
-            const fallo = new Error(cuerpo.message)
-            fallo.status = response.status
-            throw fallo
-          }
-          return cuerpo.data
-        })
-      )
+      .then(leerRespuesta)
       .then((actualizado) => {
         setUsuarios((actuales) => actuales.map((usuario) => (usuario.id === actualizado.id ? actualizado : usuario)))
         setDetalle(actualizado)
