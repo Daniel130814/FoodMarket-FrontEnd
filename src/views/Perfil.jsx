@@ -1,23 +1,18 @@
-// Vista del perfil (ruta /perfil, para los tres roles con sesión). Muestra los datos de la cuenta y deja
-// editar nombre, apellido y correo, y cambiar la contraseña. Pide el usuario con GET /users/me y lo guarda
-// con PUT /users/me; la contraseña se cambia con PUT /users/me/password.
+// Perfil (/perfil, cualquier rol con sesión): datos de la cuenta (GET y PUT /users/me) y cambio de contraseña (PUT /users/me/password).
 import { useEffect, useState } from 'react'
 import ContenidoAsync from '../components/comunes/ContenidoAsync'
 import FormField from '../components/comunes/FormField'
 import Alert from '../components/comunes/Alert'
 
-// URL base del backend (se lee del archivo .env, igual que en App).
 const API_URL = import.meta.env.VITE_API_URL
 
-// Texto de un error de fetch para mostrárselo al usuario: el "message" del backend si respondió con un
-// error, o uno claro si ni llegamos al servidor (apagado, sin red; ahí el error no tiene status).
+// Mensaje de un error de fetch: el del backend, o uno claro si no hubo respuesta (el error no tiene status).
 const mensajeDe = (fallo) =>
   fallo.status === undefined
     ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
     : fallo.message
 
-// Lee la respuesta del backend; se usa como .then(leerRespuesta). fetch NO manda los errores HTTP al
-// .catch(), por eso revisamos response.ok: si falló lanza un Error con el message y el status del backend.
+// Devuelve `data` o lanza un Error con message y status (fetch no manda los errores HTTP al .catch).
 const leerRespuesta = (response) =>
   response.json().then((cuerpo) => {
     if (!response.ok) {
@@ -28,71 +23,55 @@ const leerRespuesta = (response) =>
     return cuerpo.data
   })
 
-// Cómo se muestra cada rol de la API.
 const NOMBRES_ROL = {
   CLIENTE: 'Cliente',
   CHEF: 'Chef',
   ADMIN: 'Administrador',
 }
 
-// Pasa un usuario (forma de UserResponse) a los valores del formulario.
 const aFormulario = (usuario) => ({
   nombre: usuario.nombre,
   apellido: usuario.apellido,
   email: usuario.email,
 })
 
-// Valida el formulario con las reglas de UserUpdateRequest (ENDPOINTS.md, sección 3.2): los tres campos
-// son obligatorios y el correo tiene que ser válido. Devuelve un mensaje por cada campo con error.
-// ...(condicion && { clave: 'mensaje' }) agrega la clave solo si se cumple la condición.
+// Valida con las reglas de UserUpdateRequest (ENDPOINTS.md 3.2): un mensaje por campo con error.
 const validar = (datos) => ({
   ...(datos.nombre.trim() === '' && { nombre: 'Escribí el nombre.' }),
   ...(datos.apellido.trim() === '' && { apellido: 'Escribí el apellido.' }),
   ...(!/\S+@\S+\.\S+/.test(datos.email.trim()) && { email: 'Escribí un correo válido.' }),
 })
 
-// Valida el cambio de contraseña con las reglas de CambioPasswordRequest (ENDPOINTS.md, sección 3.2): la
-// actual es obligatoria y la nueva tiene mínimo 8 caracteres. "repetir" no existe en la API: lo pedimos
-// nosotros para evitar un error de tipeo.
+// Valida el cambio de contraseña (CambioPasswordRequest). "repetir" no existe en la API: se pide para evitar errores de tipeo.
 const validarPassword = (datos) => ({
   ...(datos.actual === '' && { actual: 'Escribí tu contraseña actual.' }),
   ...(datos.nueva.length < 8 && { nueva: 'La contraseña nueva tiene que tener al menos 8 caracteres.' }),
   ...(datos.nueva.length >= 8 && datos.repetir !== datos.nueva && { repetir: 'Las contraseñas no coinciden.' }),
 })
 
-// Formulario vacío del cambio de contraseña.
 const PASSWORD_VACIA = { actual: '', nueva: '', repetir: '' }
 
-// Props:
-//  - token: el JWT de la sesión, para GET y PUT /users/me y PUT /users/me/password (rutas privadas)
-//  - onSesionVencida: función () de App que cierra la sesión; se llama cuando el backend responde 401
-//  - onPerfilActualizado: función (usuario) de App. Se le entrega el usuario guardado para que actualice el
-//    nombre del Header.
-//  - onAviso: función (texto) de App para mostrar un Toast
+// Props: token (JWT), onSesionVencida (401), onPerfilActualizado (le pasa a App el usuario guardado para el Header), onAviso (Toast).
 function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
-  // ESTADO de los datos que llegan del backend: el usuario (null hasta que responde la API).
   const [usuario, setUsuario] = useState(null)
 
-  // ESTADOS de carga y error del GET. Arranca cargando.
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
 
-  // ESTADO del formulario (campos controlados) y un mensaje de error por campo.
   const [form, setForm] = useState({ nombre: '', apellido: '', email: '' })
   const [errores, setErrores] = useState({})
 
-  // ESTADOS del PUT: true mientras espera (evita doble envío) y el error general del backend.
+  // Guardado en curso (evita el doble envío) y error del backend.
   const [guardando, setGuardando] = useState(false)
   const [errorGuardar, setErrorGuardar] = useState(null)
 
-  // ESTADOS del cambio de contraseña: sus tres campos, un mensaje de error por campo, el error general del
-  // backend y si el PUT está en curso. Son independientes de los del formulario de datos de arriba.
+  // Cambio de contraseña (independiente del formulario de datos): campos, errores por campo, error del backend y envío en curso.
   const [formPassword, setFormPassword] = useState(PASSWORD_VACIA)
   const [erroresPassword, setErroresPassword] = useState({})
   const [errorPassword, setErrorPassword] = useState(null)
   const [guardandoPassword, setGuardandoPassword] = useState(false)
 
-  // GET /users/me al abrir la vista. Es privada: lleva el token. El resultado llena el usuario y el formulario.
+  // Al abrir: GET /users/me, que llena el usuario y el formulario.
   useEffect(() => {
     fetch(`${API_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then(leerRespuesta)
@@ -101,7 +80,6 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
         setForm(aFormulario(data))
       })
       .catch((fallo) => {
-        // 401: el token ya no sirve, App cierra la sesión.
         if (fallo.status === 401) {
           onSesionVencida()
           return
@@ -109,13 +87,11 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
         setError(mensajeDe(fallo))
       })
       .finally(() => setCargando(false))
-    // onSesionVencida queda afuera de las dependencias a propósito: App la crea de nuevo en cada render y
-    // el GET se repetiría sin parar (se resuelve con useCallback cuando se vea en clase).
+    // onSesionVencida queda afuera de las dependencias: App la recrea en cada render y el GET se repetiría.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
-  // Un único handler para los tres inputs: event.target.name dice qué campo cambió y value qué escribió
-  // el usuario ([name]: value es una "clave calculada"). Al corregir un campo limpiamos su error.
+  // Handler de los inputs de datos; al corregir un campo limpia su error.
   const handleChange = (event) => {
     const { name, value } = event.target
     setForm({ ...form, [name]: value })
@@ -124,8 +100,7 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
     }
   }
 
-  // Guarda los cambios con PUT /users/me. Con el usuario que devuelve el backend actualizamos el estado
-  // local, SIN volver a pedirlo.
+  // Guarda los datos (PUT /users/me) y actualiza el estado local sin volver a pedirlos.
   const handleSubmit = (event) => {
     event.preventDefault()
 
@@ -161,8 +136,7 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
           onSesionVencida()
           return
         }
-        // 400: con los tres campos ya validados, lo único que puede fallar es el correo repetido,
-        // así que mostramos el mensaje del backend junto a ese campo. El resto va en una alerta.
+        // Un 400 ya validados los campos solo puede ser el correo repetido: va junto a ese campo; el resto, en una alerta.
         if (fallo.status === 400) {
           setErrores({ email: fallo.message })
           return
@@ -172,7 +146,7 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
       .finally(() => setGuardando(false))
   }
 
-  // Un único handler para los tres inputs de la contraseña (event.target.name dice cuál cambió).
+  // Handler de los inputs de la contraseña.
   const handlePasswordChange = (event) => {
     const { name, value } = event.target
     setFormPassword({ ...formPassword, [name]: value })
@@ -181,8 +155,7 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
     }
   }
 
-  // Cambia la contraseña con PUT /users/me/password { actual, nueva }. La respuesta trae data: null (nada
-  // que guardar en el estado): solo vaciamos los campos y avisamos. El token sigue siendo válido.
+  // Cambia la contraseña (PUT /users/me/password). No devuelve datos: se vacían los campos y el token sigue valiendo.
   const handlePasswordSubmit = (event) => {
     event.preventDefault()
 
@@ -213,8 +186,7 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
           onSesionVencida()
           return
         }
-        // 400: con la nueva ya validada, lo habitual es que la contraseña actual sea incorrecta: el mensaje
-        // del backend va junto a ese campo. El resto (red caída, 500) va en una alerta.
+        // Un 400 con la nueva ya validada suele ser la contraseña actual incorrecta: va junto a ese campo; el resto, en una alerta.
         if (fallo.status === 400) {
           setErroresPassword({ actual: fallo.message })
           return
@@ -231,8 +203,6 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
         Revisá los datos de tu cuenta y corregí lo que haga falta.
       </p>
 
-      {/* ContenidoAsync muestra la carga o el error; con el usuario cargado muestra el formulario.
-          vacio es false porque acá no hay una lista que pueda venir vacía. */}
       <ContenidoAsync
         cargando={cargando}
         error={error}
@@ -242,7 +212,7 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
         {usuario !== null && (
           <>
             <form className="mt-10 max-w-xl space-y-6" onSubmit={handleSubmit} noValidate>
-              {/* Estos datos no se pueden editar (la API ignora el usuario y el rol en PUT /users/me) */}
+              {/* No editables: la API ignora el usuario y el rol en PUT /users/me */}
               <dl className="grid gap-4 rounded-xl bg-surface-container-lowest p-5 shadow-ambient sm:grid-cols-2">
                 <div>
                   <dt className="text-label-md text-on-surface-variant">Usuario</dt>
@@ -265,7 +235,6 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
               </button>
             </form>
 
-            {/* Cambio de contraseña: un formulario aparte, con su propio botón */}
             <form className="mt-14 max-w-xl space-y-6" onSubmit={handlePasswordSubmit} noValidate>
               <h2 className="font-display text-headline-md text-primary">Cambiar la contraseña</h2>
 
