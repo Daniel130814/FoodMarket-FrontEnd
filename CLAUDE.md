@@ -24,20 +24,20 @@
 ### 3.1 Estructura
 
 - Solo JavaScript (`.jsx`). Nada de TypeScript.
-- `src/` contiene **solo** `views/` y `components/`; `App.jsx` y `main.jsx` quedan afuera (más los `index.css`, `App.css` y `assets/` que ya existen). **Sin otras carpetas** en `src/`: nada de `services/`, `hooks/`, `utils/`, `context/`. Dentro de `components/` sí hay subcarpetas por dominio (ver sección 8).
+- `src/` contiene **solo** `views/` y `components/`; `App.jsx` y `main.jsx` quedan afuera (más los `index.css`, `App.css` y `assets/` que ya existen). **Sin otras carpetas** en `src/`: nada de `services/`, `hooks/`, `utils/`, `context/` (criterio del equipo, ver 3.11). Dentro de `components/` sí hay subcarpetas por dominio (ver sección 8).
 - No tocar `index.html`. `main.jsx` solo se toca para envolver `<App />` con `<BrowserRouter>` y configurar sus props (decisión #2, 24/10; hoy lleva `useTransitions={false}` para que "Salir" desde una ruta privada llegue a `/` y no a `/ingreso`); `Routes` y `Route` van en `App.jsx`. Las fuentes se importan en `index.css`.
 - Front y back son dos repos. Nunca subir `node_modules` ni `.env`.
 - Una sola librería de estilos: **Tailwind v3**. No agregar otra.
 
 ### 3.2 Prohibido
 
-- `document.*` (manipulación del DOM), cualquier `window.*`, `alert()`, `confirm()`, `prompt()`. Modales, confirmaciones, toasts y mensajes se hacen **con estado de React**.
-- Única excepción: `localStorage` para el JWT (ver 3.9 y sección 4).
+- `document.*` (manipulación del DOM), cualquier `window.*`, `alert()`, `confirm()`, `prompt()`. Modales, confirmaciones, toasts y mensajes se hacen **con estado de React**. El `alert()` lo prohibió la profesora de forma explícita el 28/09 ("prohibido usar los alerts de Windows") y pidió un modal en su lugar; `confirm()` y `prompt()` caen en la prohibición de `window.*`.
+- Única excepción: `localStorage` para el JWT (ver 3.9). La profesora lo confirmó para esta entrega y en la 3.ª estará prohibido.
 - `forEach`, `for` y `while` para renderizar; `==`; `var` y `let` (todo `const`).
 
 ### 3.3 Estilo de código
 
-- Siempre `const`, siempre `===`.
+- Siempre `const` (la profesora: "todo es `const` hasta que se demuestre lo contrario"), siempre `===`.
 - Hooks permitidos: `useState`, `useEffect` y los de Router (`useNavigate`, `useLocation`, `useParams`). Nada de `useRef`, `useMemo`, `useCallback`, `useContext` ni hooks propios hasta que se vean en clase.
 - Los hooks van solo en componentes funcionales, nunca dentro de condicionales ni bucles.
 
@@ -85,7 +85,7 @@
   | DELETE      | `setX((actuales) => actuales.filter((x) => x.id !== idBorrado))`             |
 
 - **Sesión (JWT)**
-  - Login: guardar `data.access_token` (**no** `data.token`) en `localStorage` con la clave `jwtToken` y en el estado de `App.jsx`.
+  - Login: guardar `data.access_token` (**no** `data.token`) en `localStorage` con la clave `jwtToken` y en el estado de `App.jsx`. **Confirmado por la profesora: en esta entrega se puede; en la 3.ª estará prohibido** (el token pasa al store de Redux). Por eso `localStorage` aparece solo en esos tres puntos de `App.jsx`: guardar al ingresar, leer al iniciar y borrar al salir.
   - Rutas privadas: header `Authorization: Bearer ${token}`. Rutas públicas (catálogo, detalle, categorías, reseñas): **no mandar el token**, porque uno vencido da 401 incluso en rutas públicas.
   - El rol **no** viene dentro del JWT. Se guarda el `role` y el `userId` de la respuesta de login, y al iniciar la app, si hay `jwtToken`, se restaura la sesión con `GET /users/me`.
   - 401 en ruta privada → cerrar sesión y llevar a `/ingreso`. 403 → mensaje de falta de permisos.
@@ -96,13 +96,19 @@
 
 - Estructura y modularización: vistas con su función de vista, componentes con una responsabilidad, uso correcto de hooks y estado local actualizado **sin GET repetidos**.
 
-## 4. Decisiones pendientes de confirmar con la profesora
+### 3.11 De dónde sale cada regla (revisado el 25/10 contra las clases del 14/09, 21/09, 28/09 y 5/10, el PDF de renderizado condicional y los apuntes)
+
+- **Lo dijo la profesora:** nada de `document.*` ni `window.*`; `alert()` prohibido (28/09); `.map()` en lugar de `forEach` y `for` (28/09); `===` siempre (14/09); todo `const` (primeras clases); solo JavaScript; `views/` y `components/` con `App.jsx` y `main.jsx` afuera; componente = función con el nombre del archivo, un solo padre y `export default`; flujo de datos de padre a hijo; formularios con `input`, `label` y botón; GET en `useEffect` y **sin GET repetido** después de escribir; `fetch` con promesas; `localStorage` para el JWT solo en esta entrega; front y back en repos separados; la 2.ª entrega tiene que estar completa y conectada; en la 3.ª se refactoriza todo con Redux.
+- **Criterio del equipo (la profesora no lo dijo en las clases revisadas):** sin `services/`, `hooks/`, `utils/` ni `context/`, y sin Context API; sin `while` ni `let`/`var` (salvo que se derive de "todo `const`"); la lista exacta de hooks permitidos y "sin hooks propios" (ella los va incorporando de a poco: `useState` el 28/09, `useEffect` y los de Router el 5/10); los POST, PUT y DELETE en el handler y no en un efecto (su ejemplo del 5/10 los pone en un efecto y duplica registros: es un bug que corregimos); comprobar `response.ok`; el estado en la vista o en `App.jsx` (en su ejemplo del 28/09 vive en un componente padre, `Form`); `main.jsx` con `BrowserRouter` y `useTransitions={false}` (ella también pone el `BrowserRouter` ahí).
+- **Si preguntan por qué no usamos `services/` o Context:** en su demo el `fetch` está en el componente que pide los datos; nunca los enseñó; y va a refactorizar todo a Redux, así que serían trabajo que se tira. Lo que dijo que evalúa es estructura y modularización, uso correcto de hooks y estado local sin GET repetidos.
+
+## 4. Decisiones (pendientes de confirmar con la profesora, salvo las marcadas como resueltas)
 
 Mientras no responda, se usa el comportamiento por defecto. Cada decisión tiene que quedar aislada para cambiarla fácil.
 
 | #   | Duda                                                                                                                        | Por defecto                                                                                                                                                                                              |
 | --- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | `localStorage` para el JWT (en clase lo mostró para esta entrega, con una advertencia ambigua; en la 3.ª quedará prohibido) | Usarlo **solo** para la clave `jwtToken`, en `App.jsx`, en tres puntos: guardar al login, leer al iniciar, borrar al logout. Si lo desaprueba, el token queda solo en el estado (se pierde al recargar). |
+| 1   | `localStorage` para el JWT. **Confirmado (25/10):** se puede usar en esta entrega; en la 3.ª estará prohibido | **Resuelta.** Usarlo **solo** para la clave `jwtToken`, en `App.jsx`, en tres puntos: guardar al login, leer al iniciar, borrar al logout. En la 3.ª entrega se borran esos tres puntos y el token pasa a Redux. |
 | 2   | `BrowserRouter` en `main.jsx` (clase del 5/10) o en `App.jsx` (notas anteriores)                                            | **Decidido (24/10): en `main.jsx`**, como en la demo de la profesora. Es el único cambio permitido en ese archivo (más las props del router).                                                                                       |
 | 3   | ¿Un archivo compartido para las llamadas a la API?                                                                          | No: `fetch` directo en cada vista o handler, con la plantilla de la sección 6.                                                                                                                           |
 | 4   | Context API                                                                                                                 | No usar.                                                                                                                                                                                                 |
