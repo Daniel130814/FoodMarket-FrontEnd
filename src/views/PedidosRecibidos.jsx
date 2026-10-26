@@ -108,7 +108,7 @@ function PedidosRecibidos({ token, userId, onSesionVencida, onAviso }) {
           onSesionVencida()
           return
         }
-        onAviso(mensajeDe(fallo))
+        onAviso(mensajeDe(fallo), 'error')
       })
   }
 

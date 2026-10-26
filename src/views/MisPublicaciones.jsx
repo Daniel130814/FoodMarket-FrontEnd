@@ -112,7 +112,7 @@ function MisPublicaciones({ token, onSesionVencida, onAviso }) {
           onSesionVencida()
           return
         }
-        onAviso(mensajeDe(fallo))
+        onAviso(mensajeDe(fallo), 'error')
       })
   }
 
@@ -156,7 +156,7 @@ function MisPublicaciones({ token, onSesionVencida, onAviso }) {
           onSesionVencida()
           return
         }
-        onAviso(mensajeDe(fallo))
+        onAviso(mensajeDe(fallo), 'error')
       })
   }
 
@@ -190,7 +190,7 @@ function MisPublicaciones({ token, onSesionVencida, onAviso }) {
           onSesionVencida()
           return
         }
-        onAviso(mensajeDe(fallo))
+        onAviso(mensajeDe(fallo), 'error')
       })
   }
 

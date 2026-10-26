@@ -247,7 +247,7 @@ function Admin({ token, onSesionVencida, onAviso }) {
           onSesionVencida()
           return
         }
-        onAviso(mensajeDe(fallo))
+        onAviso(mensajeDe(fallo), 'error')
       })
   }
 
@@ -433,7 +433,7 @@ function Admin({ token, onSesionVencida, onAviso }) {
           onSesionVencida()
           return
         }
-        onAviso(mensajeDe(fallo))
+        onAviso(mensajeDe(fallo), 'error')
       })
   }
 

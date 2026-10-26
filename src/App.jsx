@@ -66,14 +66,19 @@ function App() {
   // true mientras se verifica el token guardado: las rutas protegidas esperan en vez de mandar a /ingreso.
   const [cargandoSesion, setCargandoSesion] = useState(() => localStorage.getItem(CLAVE_TOKEN) !== null)
 
+  // Aviso del Toast: null o { texto, tipo } con tipo 'exito' o 'error'.
   const [aviso, setAviso] = useState(null)
+
+  // Muestra un aviso; los de error pasan 'error' para que el Toast cambie el ícono.
+  const avisar = (texto, tipo = 'exito') => setAviso({ texto, tipo })
 
   // Cierra la sesión por un 401 (token vencido); RutaProtegida manda a /ingreso al ver la sesión en null.
   const sesionVencida = () => {
     setSesion(null)
     localStorage.removeItem(CLAVE_TOKEN)
     setCarrito((actual) => calcularCarrito(actual.id, []))
-    setAviso('Tu sesión venció, ingresá de nuevo')
+    // Con setAviso directo (no avisar): el efecto de la cesta la llama y no debe tener funciones nuevas en sus dependencias.
+    setAviso({ texto: 'Tu sesión venció, ingresá de nuevo', tipo: 'error' })
   }
 
   // .catch de las escrituras: un 401 cierra la sesión; cualquier otro error va al Toast.
@@ -82,7 +87,7 @@ function App() {
       sesionVencida()
       return
     }
-    setAviso(mensajeDe(fallo))
+    avisar(mensajeDe(fallo), 'error')
   }
 
   // Agrega un plato a la cesta (POST). Si ya estaba, el backend suma la cantidad y valida el stock.
@@ -98,7 +103,7 @@ function App() {
       .then(leerRespuesta)
       .then((carritoServidor) => {
         setCarrito(carritoServidor)
-        setAviso(`Agregaste ${plato.nombre} a tu carrito`)
+        avisar(`Agregaste ${plato.nombre} a tu carrito`)
       })
       .catch(manejarFallo)
   }
@@ -144,7 +149,7 @@ function App() {
       .then(leerRespuesta)
       .then(() => {
         setCarrito((actual) => calcularCarrito(actual.id, []))
-        setAviso('Vaciaste tu cesta')
+        avisar('Vaciaste tu cesta')
       })
       .catch(manejarFallo)
   }
@@ -152,7 +157,7 @@ function App() {
   // Checkout ya creó el pedido y el backend vació la cesta: vaciamos la copia local.
   const pedidoCreado = () => {
     setCarrito((actual) => calcularCarrito(actual.id, []))
-    setAviso('Pedido confirmado')
+    avisar('Pedido confirmado')
   }
 
   // Al abrir o recargar: restaura la sesión con el token guardado (GET /users/me, el rol no viene en el JWT).
@@ -190,7 +195,7 @@ function App() {
           sesionVencida()
           return
         }
-        setAviso(mensajeDe(fallo))
+        avisar(mensajeDe(fallo), 'error')
       })
   }, [sesion])
 
@@ -198,7 +203,7 @@ function App() {
   const iniciarSesion = (nuevaSesion) => {
     setSesion(nuevaSesion)
     localStorage.setItem(CLAVE_TOKEN, nuevaSesion.token)
-    setAviso(`Ingresaste como ${nuevaSesion.nombre}`)
+    avisar(`Ingresaste como ${nuevaSesion.nombre}`)
   }
 
   // Perfil guardó cambios: actualizamos el nombre de la sesión, que es lo que muestra el Header.
@@ -211,7 +216,7 @@ function App() {
     setSesion(null)
     localStorage.removeItem(CLAVE_TOKEN)
     setCarrito(calcularCarrito(carrito.id, []))
-    setAviso('Cerraste sesión')
+    avisar('Cerraste sesión')
   }
 
   const cantidadTotal = carrito.items.reduce((acumulado, item) => acumulado + item.cantidad, 0)
@@ -229,7 +234,7 @@ function App() {
       return
     }
     if (sesion.role !== 'CLIENTE') {
-      setAviso('Solo los clientes pueden comprar')
+      avisar('Solo los clientes pueden comprar', 'error')
       return
     }
     agregar(plato, cantidad)
@@ -262,7 +267,7 @@ function App() {
         token={sesion?.token}
         userId={sesion?.userId}
         onSesionVencida={sesionVencida}
-        onAviso={setAviso}
+        onAviso={avisar}
       />
     )
 
@@ -308,7 +313,7 @@ function App() {
               path="/pedidos"
               element={protegida(
                 ['CLIENTE'],
-                <MisPedidos token={sesion?.token} onSesionVencida={sesionVencida} onAviso={setAviso} />
+                <MisPedidos token={sesion?.token} onSesionVencida={sesionVencida} onAviso={avisar} />
               )}
             />
 
@@ -317,7 +322,7 @@ function App() {
               path="/mis-publicaciones"
               element={protegida(
                 ['CHEF'],
-                <MisPublicaciones token={sesion?.token} onSesionVencida={sesionVencida} onAviso={setAviso} />
+                <MisPublicaciones token={sesion?.token} onSesionVencida={sesionVencida} onAviso={avisar} />
               )}
             />
             <Route
@@ -328,7 +333,7 @@ function App() {
                   token={sesion?.token}
                   userId={sesion?.userId}
                   onSesionVencida={sesionVencida}
-                  onAviso={setAviso}
+                  onAviso={avisar}
                 />
               )}
             />
@@ -340,7 +345,7 @@ function App() {
               path="/admin"
               element={protegida(
                 ['ADMIN'],
-                <Admin token={sesion?.token} onSesionVencida={sesionVencida} onAviso={setAviso} />
+                <Admin token={sesion?.token} onSesionVencida={sesionVencida} onAviso={avisar} />
               )}
             />
 
@@ -353,7 +358,7 @@ function App() {
                   token={sesion?.token}
                   onSesionVencida={sesionVencida}
                   onPerfilActualizado={perfilActualizado}
-                  onAviso={setAviso}
+                  onAviso={avisar}
                 />
               )}
             />
@@ -370,7 +375,7 @@ function App() {
   return (
     <>
       {pantalla()}
-      <Toast message={aviso ?? ''} visible={aviso !== null} onClose={() => setAviso(null)} />
+      <Toast message={aviso?.texto ?? ''} tipo={aviso?.tipo} visible={aviso !== null} onClose={() => setAviso(null)} />
     </>
   )
 }

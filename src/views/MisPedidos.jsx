@@ -144,7 +144,7 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
           onSesionVencida()
           return
         }
-        onAviso(mensajeDe(fallo))
+        onAviso(mensajeDe(fallo), 'error')
       })
   }
 
@@ -177,7 +177,7 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
           onSesionVencida()
           return
         }
-        onAviso(mensajeDe(fallo))
+        onAviso(mensajeDe(fallo), 'error')
       })
   }
 
@@ -218,7 +218,7 @@ function MisPedidos({ token, onSesionVencida, onAviso }) {
         if (fallo.status === 409) {
           setPlatosResenados((actuales) => [...actuales, platoId])
         }
-        onAviso(mensajeDe(fallo))
+        onAviso(mensajeDe(fallo), 'error')
       })
   }
 

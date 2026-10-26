@@ -350,7 +350,7 @@ function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
         }
         // El plato se creó pero falló la subida o la publicación: pasa a /publicar/{id} para que Guardar lo edite.
         if (!editando && fallo.platoId !== undefined) {
-          onAviso(`Creamos el plato, pero no pudimos terminar de cargar las imágenes: ${mensajeDe(fallo)}`)
+          onAviso(`Creamos el plato, pero no pudimos terminar de cargar las imágenes: ${mensajeDe(fallo)}`, 'error')
           // Cambiar de /publicar a /publicar/:id no desmonta la vista: hay que volver a habilitar Guardar.
           setGuardando(false)
           navigate(`/publicar/${fallo.platoId}`, { replace: true })
