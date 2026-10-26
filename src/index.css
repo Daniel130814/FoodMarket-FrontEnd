@@ -229,6 +229,8 @@ details.faq summary::-webkit-details-marker { display: none; }
 .rise-2 { animation-delay: 0.08s; }
 .rise-3 { animation-delay: 0.16s; }
 .settle { animation: settle 0.9s var(--ease) 0.1s both; }
+/* Portada: entra después de la cloche (~1,6 s). --retraso escalona titular, buscador y chips. */
+.aparece { animation: rise 0.7s var(--ease) var(--retraso, 1.6s) both; }
 
 /* ---------- Hero con 3D de CSS ----------
    Capas a distintas profundidades dentro de una escena con perspectiva. Cada nivel que contiene capas 3D

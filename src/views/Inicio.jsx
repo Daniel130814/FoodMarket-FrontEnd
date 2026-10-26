@@ -107,6 +107,10 @@ function Inicio({ onAdd }) {
       {/* Portada: el logo grande aparece al levantar la cloche */}
       <section className="grid place-items-center py-10 lg:py-16">
         <LogoCloche />
+        {/* Único h1 de la página */}
+        <h1 className="aparece balance mt-8 text-center font-display text-display-lg-mobile text-primary lg:text-display-lg">
+          ¿Qué te gustaría comer hoy?
+        </h1>
       </section>
 
       <section aria-labelledby="h-esp" className="mt-14">
