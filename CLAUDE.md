@@ -299,7 +299,7 @@ export default RutaProtegida;
 Componentes compartidos, en subcarpetas de `src/components/` (imports como `../components/comunes/Button`):
 
 - `comunes/`: `Button`, `Dialog`, `Toast`, `FormField`, `EmptyState`, `LoadingState`, `ErrorState`, `ContenidoAsync` (resuelve cargando / error / vacío / datos con `children`), `Tabs`, `Pagination`, `Alert`.
-- `layout/`: `Header`, `Footer`, `Logo`, `Hero3D`.
+- `layout/`: `Header`, `Footer`, `Logo`, `LogoCloche`, `Hero3D`, `FondoMesa`, `FondoFoto`.
 - `platos/`: `PlatoCard`, `Gallery`, `IngredientTrace`, `IngredientRows`, `ReviewList`, `CategoryChips`, `CategoryPicker`, `FilterChips`, `SearchBar`, `ChefCard`.
 - `cesta/`: `CartItem`, `QuantityStepper` (controlado: el valor viene por props), `OrderSummary`, `DomicilioPicker`, `DomicilioForm`.
 - `pedidos/`: `OrderCard`, `OrderTrack`, `SubPedidoCard`.
@@ -353,12 +353,15 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
   - [x] 3 Editar con `Dialog` (`PUT /categories/{id}`, que devuelve la categoría; reemplaza con `map`; sin llamar al backend si el nombre está vacío o no cambió).
   - [x] 4 Eliminar con confirmación (`DELETE /categories/{id}`, `data: null`; saca con `filter`; el 409 de una categoría asignada a un plato va al Toast y la deja en la lista).
   - [x] 5 Cierre: una categoría nueva aparece sola en los chips de `/catalogo` y en el selector de `/publicar`, y al borrarla desaparece. Probado con el backend real y un ADMIN: crear, duplicada (409), editar (renombrar, 409, vacío, sin cambios), eliminar (libre y asignada) y error de red simulado. Ninguna escritura vuelve a pedir `GET /categories`. **Sin probar:** el 404 de editar o eliminar una categoría que otro admin ya borró (el código muestra el mensaje del backend) y el 401 en estas escrituras (lo resuelve `onSesionVencida`, igual que en el resto de `Admin`).
-- [x] **Portada con cloche (26/10)**, mejora de `Inicio.jsx`; un commit por sub-paso. `Hero3D.jsx` queda guardado, sin importar:
+- [x] **Portada con cloche, plato recomendado y fondo (26/10)**, mejora de `Inicio.jsx` (`PLAN-portada`); un commit por sub-paso:
   - [x] 1 `LogoCloche` (en `components/layout/`) y tamaño `xl` de `Logo`: la tapa sube, el logo se enfoca y el aro se dibuja (~2,3 s, solo CSS).
-  - [x] 2 Titular `<h1>` "¿Qué te gustaría comer hoy?" con la clase `.aparece` (animación `rise`, delay por `--retraso`, 1,6 s por defecto).
+  - [x] 2 Titular `<h1>` "¿Qué te gustaría comer hoy?" con la clase `.aparece` (animación `rise`; el delay sale de `--retraso`, 1,6 s por defecto; el buscador usa 1,8 s y los chips 2 s).
   - [x] 3 Buscador: estado `busqueda` en `Inicio`, `SearchBar` sin cambios y `navigate('/catalogo', { state: { nombre } })`.
-  - [x] 4 `Catalogo` toma `location.state?.nombre` como valor inicial de `filtros.nombre` (sin GET de más).
-  - [x] 5 Chips de categorías dentro de la portada (la sección "Qué se te antoja" ya no existe). Navegan con `state.categoriaId`, que `Catalogo` lee igual que el nombre; `selectedId={-1}` evita que "Todas" aparezca marcado.
+  - [x] 4 `Catalogo` toma `location.state?.nombre` y `location.state?.categoriaId` como valores iniciales de `filtros` (sin GET de más).
+  - [x] 5 Chips de categorías dentro de la portada (la sección "Qué se te antoja" ya no existe). Navegan con `state.categoriaId`; `selectedId={-1}` evita que "Todas" aparezca marcado.
+  - [x] 6 Sección "Platos de autor..." (`<h2>`) con `Hero3D` y el plato recomendado: `GET /platos?nombre=Milanesa napolitana con papas` (el filtro es por coincidencia parcial, comprobado contra el backend); si no hay o falla, el primer plato `PUBLICADO`. `Hero3D` usa la foto del plato, enlaza a `/plato/{id}` y deshabilita agregar si está `AGOTADO`; se le sacó la entrada `settle`.
+  - [x] 7 Fondo "mesa vista desde arriba": `FondoMesa` y `FondoFoto` (en `components/layout/`), anillos centrados en el logo y hasta 6 fotos de platos desde 1280 px (con menos de 3 fotos, íconos). Única animación: la deriva lenta de las fotos.
+  - Verificado con el backend real: secuencia sin saltos de layout, 375 px y 1280 px sin scroll horizontal, foco con Tab, búsqueda y chips hacia `/catalogo` (también tras recargar), recomendada con foto y precio, agotada (botón deshabilitado), sin milanesa (respaldo), backend caído (sin tarjeta, sin romper), agregar sin sesión (lleva a `/ingreso`, sin GET) y fondo con fotos y con íconos. **Sin probar:** agregar a la cesta con sesión iniciada, `prefers-reduced-motion` activado en el navegador (solo se revisó la regla de `index.css`) y la secuencia en un celular real.
 
 **`TODO(backend)` que quedan:** `PATCH` de stock y de estado del plato; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; nombre y taller del chef en `ChefProfileResponse` (la tarjeta de Inicio muestra solo especialidad, biografía, descripción, foto y reputación); `pedidoId`, fecha y cliente en los subpedidos; `clienteNombre` en las reseñas. (Ya resueltos el 24/10: "mis platos", `GET /platos/{id}` para el dueño, cambio de rol, cambio de contraseña, subida de imágenes y el `message` del `DELETE`.)
 
