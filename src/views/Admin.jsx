@@ -1,7 +1,9 @@
 // Administración (ruta /admin, solo ADMIN). Pestaña Pagos: aprobar, rechazar o reembolsar (aprobar habilita a los chefs).
 // Pestaña Usuarios: listar, crear y abrir el detalle para editar datos y cambiar el rol.
+// Pestaña Categorías: listar las categorías de los platos.
 import { useEffect, useState } from 'react'
 import Tabs from '../components/comunes/Tabs'
+import CategoriasPanel from '../components/admin/CategoriasPanel'
 import Dialog from '../components/comunes/Dialog'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
@@ -112,6 +114,8 @@ function Admin({ token, onSesionVencida, onAviso }) {
 
   const [usuarios, setUsuarios] = useState([])
 
+  const [categorias, setCategorias] = useState([])
+
   const [pestana, setPestana] = useState('pagos')
 
   // Formulario de usuario nuevo: abierto, datos, errores por campo y error del backend.
@@ -140,12 +144,17 @@ function Admin({ token, onSesionVencida, onAviso }) {
   const [errorRol, setErrorRol] = useState(null)
   const [cambiandoRol, setCambiandoRol] = useState(false)
 
-  // Al abrir: GET /pagos y GET /users juntos (Promise.all).
+  // Al abrir: GET /pagos, /users y /categories juntos (Promise.all). /categories es pública: va sin token.
   useEffect(() => {
-    Promise.all([pedirPrivado('/pagos', token), pedirPrivado('/users', token)])
-      .then(([listaPagos, listaUsuarios]) => {
+    Promise.all([
+      pedirPrivado('/pagos', token),
+      pedirPrivado('/users', token),
+      fetch(`${API_URL}/categories`).then(leerRespuesta).then((data) => data ?? []),
+    ])
+      .then(([listaPagos, listaUsuarios, listaCategorias]) => {
         setPagos(listaPagos)
         setUsuarios(listaUsuarios)
+        setCategorias(listaCategorias)
       })
       .catch((fallo) => {
         if (fallo.status === 401) {
@@ -433,6 +442,7 @@ function Admin({ token, onSesionVencida, onAviso }) {
   const pestanas = [
     { id: 'pagos', label: 'Pagos', count: pendientes },
     { id: 'usuarios', label: 'Usuarios', count: usuarios.length },
+    { id: 'categorias', label: 'Categorías', count: categorias.length },
   ]
 
   // Transiciones válidas: PENDIENTE -> APROBADO o RECHAZADO; APROBADO -> REEMBOLSADO; el resto no tiene acciones.
@@ -548,6 +558,8 @@ function Admin({ token, onSesionVencida, onAviso }) {
             ))}
           </div>
         )}
+
+        {pestana === 'categorias' && <CategoriasPanel categorias={categorias} />}
       </div>
 
       {/* Diálogo de confirmación del pago; cerrado, los textos van vacíos (Dialog no dibuja nada con open en false) */}
