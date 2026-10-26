@@ -4,20 +4,24 @@ import QuantityStepper from './QuantityStepper'
 // Tope del selector: la API no manda el stock en los ítems, así que si se lo supera el backend responde 400 y App lo avisa.
 const CANTIDAD_MAXIMA = 99
 
-// Props: item (ítem del carrito de la API), onQuantityChange (itemId, cantidad), onRemove (itemId).
-function CartItem({ item, onQuantityChange, onRemove }) {
+// Props: item (ítem del carrito de la API), imagenUrl (foto del plato o undefined), onQuantityChange (itemId, cantidad), onRemove (itemId).
+function CartItem({ item, imagenUrl, onQuantityChange, onRemove }) {
   const { id, nombrePlato, cantidad, precioBase, descuentoPorcentaje, precioUnitarioActual, subtotalEstimado } = item
   const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
 
   return (
     <li className="flex gap-4 py-5 first:pt-0 last:pb-0">
-      {/* TODO(backend): imagenUrl, stockDisponible y chefNombre en los ítems del carrito; usamos un placeholder. */}
-      <div
-        className="grid h-20 w-20 flex-none place-items-center rounded-md bg-surface-container text-on-surface-variant sm:h-[104px] sm:w-[104px]"
-        aria-hidden="true"
-      >
-        <span className="material-symbols-outlined text-[32px]">restaurant</span>
-      </div>
+      {/* TODO(backend): stockDisponible y chefNombre en los ítems del carrito. Sin foto se muestra un ícono. */}
+      {imagenUrl === undefined ? (
+        <div
+          className="grid h-20 w-20 flex-none place-items-center rounded-md bg-surface-container text-on-surface-variant sm:h-[104px] sm:w-[104px]"
+          aria-hidden="true"
+        >
+          <span className="material-symbols-outlined text-[32px]">restaurant</span>
+        </div>
+      ) : (
+        <img src={imagenUrl} alt="" className="h-20 w-20 flex-none rounded-md object-cover sm:h-[104px] sm:w-[104px]" />
+      )}
       <div className="min-w-0 flex-1">
         <h3 className="font-display text-title-md text-primary">{nombrePlato}</h3>
         <div className="mt-3 flex items-center justify-between gap-3">
