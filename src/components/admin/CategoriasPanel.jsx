@@ -3,7 +3,8 @@ import Alert from '../comunes/Alert'
 import FormField from '../comunes/FormField'
 
 // Props: categorias ({ id, description }[]); mostrarForm; descripcion (valor del campo); errorDescripcion (junto al
-// campo); errorCrear (del backend); onAbrirForm; onCerrarForm; onDescripcionChange (event); onCrear (event, submit).
+// campo); errorCrear (del backend); onAbrirForm; onCerrarForm; onDescripcionChange (event); onCrear (event, submit);
+// onEditar (categoria): el padre abre el diálogo de edición.
 function CategoriasPanel({
   categorias,
   mostrarForm,
@@ -14,6 +15,7 @@ function CategoriasPanel({
   onCerrarForm,
   onDescripcionChange,
   onCrear,
+  onEditar,
 }) {
   return (
     <div role="tabpanel" className="mt-8 space-y-4">
@@ -53,6 +55,9 @@ function CategoriasPanel({
           className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-surface-container-lowest p-5 shadow-ambient"
         >
           <h2 className="min-w-0 flex-1 basis-[220px] font-display text-headline-sm text-primary">{categoria.description}</h2>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => onEditar(categoria)}>
+            Editar
+          </button>
         </article>
       ))}
     </div>

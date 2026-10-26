@@ -1,6 +1,6 @@
 // Administración (ruta /admin, solo ADMIN). Pestaña Pagos: aprobar, rechazar o reembolsar (aprobar habilita a los chefs).
 // Pestaña Usuarios: listar, crear y abrir el detalle para editar datos y cambiar el rol.
-// Pestaña Categorías: listar y crear las categorías de los platos.
+// Pestaña Categorías: listar, crear y editar las categorías de los platos.
 import { useEffect, useState } from 'react'
 import Tabs from '../components/comunes/Tabs'
 import CategoriasPanel from '../components/admin/CategoriasPanel'
@@ -121,6 +121,14 @@ function Admin({ token, onSesionVencida, onAviso }) {
   const [descripcionNueva, setDescripcionNueva] = useState('')
   const [errorDescripcion, setErrorDescripcion] = useState(null)
   const [errorCrearCategoria, setErrorCrearCategoria] = useState(null)
+
+  // Diálogo de edición de categoría: la categoría abierta (null = cerrado), el nombre, error junto al campo,
+  // error del backend y PUT en curso (evita el doble envío).
+  const [categoriaEditando, setCategoriaEditando] = useState(null)
+  const [descripcionEditada, setDescripcionEditada] = useState('')
+  const [errorDescripcionEditada, setErrorDescripcionEditada] = useState(null)
+  const [errorEditarCategoria, setErrorEditarCategoria] = useState(null)
+  const [guardandoCategoria, setGuardandoCategoria] = useState(false)
 
   const [pestana, setPestana] = useState('pagos')
 
@@ -341,6 +349,64 @@ function Admin({ token, onSesionVencida, onAviso }) {
         // 409 (nombre repetido, sin distinguir mayúsculas), 403: el mensaje del backend va dentro del formulario.
         setErrorCrearCategoria(mensajeDe(fallo))
       })
+  }
+
+  const abrirEdicionCategoria = (categoria) => {
+    setCategoriaEditando(categoria)
+    setDescripcionEditada(categoria.description)
+    setErrorDescripcionEditada(null)
+    setErrorEditarCategoria(null)
+  }
+
+  const cerrarEdicionCategoria = () => setCategoriaEditando(null)
+
+  const handleDescripcionEditadaChange = (event) => {
+    setDescripcionEditada(event.target.value)
+    setErrorDescripcionEditada(null)
+  }
+
+  // Guarda el nombre (PUT /categories/{id}); el backend devuelve la categoría y reemplaza la de la lista (map).
+  const guardarCategoria = () => {
+    if (categoriaEditando === null || guardandoCategoria) {
+      return
+    }
+
+    const descripcion = descripcionEditada.trim()
+    if (descripcion === '') {
+      setErrorDescripcionEditada('Escribí el nombre de la categoría.')
+      return
+    }
+    // Sin cambios no hace falta llamar al backend.
+    if (descripcion === categoriaEditando.description) {
+      cerrarEdicionCategoria()
+      return
+    }
+
+    setGuardandoCategoria(true)
+    setErrorEditarCategoria(null)
+    fetch(`${API_URL}/categories/${categoriaEditando.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`, // ruta privada
+      },
+      body: JSON.stringify({ description: descripcion }),
+    })
+      .then(leerRespuesta)
+      .then((editada) => {
+        setCategorias((actuales) => actuales.map((c) => (c.id === editada.id ? editada : c)))
+        cerrarEdicionCategoria()
+        onAviso(`Guardaste la categoría ${editada.description}`)
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        // 409 (nombre repetido), 404 (ya no existe), 400: el mensaje del backend va dentro del diálogo.
+        setErrorEditarCategoria(mensajeDe(fallo))
+      })
+      .finally(() => setGuardandoCategoria(false))
   }
 
   // Abre el detalle: reinicia el diálogo y guarda el id (el efecto de arriba hace el GET).
@@ -622,6 +688,7 @@ function Admin({ token, onSesionVencida, onAviso }) {
             onCerrarForm={cerrarFormCategoria}
             onDescripcionChange={handleDescripcionChange}
             onCrear={crearCategoria}
+            onEditar={abrirEdicionCategoria}
           />
         )}
       </div>
@@ -650,6 +717,30 @@ function Admin({ token, onSesionVencida, onAviso }) {
         onCancel={cerrarDetalle}
       >
         {contenidoDetalle()}
+      </Dialog>
+
+      {/* Diálogo de edición de categoría: se abre cuando categoriaEditando deja de ser null; confirmar guarda con PUT */}
+      <Dialog
+        open={categoriaEditando !== null}
+        title="Editar categoría"
+        message="Cambiá el nombre con el que se muestra en el catálogo y en el formulario de platos."
+        confirmLabel={guardandoCategoria ? 'Guardando...' : 'Guardar cambios'}
+        confirmVariant="primary"
+        cancelLabel="Cancelar"
+        onConfirm={guardarCategoria}
+        onCancel={cerrarEdicionCategoria}
+      >
+        <div className="mt-5 space-y-4">
+          {errorEditarCategoria !== null && <Alert title="No pudimos guardar la categoría" messages={[errorEditarCategoria]} />}
+          <FormField
+            label="Nombre de la categoría"
+            name="descripcionEditada"
+            value={descripcionEditada}
+            onChange={handleDescripcionEditadaChange}
+            error={errorDescripcionEditada}
+            autoComplete="off"
+          />
+        </div>
       </Dialog>
     </>
   )
