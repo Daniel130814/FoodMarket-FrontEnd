@@ -57,6 +57,22 @@ const PASSWORD_VACIA = { actual: '', nueva: '', repetir: '' }
 const CHEF_VACIO = { especialidad: '', fotoUrl: '', biografia: '', descripcion: '' }
 const MAX_TEXTO_CHEF = 2000
 
+// Formatos y tamaño máximo de la foto subida (ENDPOINTS.md); se validan acá para avisar antes de subir.
+const TIPOS_FOTO = ['image/jpeg', 'image/png', 'image/webp']
+const MAX_BYTES_FOTO = 5 * 1024 * 1024
+
+// Sube la foto (PUT /chef-profiles/{id}/foto, multipart, campo "file") y devuelve el perfil con la fotoUrl nueva.
+// No se escribe el Content-Type: el navegador lo arma con el boundary; si se pone a mano el backend no lee el archivo.
+const subirFoto = (perfilId, archivo, token) => {
+  const cuerpo = new FormData()
+  cuerpo.append('file', archivo)
+  return fetch(`${API_URL}/chef-profiles/${perfilId}/foto`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` }, // ruta privada (sin Content-Type, ver arriba)
+    body: cuerpo,
+  }).then(leerRespuesta)
+}
+
 // La API devuelve null en los textos que el chef no cargó.
 const aFormularioChef = (perfil) => ({
   especialidad: perfil.especialidad ?? '',
@@ -99,6 +115,9 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
   const [erroresChef, setErroresChef] = useState({})
   const [errorChef, setErrorChef] = useState(null)
   const [guardandoChef, setGuardandoChef] = useState(false)
+
+  // Foto elegida en el equipo (File o null); se sube al guardar, después del perfil.
+  const [fotoArchivo, setFotoArchivo] = useState(null)
 
   // Al abrir: GET /users/me, que llena el usuario y el formulario. Si es CHEF, también busca su perfil público.
   useEffect(() => {
@@ -197,7 +216,21 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
     }
   }
 
-  // Guarda la presentación: POST la primera vez y PUT (con el id del perfil) después. Se actualiza el estado local con lo que devuelve la API.
+  // Elige la foto: si el formato o el tamaño no sirven, se avisa junto al campo y no se guarda.
+  const elegirFoto = (archivo) => {
+    if (archivo === undefined) {
+      return
+    }
+    if (!TIPOS_FOTO.includes(archivo.type) || archivo.size > MAX_BYTES_FOTO) {
+      setErroresChef({ ...erroresChef, foto: `No se agregó ${archivo.name}. Solo JPG, PNG o WEBP de hasta 5 MB.` })
+      return
+    }
+    setFotoArchivo(archivo)
+    setErroresChef({ ...erroresChef, foto: null })
+  }
+
+  // Guarda la presentación: POST la primera vez y PUT (con el id del perfil) después; si hay foto elegida, la sube a continuación.
+  // Se actualiza el estado local con lo que devuelve la API.
   const handleChefSubmit = (event) => {
     event.preventDefault()
 
@@ -225,14 +258,30 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
       }),
     })
       .then(leerRespuesta)
+      .then((guardado) =>
+        fotoArchivo === null
+          ? guardado
+          : // Si falla la subida, el perfil ya existe: el error lo lleva para quedarnos con él y no crear un duplicado al reintentar.
+            subirFoto(guardado.id, fotoArchivo, token).catch((fallo) => {
+              fallo.perfilGuardado = guardado
+              throw fallo
+            })
+      )
       .then((guardado) => {
         setPerfilChef(guardado)
         setFormChef(aFormularioChef(guardado))
+        setFotoArchivo(null)
         onAviso(editando ? 'Guardaste tu presentación' : 'Creaste tu presentación')
       })
       .catch((fallo) => {
         if (fallo.status === 401) {
           onSesionVencida()
+          return
+        }
+        if (fallo.perfilGuardado !== undefined) {
+          setPerfilChef(fallo.perfilGuardado)
+          setFormChef(aFormularioChef(fallo.perfilGuardado))
+          setErrorChef(`Guardamos tu presentación, pero no pudimos subir la foto: ${mensajeDe(fallo)}`)
           return
         }
         setErrorChef(mensajeDe(fallo))
@@ -336,6 +385,9 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
                 error={errorChef}
                 existe={perfilChef !== null}
                 guardando={guardandoChef}
+                foto={fotoArchivo}
+                onSelectFoto={elegirFoto}
+                onRemoveFoto={() => setFotoArchivo(null)}
                 onChange={handleChefChange}
                 onSubmit={handleChefSubmit}
               />
