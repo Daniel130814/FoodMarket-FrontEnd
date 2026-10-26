@@ -353,6 +353,12 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
   - [x] 3 Editar con `Dialog` (`PUT /categories/{id}`, que devuelve la categoría; reemplaza con `map`; sin llamar al backend si el nombre está vacío o no cambió).
   - [x] 4 Eliminar con confirmación (`DELETE /categories/{id}`, `data: null`; saca con `filter`; el 409 de una categoría asignada a un plato va al Toast y la deja en la lista).
   - [x] 5 Cierre: una categoría nueva aparece sola en los chips de `/catalogo` y en el selector de `/publicar`, y al borrarla desaparece. Probado con el backend real y un ADMIN: crear, duplicada (409), editar (renombrar, 409, vacío, sin cambios), eliminar (libre y asignada) y error de red simulado. Ninguna escritura vuelve a pedir `GET /categories`. **Sin probar:** el 404 de editar o eliminar una categoría que otro admin ya borró (el código muestra el mensaje del backend) y el 401 en estas escrituras (lo resuelve `onSesionVencida`, igual que en el resto de `Admin`).
+- [x] **Portada con cloche (26/10)**, mejora de `Inicio.jsx`; un commit por sub-paso. `Hero3D.jsx` queda guardado, sin importar:
+  - [x] 1 `LogoCloche` (en `components/layout/`) y tamaño `xl` de `Logo`: la tapa sube, el logo se enfoca y el aro se dibuja (~2,3 s, solo CSS).
+  - [x] 2 Titular `<h1>` "¿Qué te gustaría comer hoy?" con la clase `.aparece` (animación `rise`, delay por `--retraso`, 1,6 s por defecto).
+  - [x] 3 Buscador: estado `busqueda` en `Inicio`, `SearchBar` sin cambios y `navigate('/catalogo', { state: { nombre } })`.
+  - [x] 4 `Catalogo` toma `location.state?.nombre` como valor inicial de `filtros.nombre` (sin GET de más).
+  - [x] 5 Chips de categorías dentro de la portada (la sección "Qué se te antoja" ya no existe). Navegan con `state.categoriaId`, que `Catalogo` lee igual que el nombre; `selectedId={-1}` evita que "Todas" aparezca marcado.
 
 **`TODO(backend)` que quedan:** `PATCH` de stock y de estado del plato; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; nombre y taller del chef en `ChefProfileResponse` (la tarjeta de Inicio muestra solo especialidad, biografía, descripción, foto y reputación); `pedidoId`, fecha y cliente en los subpedidos; `clienteNombre` en las reseñas. (Ya resueltos el 24/10: "mis platos", `GET /platos/{id}` para el dueño, cambio de rol, cambio de contraseña, subida de imágenes y el `message` del `DELETE`.)
 
