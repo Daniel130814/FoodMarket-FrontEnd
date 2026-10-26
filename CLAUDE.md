@@ -293,7 +293,8 @@ export default RutaProtegida;
 | PublicarPlato                       | `/publicar`, `/publicar/:id` | CHEF                 |
 | Admin (usuarios, pagos y categorías) | `/admin`                    | ADMIN                |
 | PedidosRecibidos                    | `/pedidos-recibidos`         | CHEF                 |
-| Perfil                              | `/perfil`                    | CLIENTE, CHEF, ADMIN |
+| Perfil (el CHEF también edita su presentación) | `/perfil`         | CLIENTE, CHEF, ADMIN |
+| PerfilChef (presentación, platos y reseñas del chef) | `/chef/:userId` | público              |
 | NoEncontrado (404)                  | cualquier otra ruta (`*`)    | público              |
 
 Componentes compartidos, en subcarpetas de `src/components/` (imports como `../components/comunes/Button`):
@@ -303,7 +304,7 @@ Componentes compartidos, en subcarpetas de `src/components/` (imports como `../c
 - `platos/`: `PlatoCard`, `Gallery`, `IngredientTrace`, `IngredientRows`, `ReviewList`, `CategoryChips`, `CategoryPicker`, `FilterChips`, `SearchBar`, `ChefCard`.
 - `cesta/`: `CartItem`, `QuantityStepper` (controlado: el valor viene por props), `OrderSummary`, `DomicilioPicker`, `DomicilioForm`.
 - `pedidos/`: `OrderCard`, `OrderTrack`, `SubPedidoCard`.
-- `chef/`: `PublicationRow`, `ImageUrlList`, `ImageFilePicker`.
+- `chef/`: `PublicationRow`, `ImageUrlList`, `ImageFilePicker`, `ChefProfileForm` (formulario de la presentación del chef en `Perfil`; el estado y los `fetch` viven en `Perfil.jsx`).
 - `auth/`: `RoleOption`, `RutaProtegida`.
 - `admin/`: `CategoriasPanel` (pestaña Categorías de `Admin`: lista, formulario de alta y botones Editar y Eliminar; el estado, los `fetch` y los diálogos viven en `Admin.jsx`).
 
@@ -363,7 +364,15 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
   - [x] 7 Fondo "mesa vista desde arriba": `FondoMesa` y `FondoFoto` (en `components/layout/`), anillos centrados en el logo y hasta 6 fotos de platos desde 1280 px (con menos de 3 fotos, íconos). Única animación: la deriva lenta de las fotos.
   - Verificado con el backend real: secuencia sin saltos de layout, 375 px y 1280 px sin scroll horizontal, foco con Tab, búsqueda y chips hacia `/catalogo` (también tras recargar), recomendada con foto y precio, agotada (botón deshabilitado), sin milanesa (respaldo), backend caído (sin tarjeta, sin romper), agregar sin sesión (lleva a `/ingreso`, sin GET) y fondo con fotos y con íconos. **Sin probar:** agregar a la cesta con sesión iniciada, `prefers-reduced-motion` activado en el navegador (solo se revisó la regla de `index.css`) y la secuencia en un celular real.
 
-**`TODO(backend)` que quedan:** `PATCH` de stock y de estado del plato; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; nombre y taller del chef en `ChefProfileResponse` (la tarjeta de Inicio muestra solo especialidad, biografía, descripción, foto y reputación); `pedidoId`, fecha y cliente en los subpedidos; `clienteNombre` en las reseñas. (Ya resueltos el 24/10: "mis platos", `GET /platos/{id}` para el dueño, cambio de rol, cambio de contraseña, subida de imágenes y el `message` del `DELETE`.)
+- [x] **Pruebas finales y ajustes (26/10)**: recorrido completo de CLIENTE, CHEF y ADMIN contra el backend real; un commit por arreglo:
+  - [x] Foto de cada plato en la cesta (`Carrito` pide `GET /platos` al abrir; los ítems de la API no traen imagen).
+  - [x] Total sin el envío de ejemplo ($3.200): la API no cobra envío y `precioFinal` es la suma de los platos (`OrderSummary` ya no recibe `shipping`).
+  - [x] Claves únicas (`FondoMesa` saca fotos repetidas; `Gallery` usa el índice) y botón del resumen sin desborde entre 1024 y 1200 px.
+  - [x] Toast con ícono de error (`App.avisar(texto, tipo)`, los avisos de falla pasan `'error'`) y `Dialog` que se cierra con Esc (el botón de cancelar toma el foco al abrirse).
+  - [x] Tarjeta "Quién lo cocina" en `DetallePlato`, editor de la presentación del chef en `Perfil` (`POST` y `PUT /chef-profiles`) y vista pública `PerfilChef` (`/chef/:userId`: perfil, platos, reseñas y promedio) con enlaces "Ver perfil y platos" desde Inicio y el detalle. El backend ignora `?chefId=` en `GET /platos` y no tiene reseñas por chef: `PerfilChef` pide `GET /platos` y `GET /resenas` y los recorta en la vista.
+  - Verificado con el backend real: registro, ingreso, cesta, checkout (doble clic = un solo pedido), pago, aprobación del ADMIN, avance del chef hasta Entregado, reseña (aparece en el plato), cancelar con reposición de stock, publicar, stock, descuento, pausar, editar y eliminar, perfil y contraseña, 401 simulado y red caída. **Límites conocidos:** la portada se ensancha en 375 px (MVP pensado para escritorio, no se arregla); tras F5 la cesta muestra "vacía" unos ~60 ms; el pedido queda `ENVIADO` aunque un subpedido esté `CONFIRMADO` (lo calcula el backend). **Sin probar:** subida de imágenes por archivo en esta pasada y el 403 del ADMIN en escrituras de otros roles.
+
+**`TODO(backend)` que quedan:** `PATCH` de stock y de estado del plato; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; nombre, apellido y nacionalidad en `ChefProfileResponse` y en `POST/PUT /chef-profiles` (hoy la tarjeta muestra solo especialidad, biografía, descripción, foto y reputación); `POST /chef-profiles/{id}/imagen` (multipart, campo `file`) para subir la foto del chef desde el equipo, hoy solo por URL; filtro `chefId` en `GET /platos` y `GET /resenas/chef/{id}`; `pedidoId`, fecha y cliente en los subpedidos; `clienteNombre` en las reseñas. (Ya resueltos el 24/10: "mis platos", `GET /platos/{id}` para el dueño, cambio de rol, cambio de contraseña, subida de imágenes y el `message` del `DELETE`.)
 
 ## 10. Antes de dar un paso por terminado
 
