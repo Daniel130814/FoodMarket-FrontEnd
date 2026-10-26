@@ -1,4 +1,4 @@
-// Inicio (/): portada, categorías, platos de hoy y chefs (GET /platos, /categories y /chef-profiles).
+// Inicio (/): portada con buscador y categorías, platos de hoy y chefs (GET /platos, /categories y /chef-profiles).
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import PlatoCard from '../components/platos/PlatoCard'
@@ -134,14 +134,14 @@ function Inicio({ onAdd }) {
           </div>
           <button type="submit" className="btn btn-primary">Buscar</button>
         </form>
-      </section>
 
-      <section aria-labelledby="h-esp" className="mt-14">
-        <h2 id="h-esp" className="mb-3 text-label-lg text-on-surface-variant">Qué se te antoja</h2>
-        <CategoryChips categories={categorias} />
-        {errorCategorias && (
-          <p className="hint hint--error">No pudimos cargar las categorías.</p>
-        )}
+        {/* Chips de categorías: entran al final de la secuencia (siguen siendo decorativos, como antes) */}
+        <div role="group" aria-label="Categorías" className="aparece mt-6 w-full max-w-xl" style={{ '--retraso': '2s' }}>
+          <CategoryChips categories={categorias} />
+          {errorCategorias && (
+            <p className="hint hint--error">No pudimos cargar las categorías.</p>
+          )}
+        </div>
       </section>
 
       <section aria-labelledby="h-hoy" className="mt-14 lg:mt-20">
