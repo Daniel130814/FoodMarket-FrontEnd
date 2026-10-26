@@ -1,6 +1,4 @@
 // Resumen del pedido: platos y total (la API no cobra envío, así que el total es el subtotal).
-import Button from '../comunes/Button'
-
 // Props: units (porciones), subtotal, onConfirm, buttonLabel (Cesta o Checkout), disabled (por ejemplo, sin domicilio elegido).
 function OrderSummary({ units, subtotal, onConfirm, buttonLabel = 'Confirmar pedido', disabled = false }) {
   const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
@@ -23,7 +21,15 @@ function OrderSummary({ units, subtotal, onConfirm, buttonLabel = 'Confirmar ped
           <p className="font-display text-price-lg tabular text-primary">{formatear(subtotal)}</p>
         </div>
         <div className="mt-7">
-          <Button onClick={onConfirm} disabled={disabled}>{buttonLabel} · {formatear(subtotal)}</Button>
+          {/* Ancho completo y texto que puede bajar de línea: el resumen es angosto entre 1024 y 1200 px */}
+          <button
+            type="button"
+            className="btn btn-primary btn-block !whitespace-normal py-2 text-center"
+            onClick={onConfirm}
+            disabled={disabled}
+          >
+            {buttonLabel} · {formatear(subtotal)}
+          </button>
         </div>
       </div>
     </aside>
