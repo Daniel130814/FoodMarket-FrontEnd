@@ -93,6 +93,11 @@ function Inicio({ onAdd }) {
     navigate('/catalogo', { state: { nombre: busqueda.trim() } })
   }
 
+  // Va al catálogo con la categoría elegida en el state (null = "Todas").
+  const irACategoria = (id) => {
+    navigate('/catalogo', { state: { categoriaId: id } })
+  }
+
   // Los primeros 4 platos para "Platos de hoy".
   const platosDeHoy = platos.slice(0, 4)
 
@@ -135,9 +140,9 @@ function Inicio({ onAdd }) {
           <button type="submit" className="btn btn-primary">Buscar</button>
         </form>
 
-        {/* Chips de categorías: entran al final de la secuencia (siguen siendo decorativos, como antes) */}
+        {/* Chips de categorías: entran al final de la secuencia. selectedId={-1}: ninguno marcado ("Todas" viene marcado con null) */}
         <div role="group" aria-label="Categorías" className="aparece mt-6 w-full max-w-xl" style={{ '--retraso': '2s' }}>
-          <CategoryChips categories={categorias} />
+          <CategoryChips categories={categorias} selectedId={-1} onSelect={irACategoria} />
           {errorCategorias && (
             <p className="hint hint--error">No pudimos cargar las categorías.</p>
           )}

@@ -64,9 +64,13 @@ function Catalogo({ onAdd }) {
   const [error, setError] = useState(null)
   const [errorCategorias, setErrorCategorias] = useState(false)
 
-  // Si llegamos desde el buscador de Inicio, el nombre viene en el state de la navegación (valor inicial: no dispara un GET de más).
+  // Si llegamos desde Inicio, el nombre y la categoría vienen en el state de la navegación (valores iniciales: no disparan un GET de más).
   const location = useLocation()
-  const [filtros, setFiltros] = useState({ ...FILTROS_INICIALES, nombre: location.state?.nombre ?? '' })
+  const [filtros, setFiltros] = useState({
+    ...FILTROS_INICIALES,
+    nombre: location.state?.nombre ?? '',
+    categoriaId: location.state?.categoriaId ?? null,
+  })
 
   const [orden, setOrden] = useState('sin-orden')
 
