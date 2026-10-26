@@ -7,6 +7,7 @@ import CategoryChips from '../components/platos/CategoryChips'
 import ChefCard from '../components/platos/ChefCard'
 import LogoCloche from '../components/layout/LogoCloche'
 import Hero3D from '../components/layout/Hero3D'
+import FondoMesa from '../components/layout/FondoMesa'
 import ContenidoAsync from '../components/comunes/ContenidoAsync'
 
 // URL base del backend (viene de .env).
@@ -143,7 +144,8 @@ function Inicio({ onAdd }) {
   return (
     <>
       {/* Portada: el logo grande aparece al levantar la cloche */}
-      <section className="grid place-items-center py-10 lg:py-16">
+      <section className="portada relative isolate grid place-items-center py-10 lg:py-16">
+        <FondoMesa platos={platos} />
         <LogoCloche />
         {/* Único h1 de la página */}
         <h1 className="aparece balance mt-8 text-center font-display text-display-lg-mobile text-primary lg:text-display-lg">

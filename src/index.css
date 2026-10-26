@@ -273,10 +273,29 @@ details.faq summary::-webkit-details-marker { display: none; }
 .cloche__base { fill: none; stroke: var(--olive); stroke-width: 3; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .cloche__brillo { fill: none; stroke: var(--bg); stroke-width: 3; stroke-linecap: round; opacity: 0.85; vector-effect: non-scaling-stroke; }
 
+/* ---------- Portada: fondo "mesa vista desde arriba" ----------
+   Bajo contraste para no competir con la cloche. Fotos y íconos solo desde xl (en pantallas chicas taparían el texto). */
+.portada { --tam-logo: clamp(44px, 14.5vw, 128px); }
+.fondo-anillos { position: absolute; left: 50%; top: calc(2.5rem + var(--tam-logo) * 1.6); width: 0; height: 0; }
+.fondo-anillo { position: absolute; left: 0; top: 0; width: calc(var(--tam-logo) * var(--k)); aspect-ratio: 1; transform: translate(-50%, -50%); border: 1px solid var(--line); border-radius: 9999px; }
+@media (min-width: 1024px) { .fondo-anillos { top: calc(4rem + var(--tam-logo) * 1.6); } }
+
+@keyframes deriva { from { transform: translateY(-8px); } to { transform: translateY(8px); } }
+.fondo-foto, .fondo-icono { display: none; position: absolute; width: var(--t); height: var(--t); }
+.fondo-foto { object-fit: cover; border-radius: 9999px; border: 4px solid var(--bg); box-shadow: 0 12px 32px rgba(45, 58, 31, 0.12); animation: deriva 18s ease-in-out infinite alternate; }
+.fondo-icono { place-items: center; font-size: var(--t); line-height: 1; color: var(--olive); opacity: 0.06; }
+@media (min-width: 1280px) { .fondo-foto { display: block; } .fondo-icono { display: grid; } }
+.fondo-foto-1 { --t: 150px; left: 3%; top: 6%; animation-duration: 18s; animation-delay: -2s; }
+.fondo-foto-2 { --t: 120px; right: 4%; top: 5%; animation-duration: 21s; animation-delay: -9s; }
+.fondo-foto-3 { --t: 104px; left: 9%; bottom: 8%; animation-duration: 16s; animation-delay: -5s; }
+.fondo-foto-4 { --t: 180px; right: 7%; bottom: 6%; animation-duration: 22s; animation-delay: -12s; }
+.fondo-foto-5 { --t: 96px; left: 1%; top: 44%; animation-duration: 14s; animation-delay: -7s; }
+.fondo-foto-6 { --t: 112px; right: 1%; top: 40%; animation-duration: 19s; animation-delay: -3s; }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; }
-  .hero-3d__float { animation: none; }
+  .hero-3d__float, .fondo-foto { animation: none; }
   .hero-3d:hover .hero-3d__scene { transform: none; }
 }
 
