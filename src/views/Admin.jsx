@@ -1,6 +1,6 @@
 // Administración (ruta /admin, solo ADMIN). Pestaña Pagos: aprobar, rechazar o reembolsar (aprobar habilita a los chefs).
 // Pestaña Usuarios: listar, crear y abrir el detalle para editar datos y cambiar el rol.
-// Pestaña Categorías: listar las categorías de los platos.
+// Pestaña Categorías: listar y crear las categorías de los platos.
 import { useEffect, useState } from 'react'
 import Tabs from '../components/comunes/Tabs'
 import CategoriasPanel from '../components/admin/CategoriasPanel'
@@ -115,6 +115,12 @@ function Admin({ token, onSesionVencida, onAviso }) {
   const [usuarios, setUsuarios] = useState([])
 
   const [categorias, setCategorias] = useState([])
+
+  // Formulario de categoría nueva: abierto, nombre, error junto al campo y error del backend.
+  const [mostrarFormCategoria, setMostrarFormCategoria] = useState(false)
+  const [descripcionNueva, setDescripcionNueva] = useState('')
+  const [errorDescripcion, setErrorDescripcion] = useState(null)
+  const [errorCrearCategoria, setErrorCrearCategoria] = useState(null)
 
   const [pestana, setPestana] = useState('pagos')
 
@@ -288,6 +294,52 @@ function Admin({ token, onSesionVencida, onAviso }) {
           return
         }
         setErrorCrear(mensajeDe(fallo))
+      })
+  }
+
+  const cerrarFormCategoria = () => {
+    setMostrarFormCategoria(false)
+    setDescripcionNueva('')
+    setErrorDescripcion(null)
+    setErrorCrearCategoria(null)
+  }
+
+  const handleDescripcionChange = (event) => {
+    setDescripcionNueva(event.target.value)
+    setErrorDescripcion(null)
+  }
+
+  // Crea una categoría (POST /categories/createCategory) y la suma a la lista sin volver a pedirla.
+  const crearCategoria = (event) => {
+    event.preventDefault()
+
+    if (descripcionNueva.trim() === '') {
+      setErrorDescripcion('Escribí el nombre de la categoría.')
+      return
+    }
+
+    setErrorCrearCategoria(null)
+    fetch(`${API_URL}/categories/createCategory`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`, // ruta privada
+      },
+      body: JSON.stringify({ description: descripcionNueva.trim() }),
+    })
+      .then(leerRespuesta)
+      .then((creada) => {
+        setCategorias((actuales) => [...actuales, creada])
+        cerrarFormCategoria()
+        onAviso(`Creaste la categoría ${creada.description}`)
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        // 409 (nombre repetido, sin distinguir mayúsculas), 403: el mensaje del backend va dentro del formulario.
+        setErrorCrearCategoria(mensajeDe(fallo))
       })
   }
 
@@ -559,7 +611,19 @@ function Admin({ token, onSesionVencida, onAviso }) {
           </div>
         )}
 
-        {pestana === 'categorias' && <CategoriasPanel categorias={categorias} />}
+        {pestana === 'categorias' && (
+          <CategoriasPanel
+            categorias={categorias}
+            mostrarForm={mostrarFormCategoria}
+            descripcion={descripcionNueva}
+            errorDescripcion={errorDescripcion}
+            errorCrear={errorCrearCategoria}
+            onAbrirForm={() => setMostrarFormCategoria(true)}
+            onCerrarForm={cerrarFormCategoria}
+            onDescripcionChange={handleDescripcionChange}
+            onCrear={crearCategoria}
+          />
+        )}
       </div>
 
       {/* Diálogo de confirmación del pago; cerrado, los textos van vacíos (Dialog no dibuja nada con open en false) */}
