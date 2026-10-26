@@ -141,6 +141,7 @@ Mientras no responda, se usa el comportamiento por defecto. Cada decisión tiene
 | Checkout                     | `GET /domicilios`, `POST /domicilios/createDomicilio`, `POST /carrito/checkout`                                                                          |
 | Mis pedidos                  | `GET /orders`, `PATCH /orders/{id}/cancelar`, `POST /resenas/createResena`                                                                               |
 | Publicar / Mis publicaciones | `POST /platos/createPlato`, `PUT /platos/{id}`, `DELETE /platos/{id}`, `PATCH` y `DELETE /platos/{id}/descuento`, `GET /categories`, `GET /ingredientes` |
+| Admin / categorías           | `GET /categories` (pública, sin token), `POST /categories/createCategory`, `PUT /categories/{id}`, `DELETE /categories/{id}` (las tres, ADMIN; el campo es `description`) |
 
 **Dependencias del backend (en arreglo por el equipo).** Si `ENDPOINTS.md` ya las trae, usalas. Si no, dejá un placeholder con un comentario `TODO(backend)` y listalo al terminar el paso:
 
@@ -290,7 +291,7 @@ export default RutaProtegida;
 | MisPedidos                          | `/pedidos`                   | CLIENTE              |
 | MisPublicaciones                    | `/mis-publicaciones`         | CHEF                 |
 | PublicarPlato                       | `/publicar`, `/publicar/:id` | CHEF                 |
-| Admin (usuarios y pagos)            | `/admin`                     | ADMIN                |
+| Admin (usuarios, pagos y categorías) | `/admin`                    | ADMIN                |
 | PedidosRecibidos                    | `/pedidos-recibidos`         | CHEF                 |
 | Perfil                              | `/perfil`                    | CLIENTE, CHEF, ADMIN |
 | NoEncontrado (404)                  | cualquier otra ruta (`*`)    | público              |
@@ -304,6 +305,7 @@ Componentes compartidos, en subcarpetas de `src/components/` (imports como `../c
 - `pedidos/`: `OrderCard`, `OrderTrack`, `SubPedidoCard`.
 - `chef/`: `PublicationRow`, `ImageUrlList`, `ImageFilePicker`.
 - `auth/`: `RoleOption`, `RutaProtegida`.
+- `admin/`: `CategoriasPanel` (pestaña Categorías de `Admin`: lista, formulario de alta y botones Editar y Eliminar; el estado, los `fetch` y los diálogos viven en `Admin.jsx`).
 
 ## 9. Hoja de ruta
 
@@ -345,6 +347,12 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
   - [x] 3 Comentarios más cortos en `App` y las 12 vistas (sin referencias a pasos viejos ni explicaciones repetidas; se mantienen encabezados, props y la primera aparición de cada concepto).
   - Verificado: lint, build y, en el navegador con el backend real, las rutas privadas sin sesión (las 9 redirigen a `/ingreso`) y con sesión de CLIENTE, CHEF y ADMIN (cada rol entra a lo suyo y el resto lo manda a `/`), la cesta (agregar, cambiar cantidad, quitar y vaciar, sin GET extra), un 401 simulado, el registro, Admin (pagos, usuarios y detalle), la validación de `Registro` y los tres casos de `validarPrecios` en `Catalogo`. **Sin probar** el flujo de escritura del chef (crear o editar platos), el checkout con un pedido real, pagar, aprobar pagos y avanzar subpedidos.
 - [x] **Comentarios más cortos en todo el front (25/10)**: de ~15-20 % de comentarios a ~7 % (442 líneas sobre 5.748 en `App`, las 14 vistas y los 38 componentes), sin tocar código (verificado archivo por archivo contra `HEAD`). Un commit por archivo (`comentarios más cortos en <Archivo>`).
+- [x] **Gestión de categorías en `/admin` (25/10)**, tercera pestaña "Categorías" en `Admin.jsx` con `CategoriasPanel`; un commit por sub-paso:
+  - [x] 1 Listado (`GET /categories` público, sin token, en el `Promise.all` del primer efecto).
+  - [x] 2 Crear (`POST /categories/createCategory`; vacío junto al campo, 409 por nombre repetido dentro del formulario; suma con `[...actuales, creada]`).
+  - [x] 3 Editar con `Dialog` (`PUT /categories/{id}`, que devuelve la categoría; reemplaza con `map`; sin llamar al backend si el nombre está vacío o no cambió).
+  - [x] 4 Eliminar con confirmación (`DELETE /categories/{id}`, `data: null`; saca con `filter`; el 409 de una categoría asignada a un plato va al Toast y la deja en la lista).
+  - [x] 5 Cierre: una categoría nueva aparece sola en los chips de `/catalogo` y en el selector de `/publicar`, y al borrarla desaparece. Probado con el backend real y un ADMIN: crear, duplicada (409), editar (renombrar, 409, vacío, sin cambios), eliminar (libre y asignada) y error de red simulado. Ninguna escritura vuelve a pedir `GET /categories`. **Sin probar:** el 404 de editar o eliminar una categoría que otro admin ya borró (el código muestra el mensaje del backend) y el 401 en estas escrituras (lo resuelve `onSesionVencida`, igual que en el resto de `Admin`).
 
 **`TODO(backend)` que quedan:** `PATCH` de stock y de estado del plato; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; nombre y taller del chef en `ChefProfileResponse` (la tarjeta de Inicio muestra solo especialidad, biografía, descripción, foto y reputación); `pedidoId`, fecha y cliente en los subpedidos; `clienteNombre` en las reseñas. (Ya resueltos el 24/10: "mis platos", `GET /platos/{id}` para el dueño, cambio de rol, cambio de contraseña, subida de imágenes y el `message` del `DELETE`.)
 

@@ -21,7 +21,7 @@ La app tiene tres tipos de cuenta, cada uno con su propio recorrido:
 
 - **Cliente:** explora el catálogo (con filtros), mira el detalle de un plato, arma su cesta, elige un domicilio y confirma el pedido, lo paga, sigue su estado y deja una reseña cuando se lo entregan.
 - **Chef:** publica, edita, pausa y elimina sus platos (con imágenes por URL o subidas desde su equipo), maneja su stock y sus descuentos, y avanza los pedidos que le tocan (Recibido, Cocinando, En camino, Entregado).
-- **Administrador:** aprueba o rechaza los pagos de los clientes, crea cuentas con el rol que quiera, y edita el nombre, el apellido, el correo y el rol de cualquier usuario.
+- **Administrador:** aprueba o rechaza los pagos de los clientes, crea cuentas con el rol que quiera, edita el nombre, el apellido, el correo y el rol de cualquier usuario, y crea, edita y elimina las categorías de los platos.
 
 Las tres cuentas pueden ver y editar sus propios datos y cambiar su contraseña en **Mi perfil** (haciendo clic en su nombre del Header).
 
@@ -43,7 +43,7 @@ Un pedido no sale de «Pendiente de confirmación» hasta que el cliente lo paga
 | `/publicar`          | Publicar un plato nuevo                      | Chef    |
 | `/publicar/:id`      | Editar un plato                              | Chef    |
 | `/pedidos-recibidos` | Pedidos que le tocan al chef                 | Chef    |
-| `/admin`             | Administración de pagos y usuarios           | Admin   |
+| `/admin`             | Administración de pagos, usuarios y categorías | Admin |
 | `/perfil`            | Mi perfil: ver y editar nombre, apellido y correo | Cliente, Chef, Admin |
 | cualquier otra       | Página no encontrada (404)                   | Público |
 
@@ -52,7 +52,7 @@ Un pedido no sale de «Pendiente de confirmación» hasta que el cliente lo paga
 ## Estructura de `src/`
 
 - `views/`: una vista por pantalla; tiene el estado y las llamadas a la API.
-- `components/`: piezas de interfaz reutilizables (Header, PlatoCard, Dialog, etc.), ordenadas en subcarpetas por dominio: `comunes/`, `layout/`, `platos/`, `cesta/`, `pedidos/`, `chef/` y `auth/`. Solo reciben props y avisan hacia arriba: no hacen llamadas a la API.
+- `components/`: piezas de interfaz reutilizables (Header, PlatoCard, Dialog, etc.), ordenadas en subcarpetas por dominio: `comunes/`, `layout/`, `platos/`, `cesta/`, `pedidos/`, `chef/`, `auth/` y `admin/`. Solo reciben props y avisan hacia arriba: no hacen llamadas a la API.
 - `App.jsx` y `main.jsx`: punto de entrada. `main.jsx` envuelve la app con `BrowserRouter`; `App.jsx` define las rutas y guarda el estado compartido (sesión, cesta y avisos).
 
 ## Ejecución local
