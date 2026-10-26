@@ -1,14 +1,15 @@
-// Lista de reseñas de un plato.
+// Lista de reseñas (de un plato o de un chef).
 
-// Props: reviews ({ id, calificacion, comentario, fechaCreacion, clienteId }). La API no trae el nombre del autor.
-function ReviewList({ reviews }) {
+// Props: reviews ({ id, calificacion, comentario, fechaCreacion, clienteId, platoNombre opcional }), title (encabezado).
+// La API no trae el nombre del autor.
+function ReviewList({ reviews, title = 'Reseñas de quienes lo pidieron' }) {
   const formatearFecha = (fechaIso) =>
     new Date(fechaIso).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
 
   return (
     <section aria-labelledby="h-res" className="border-t border-hairline pt-14">
       <h2 id="h-res" className="font-display text-headline-md text-primary">
-        Reseñas de quienes lo pidieron
+        {title}
       </h2>
       <ul className="divide-hair mt-8">
         {reviews.map((resena) => (
@@ -19,6 +20,9 @@ function ReviewList({ reviews }) {
                 {'★'.repeat(resena.calificacion)}
               </p>
             </div>
+            {resena.platoNombre !== undefined && (
+              <p className="mt-2 text-label-md text-primary">{resena.platoNombre}</p>
+            )}
             <p className="mt-3 max-w-2xl text-body-md text-on-surface">{resena.comentario}</p>
           </li>
         ))}

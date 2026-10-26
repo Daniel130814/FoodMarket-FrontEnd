@@ -8,6 +8,7 @@ import RutaProtegida from './components/auth/RutaProtegida'
 import Inicio from './views/Inicio'
 import Catalogo from './views/Catalogo'
 import DetallePlato from './views/DetallePlato'
+import PerfilChef from './views/PerfilChef'
 import Carrito from './views/Carrito'
 import Checkout from './views/Checkout'
 import MisPedidos from './views/MisPedidos'
@@ -281,6 +282,7 @@ function App() {
             <Route path="/" element={<Inicio onAdd={agregarSegunSesion} />} />
             <Route path="/catalogo" element={<Catalogo onAdd={agregarSegunSesion} />} />
             <Route path="/plato/:id" element={<DetallePlato onAdd={agregarSegunSesion} />} />
+            <Route path="/chef/:userId" element={<PerfilChef onAdd={agregarSegunSesion} />} />
 
             {/* CLIENTE */}
             <Route
