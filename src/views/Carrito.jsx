@@ -6,9 +6,6 @@ import OrderSummary from '../components/cesta/OrderSummary'
 import EmptyState from '../components/comunes/EmptyState'
 import Dialog from '../components/comunes/Dialog'
 
-// Envío fijo de ejemplo, igual que en Checkout (la API todavía no lo calcula).
-const ENVIO = 3200
-
 const API_URL = import.meta.env.VITE_API_URL
 
 // Devuelve `data` o lanza un Error con message y status (fetch no manda los errores HTTP al .catch).
@@ -78,7 +75,6 @@ function Carrito({ carrito, cartCount, onQuantityChange, onRemove, onClear }) {
           <OrderSummary
             units={cartCount}
             subtotal={totalEstimado}
-            shipping={ENVIO}
             onConfirm={() => navigate('/checkout')}
             buttonLabel="Continuar con la compra"
           />

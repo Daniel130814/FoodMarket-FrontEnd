@@ -9,9 +9,6 @@ import Alert from '../components/comunes/Alert'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
 
-// Envío fijo de ejemplo, igual que en la Cesta (la API todavía no lo calcula).
-const ENVIO = 3200
-
 const API_URL = import.meta.env.VITE_API_URL
 
 // Mensaje de un error de fetch: el del backend, o uno claro si no hubo respuesta (el error no tiene status).
@@ -249,7 +246,6 @@ function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }
           <OrderSummary
             units={cartCount}
             subtotal={totalEstimado}
-            shipping={ENVIO}
             onConfirm={confirmar}
             buttonLabel="Confirmar pedido"
             disabled={domicilioElegidoId === null || confirmando}
