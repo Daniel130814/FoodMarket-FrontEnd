@@ -135,7 +135,7 @@ function Inicio({ onAdd }) {
       <ul className="mt-12 divide-y divide-hairline md:grid md:grid-cols-3 md:divide-x md:divide-y-0">
         {/* Solo 3 perfiles: el diseño tiene 3 columnas */}
         {chefs.slice(0, 3).map((chef) => (
-          <ChefCard key={chef.id} chef={chef} />
+          <ChefCard key={chef.id} chef={chef} verPerfil />
         ))}
       </ul>
     )

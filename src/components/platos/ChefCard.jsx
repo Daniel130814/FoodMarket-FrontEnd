@@ -1,10 +1,12 @@
-// Tarjeta de un chef (foto, especialidad, reputación y presentación) para la sección "Quiénes cocinan" de Inicio.
+// Tarjeta de un chef (foto, especialidad, reputación y presentación) para Inicio, el detalle del plato y el perfil del chef.
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
-// Props: chef (ChefProfileResponse; los textos pueden venir vacíos o en null).
+// Props: chef (ChefProfileResponse; los textos pueden venir vacíos o en null), verPerfil (muestra el enlace a /chef/:userId;
+// en la vista del propio chef va apagado).
 // TODO(backend): el perfil no trae el nombre del chef ni su taller; por eso no se muestran.
-function ChefCard({ chef }) {
-  const { fotoUrl, especialidad, reputacion, biografia, descripcion } = chef
+function ChefCard({ chef, verPerfil = false }) {
+  const { userId, fotoUrl, especialidad, reputacion, biografia, descripcion } = chef
 
   // true si la foto no cargó (por ejemplo, una URL rota): se muestra un ícono.
   const [fotoRota, setFotoRota] = useState(false)
@@ -40,6 +42,9 @@ function ChefCard({ chef }) {
         <blockquote className="flex-1 font-display text-[20px] italic leading-[30px] text-on-surface">“{biografia}”</blockquote>
       )}
       {descripcion && <p className="text-body-sm text-on-surface-variant">{descripcion}</p>}
+      {verPerfil && (
+        <Link to={`/chef/${userId}`} className="link text-label-lg">Ver perfil y platos</Link>
+      )}
     </li>
   )
 }

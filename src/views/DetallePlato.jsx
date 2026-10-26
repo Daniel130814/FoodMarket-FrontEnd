@@ -197,7 +197,7 @@ function DetallePlato({ onAdd }) {
       <section className="mt-16" aria-labelledby="h-chef">
         <h2 id="h-chef" className="font-display text-headline-md text-primary">Quién lo cocina</h2>
         <ul className="mt-6 max-w-2xl">
-          <ChefCard chef={perfilChef} />
+          <ChefCard chef={perfilChef} verPerfil />
         </ul>
       </section>
     )}
