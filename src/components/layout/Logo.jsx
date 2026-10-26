@@ -1,9 +1,10 @@
 // Logo de Appetitos (texto con la manzana en SVG).
 
-// Props: size ('md' por defecto o 'lg'), onDark (true sobre fondo oscuro: cambia los colores).
+// Props: size ('md' por defecto, 'lg' o 'xl' para la portada), onDark (true sobre fondo oscuro: cambia los colores).
 function Logo({ size = 'md', onDark = false }) {
   const clases = ['logo']
   if (size === 'lg') clases.push('logo--lg')
+  if (size === 'xl') clases.push('logo--xl')
   if (onDark) clases.push('logo--on-dark')
 
   return (

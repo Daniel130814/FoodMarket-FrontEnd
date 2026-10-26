@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import PlatoCard from '../components/platos/PlatoCard'
 import CategoryChips from '../components/platos/CategoryChips'
 import ChefCard from '../components/platos/ChefCard'
-import Hero3D from '../components/layout/Hero3D'
+import LogoCloche from '../components/layout/LogoCloche'
 import ContenidoAsync from '../components/comunes/ContenidoAsync'
 
 // URL base del backend (viene de .env).
@@ -104,21 +104,9 @@ function Inicio({ onAdd }) {
 
   return (
     <>
-      {/* Portada: texto y hero 3D (en el celular, uno debajo del otro) */}
-      <section className="grid items-center gap-10 lg:grid-cols-12 lg:gap-12">
-        <div className="lg:col-span-7">
-          <h1 className="font-display text-display-lg text-primary">
-            Platos de autor, cocinados hoy por chefs de tu barrio
-          </h1>
-          <p className="mt-5 max-w-[34rem] text-body-lg text-on-surface-variant">
-            Pedile a talleres pequeños e independientes. Cada plato se prepara en tandas cortas y llega el mismo día.
-          </p>
-          <Link to="/catalogo" className="btn btn-primary mt-8">Ver los platos</Link>
-        </div>
-        <div className="lg:col-span-5">
-          {/* La tarjeta del hero muestra el primer plato publicado (undefined si todavía no hay). */}
-          <Hero3D plato={platos.find((plato) => plato.estado === 'PUBLICADO')} onAdd={onAdd} />
-        </div>
+      {/* Portada: el logo grande aparece al levantar la cloche */}
+      <section className="grid place-items-center py-10 lg:py-16">
+        <LogoCloche />
       </section>
 
       <section aria-labelledby="h-esp" className="mt-14">
