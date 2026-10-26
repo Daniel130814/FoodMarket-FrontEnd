@@ -1,6 +1,6 @@
 // Administración (ruta /admin, solo ADMIN). Pestaña Pagos: aprobar, rechazar o reembolsar (aprobar habilita a los chefs).
 // Pestaña Usuarios: listar, crear y abrir el detalle para editar datos y cambiar el rol.
-// Pestaña Categorías: listar, crear y editar las categorías de los platos.
+// Pestaña Categorías: listar, crear, editar y eliminar las categorías de los platos.
 import { useEffect, useState } from 'react'
 import Tabs from '../components/comunes/Tabs'
 import CategoriasPanel from '../components/admin/CategoriasPanel'
@@ -129,6 +129,9 @@ function Admin({ token, onSesionVencida, onAviso }) {
   const [errorDescripcionEditada, setErrorDescripcionEditada] = useState(null)
   const [errorEditarCategoria, setErrorEditarCategoria] = useState(null)
   const [guardandoCategoria, setGuardandoCategoria] = useState(false)
+
+  // Diálogo de confirmación para eliminar: la categoría elegida o null si está cerrado.
+  const [categoriaAEliminar, setCategoriaAEliminar] = useState(null)
 
   const [pestana, setPestana] = useState('pagos')
 
@@ -407,6 +410,31 @@ function Admin({ token, onSesionVencida, onAviso }) {
         setErrorEditarCategoria(mensajeDe(fallo))
       })
       .finally(() => setGuardandoCategoria(false))
+  }
+
+  // Al confirmar: DELETE /categories/{id} (responde data: null) y la saca de la lista con filter, sin re-GET.
+  // El diálogo se cierra enseguida para que un segundo clic no repita el pedido. Si el backend la rechaza
+  // (409: está asignada a un plato; 404: ya no existe) el mensaje va al Toast y la lista queda como estaba.
+  const eliminarCategoria = () => {
+    const { id, description } = categoriaAEliminar
+    setCategoriaAEliminar(null)
+
+    fetch(`${API_URL}/categories/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }, // ruta privada
+    })
+      .then(leerRespuesta)
+      .then(() => {
+        setCategorias((actuales) => actuales.filter((c) => c.id !== id))
+        onAviso(`Eliminaste la categoría ${description}`)
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        onAviso(mensajeDe(fallo))
+      })
   }
 
   // Abre el detalle: reinicia el diálogo y guarda el id (el efecto de arriba hace el GET).
@@ -689,6 +717,7 @@ function Admin({ token, onSesionVencida, onAviso }) {
             onDescripcionChange={handleDescripcionChange}
             onCrear={crearCategoria}
             onEditar={abrirEdicionCategoria}
+            onEliminar={setCategoriaAEliminar}
           />
         )}
       </div>
@@ -742,6 +771,17 @@ function Admin({ token, onSesionVencida, onAviso }) {
           />
         </div>
       </Dialog>
+
+      {/* Diálogo de confirmación para eliminar una categoría; cerrado, el título va vacío */}
+      <Dialog
+        open={categoriaAEliminar !== null}
+        title={categoriaAEliminar === null ? '' : `¿Eliminar ${categoriaAEliminar.description}?`}
+        message="Si hay platos que usan esta categoría, no se puede eliminar."
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        onConfirm={eliminarCategoria}
+        onCancel={() => setCategoriaAEliminar(null)}
+      />
     </>
   )
 }
