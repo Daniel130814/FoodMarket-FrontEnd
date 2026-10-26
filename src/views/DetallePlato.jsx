@@ -1,4 +1,4 @@
-// Detalle de un plato (/plato/:id): GET /platos/{id} y GET /resenas/plato/{id}, y agregar a la cesta.
+// Detalle de un plato (/plato/:id): GET /platos/{id}, /resenas/plato/{id} y /chef-profiles, y agregar a la cesta.
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Button from '../components/comunes/Button'
@@ -9,6 +9,7 @@ import Gallery from '../components/platos/Gallery'
 import QuantityStepper from '../components/cesta/QuantityStepper'
 import IngredientTrace from '../components/platos/IngredientTrace'
 import ReviewList from '../components/platos/ReviewList'
+import ChefCard from '../components/platos/ChefCard'
 
 // URL base del backend (viene de .env).
 const API_URL = import.meta.env.VITE_API_URL
@@ -39,6 +40,9 @@ function DetallePlato({ onAdd }) {
   const [resenas, setResenas] = useState([])
   const [noDisponible, setNoDisponible] = useState(false)
 
+  // Perfil del chef del plato, o null si no tiene (no todos los chefs lo cargaron).
+  const [perfilChef, setPerfilChef] = useState(null)
+
   // Un id que no es entero positivo (/plato/abc) no se le pregunta al backend: respondería 500.
   const idValido = Number.isInteger(Number(id)) && Number(id) > 0
 
@@ -57,15 +61,24 @@ function DetallePlato({ onAdd }) {
 
     fetch(`${API_URL}/platos/${id}`, { signal: controlador.signal })
       .then(leerRespuesta)
-      // Las reseñas se piden después: si el plato no existe, ya se cortó con el 404.
+      // Las reseñas y el perfil se piden después: si el plato no existe, ya se cortó con el 404.
       .then((platoApi) =>
-        fetch(`${API_URL}/resenas/plato/${id}`, { signal: controlador.signal })
-          .then(leerRespuesta)
-          .then((resenasApi) => ({ platoApi, resenasApi }))
+        Promise.all([
+          fetch(`${API_URL}/resenas/plato/${id}`, { signal: controlador.signal }).then(leerRespuesta),
+          // El perfil es un extra: si falla, el detalle se ve igual. No hay endpoint por chefId, así que se busca en la lista.
+          fetch(`${API_URL}/chef-profiles`, { signal: controlador.signal })
+            .then(leerRespuesta)
+            .catch(() => null),
+        ]).then(([resenasApi, perfilesApi]) => ({
+          platoApi,
+          resenasApi,
+          perfilApi: (perfilesApi ?? []).find((perfil) => perfil.userId === platoApi.chefId) ?? null,
+        }))
       )
-      .then(({ platoApi, resenasApi }) => {
+      .then(({ platoApi, resenasApi, perfilApi }) => {
         setPlato(platoApi)
         setResenas(resenasApi ?? [])
+        setPerfilChef(perfilApi)
         setNoDisponible(false)
         setError(null)
         setCargando(false)
@@ -178,6 +191,16 @@ function DetallePlato({ onAdd }) {
         </div>
       </div>
     </div>
+
+    {/* TODO(backend): nombre, apellido y nacionalidad del chef; el perfil público solo trae especialidad, foto y textos. */}
+    {perfilChef !== null && (
+      <section className="mt-16" aria-labelledby="h-chef">
+        <h2 id="h-chef" className="font-display text-headline-md text-primary">Quién lo cocina</h2>
+        <ul className="mt-6 max-w-2xl">
+          <ChefCard chef={perfilChef} />
+        </ul>
+      </section>
+    )}
 
     {tieneIngredientes && (
       <div className="mt-16">
