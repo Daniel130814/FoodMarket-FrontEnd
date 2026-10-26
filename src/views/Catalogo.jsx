@@ -1,5 +1,6 @@
 // Catálogo (/catalogo): platos y categorías del backend. Filtra por query params; ordena y pagina acá (la API no lo hace).
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import PlatoCard from '../components/platos/PlatoCard'
 import SearchBar from '../components/platos/SearchBar'
 import CategoryChips from '../components/platos/CategoryChips'
@@ -63,7 +64,9 @@ function Catalogo({ onAdd }) {
   const [error, setError] = useState(null)
   const [errorCategorias, setErrorCategorias] = useState(false)
 
-  const [filtros, setFiltros] = useState(FILTROS_INICIALES)
+  // Si llegamos desde el buscador de Inicio, el nombre viene en el state de la navegación (valor inicial: no dispara un GET de más).
+  const location = useLocation()
+  const [filtros, setFiltros] = useState({ ...FILTROS_INICIALES, nombre: location.state?.nombre ?? '' })
 
   const [orden, setOrden] = useState('sin-orden')
 
