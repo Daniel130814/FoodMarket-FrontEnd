@@ -7,10 +7,8 @@ const ICONOS = ['restaurant', 'eco', 'nutrition', 'egg_alt', 'bakery_dining', 's
 
 // Props: platos (los de Inicio; se usan las primeras fotos). Con menos de 3 fotos se muestran íconos.
 function FondoMesa({ platos }) {
-  const fotos = platos
-    .map((plato) => plato.imagenesUrls?.[0])
-    .filter((url) => url !== undefined)
-    .slice(0, 6)
+  // Sin repetidas: varios platos pueden compartir la misma foto y la URL es la key.
+  const fotos = [...new Set(platos.map((plato) => plato.imagenesUrls?.[0]).filter((url) => url !== undefined))].slice(0, 6)
 
   return (
     <div className="aparece pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true" style={{ '--retraso': '1.6s' }}>

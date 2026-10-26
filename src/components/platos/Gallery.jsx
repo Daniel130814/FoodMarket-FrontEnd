@@ -24,7 +24,7 @@ function Gallery({ images, title }) {
         <div className="scroll-x mt-4 flex gap-3 overflow-x-auto pb-1" role="group" aria-label="Fotos del plato">
           {images.map((url, indice) => (
             <button
-              key={url}
+              key={indice}
               type="button"
               onClick={() => setActiva(indice)}
               aria-label={`Ver foto ${indice + 1} de ${images.length}`}
