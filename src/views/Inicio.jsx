@@ -1,7 +1,8 @@
 // Inicio (/): portada, categorías, platos de hoy y chefs (GET /platos, /categories y /chef-profiles).
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import PlatoCard from '../components/platos/PlatoCard'
+import SearchBar from '../components/platos/SearchBar'
 import CategoryChips from '../components/platos/CategoryChips'
 import ChefCard from '../components/platos/ChefCard'
 import LogoCloche from '../components/layout/LogoCloche'
@@ -23,8 +24,12 @@ const leerRespuesta = (response) =>
 
 // Props: onAdd (agregar a la cesta de App; solo se reenvía a cada PlatoCard).
 function Inicio({ onAdd }) {
+  const navigate = useNavigate()
   const [platos, setPlatos] = useState([])
   const [categorias, setCategorias] = useState([])
+
+  // Texto del buscador de la portada: se manda al catálogo al enviar.
+  const [busqueda, setBusqueda] = useState('')
 
   // Perfiles de chef, con su carga y error: si fallan, solo se avisa en su sección.
   const [chefs, setChefs] = useState([])
@@ -78,6 +83,16 @@ function Inicio({ onAdd }) {
       .finally(() => setCargandoChefs(false))
   }, [])
 
+  const manejarBusqueda = (event) => {
+    setBusqueda(event.target.value)
+  }
+
+  // Va al catálogo con el texto en el state de la navegación (sin fetch acá); vacío = sin filtro.
+  const buscar = (event) => {
+    event.preventDefault()
+    navigate('/catalogo', { state: { nombre: busqueda.trim() } })
+  }
+
   // Los primeros 4 platos para "Platos de hoy".
   const platosDeHoy = platos.slice(0, 4)
 
@@ -111,6 +126,14 @@ function Inicio({ onAdd }) {
         <h1 className="aparece balance mt-8 text-center font-display text-display-lg-mobile text-primary lg:text-display-lg">
           ¿Qué te gustaría comer hoy?
         </h1>
+
+        {/* Buscador: entra un poco después del titular */}
+        <form onSubmit={buscar} className="aparece mt-8 flex w-full max-w-xl items-center gap-3" style={{ '--retraso': '1.8s' }}>
+          <div className="flex-1">
+            <SearchBar value={busqueda} onChange={manejarBusqueda} placeholder="Buscá un plato, por ejemplo ravioles" />
+          </div>
+          <button type="submit" className="btn btn-primary">Buscar</button>
+        </form>
       </section>
 
       <section aria-labelledby="h-esp" className="mt-14">
