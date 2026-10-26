@@ -6,10 +6,14 @@ import SearchBar from '../components/platos/SearchBar'
 import CategoryChips from '../components/platos/CategoryChips'
 import ChefCard from '../components/platos/ChefCard'
 import LogoCloche from '../components/layout/LogoCloche'
+import Hero3D from '../components/layout/Hero3D'
 import ContenidoAsync from '../components/comunes/ContenidoAsync'
 
 // URL base del backend (viene de .env).
 const API_URL = import.meta.env.VITE_API_URL
+
+// Plato destacado de la portada (el filtro `nombre` del backend busca por coincidencia parcial).
+const NOMBRE_RECOMENDADO = 'Milanesa napolitana con papas'
 
 // Devuelve `data` o lanza un Error con message y status (fetch no manda los errores HTTP al .catch).
 const leerRespuesta = (response) =>
@@ -27,6 +31,9 @@ function Inicio({ onAdd }) {
   const navigate = useNavigate()
   const [platos, setPlatos] = useState([])
   const [categorias, setCategorias] = useState([])
+
+  // Plato recomendado (undefined hasta que llega o si no hay); si falta, la portada usa el primer plato publicado.
+  const [recomendado, setRecomendado] = useState(undefined)
 
   // Texto del buscador de la portada: se manda al catálogo al enviar.
   const [busqueda, setBusqueda] = useState('')
@@ -83,6 +90,14 @@ function Inicio({ onAdd }) {
       .finally(() => setCargandoChefs(false))
   }, [])
 
+  // GET del plato recomendado (público, sin token). Si falla no se avisa: cae al respaldo.
+  useEffect(() => {
+    fetch(`${API_URL}/platos?nombre=${encodeURIComponent(NOMBRE_RECOMENDADO)}`)
+      .then(leerRespuesta)
+      .then((data) => setRecomendado((data ?? []).find((plato) => plato.estado === 'PUBLICADO' || plato.estado === 'AGOTADO')))
+      .catch(() => setRecomendado(undefined))
+  }, [])
+
   const manejarBusqueda = (event) => {
     setBusqueda(event.target.value)
   }
@@ -97,6 +112,9 @@ function Inicio({ onAdd }) {
   const irACategoria = (id) => {
     navigate('/catalogo', { state: { categoriaId: id } })
   }
+
+  // Plato de la tarjeta del hero: el recomendado o, si no hay, el primero publicado.
+  const platoDelHero = recomendado ?? platos.find((plato) => plato.estado === 'PUBLICADO')
 
   // Los primeros 4 platos para "Platos de hoy".
   const platosDeHoy = platos.slice(0, 4)
@@ -146,6 +164,23 @@ function Inicio({ onAdd }) {
           {errorCategorias && (
             <p className="hint hint--error">No pudimos cargar las categorías.</p>
           )}
+        </div>
+      </section>
+
+      {/* Qué es Appetitos y el plato recomendado (en el celular, uno debajo del otro) */}
+      <section aria-labelledby="h-que-es" className="mt-14 grid items-center gap-10 lg:mt-20 lg:grid-cols-12 lg:gap-12">
+        <div className="lg:col-span-7">
+          <h2 id="h-que-es" className="font-display text-headline-lg text-primary">
+            Platos de autor, cocinados hoy por chefs de tu barrio
+          </h2>
+          <p className="mt-5 max-w-[34rem] text-body-lg text-on-surface-variant">
+            Pedile a talleres pequeños e independientes. Cada plato se prepara en tandas cortas y llega el mismo día.
+          </p>
+          <Link to="/catalogo" className="btn btn-primary mt-8">Ver los platos</Link>
+        </div>
+        <div className="lg:col-span-5">
+          {/* Hero3D no dibuja la tarjeta si plato es undefined */}
+          <Hero3D plato={platoDelHero} onAdd={onAdd} />
         </div>
       </section>
 
