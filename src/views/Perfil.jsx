@@ -1,8 +1,10 @@
-// Perfil (/perfil, cualquier rol con sesión): datos de la cuenta (GET y PUT /users/me) y cambio de contraseña (PUT /users/me/password).
+// Perfil (/perfil, cualquier rol con sesión): datos de la cuenta (GET y PUT /users/me), cambio de contraseña (PUT /users/me/password)
+// y, para el CHEF, su presentación pública (GET, POST y PUT /chef-profiles).
 import { useEffect, useState } from 'react'
 import ContenidoAsync from '../components/comunes/ContenidoAsync'
 import FormField from '../components/comunes/FormField'
 import Alert from '../components/comunes/Alert'
+import ChefProfileForm from '../components/chef/ChefProfileForm'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -51,6 +53,26 @@ const validarPassword = (datos) => ({
 
 const PASSWORD_VACIA = { actual: '', nueva: '', repetir: '' }
 
+// Presentación del chef (ChefProfileRequest): la API no valida nada, los límites son los de la columna (ENDPOINTS.md 3.6).
+const CHEF_VACIO = { especialidad: '', fotoUrl: '', biografia: '', descripcion: '' }
+const MAX_TEXTO_CHEF = 2000
+
+// La API devuelve null en los textos que el chef no cargó.
+const aFormularioChef = (perfil) => ({
+  especialidad: perfil.especialidad ?? '',
+  fotoUrl: perfil.fotoUrl ?? '',
+  biografia: perfil.biografia ?? '',
+  descripcion: perfil.descripcion ?? '',
+})
+
+// La especialidad es obligatoria acá porque es el título de la tarjeta; la foto, si hay, tiene que ser una URL.
+const validarChef = (datos) => ({
+  ...(datos.especialidad.trim() === '' && { especialidad: 'Escribí tu tipo de cocina, por ejemplo "Pastas caseras".' }),
+  ...(datos.fotoUrl.trim() !== '' && !/^https?:\/\/\S+$/.test(datos.fotoUrl.trim()) && { fotoUrl: 'Escribí una URL que empiece con http:// o https://.' }),
+  ...(datos.biografia.length > MAX_TEXTO_CHEF && { biografia: `Máximo ${MAX_TEXTO_CHEF} caracteres.` }),
+  ...(datos.descripcion.length > MAX_TEXTO_CHEF && { descripcion: `Máximo ${MAX_TEXTO_CHEF} caracteres.` }),
+})
+
 // Props: token (JWT), onSesionVencida (401), onPerfilActualizado (le pasa a App el usuario guardado para el Header), onAviso (Toast).
 function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
   const [usuario, setUsuario] = useState(null)
@@ -71,13 +93,33 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
   const [errorPassword, setErrorPassword] = useState(null)
   const [guardandoPassword, setGuardandoPassword] = useState(false)
 
-  // Al abrir: GET /users/me, que llena el usuario y el formulario.
+  // Presentación del chef: el perfil guardado (null si todavía no lo creó), el formulario, sus errores y el guardado en curso.
+  const [perfilChef, setPerfilChef] = useState(null)
+  const [formChef, setFormChef] = useState(CHEF_VACIO)
+  const [erroresChef, setErroresChef] = useState({})
+  const [errorChef, setErrorChef] = useState(null)
+  const [guardandoChef, setGuardandoChef] = useState(false)
+
+  // Al abrir: GET /users/me, que llena el usuario y el formulario. Si es CHEF, también busca su perfil público.
   useEffect(() => {
     fetch(`${API_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then(leerRespuesta)
       .then((data) => {
         setUsuario(data)
         setForm(aFormulario(data))
+        if (data.role !== 'CHEF') {
+          return null
+        }
+        // No hay endpoint por id de usuario (GET /chef-profiles/{id} usa el id del perfil): se busca en la lista pública.
+        return fetch(`${API_URL}/chef-profiles`)
+          .then(leerRespuesta)
+          .then((perfiles) => (perfiles ?? []).find((perfil) => perfil.userId === data.id) ?? null)
+      })
+      .then((perfil) => {
+        if (perfil !== null) {
+          setPerfilChef(perfil)
+          setFormChef(aFormularioChef(perfil))
+        }
       })
       .catch((fallo) => {
         if (fallo.status === 401) {
@@ -144,6 +186,58 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
         setErrorGuardar(mensajeDe(fallo))
       })
       .finally(() => setGuardando(false))
+  }
+
+  // Handler de los campos de la presentación del chef; al corregir un campo limpia su error.
+  const handleChefChange = (event) => {
+    const { name, value } = event.target
+    setFormChef({ ...formChef, [name]: value })
+    if (erroresChef[name]) {
+      setErroresChef({ ...erroresChef, [name]: null })
+    }
+  }
+
+  // Guarda la presentación: POST la primera vez y PUT (con el id del perfil) después. Se actualiza el estado local con lo que devuelve la API.
+  const handleChefSubmit = (event) => {
+    event.preventDefault()
+
+    const nuevosErrores = validarChef(formChef)
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErroresChef(nuevosErrores)
+      return
+    }
+
+    const editando = perfilChef !== null
+
+    setGuardandoChef(true)
+    setErrorChef(null)
+    fetch(editando ? `${API_URL}/chef-profiles/${perfilChef.id}` : `${API_URL}/chef-profiles`, {
+      method: editando ? 'PUT' : 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`, // ruta privada
+      },
+      body: JSON.stringify({
+        especialidad: formChef.especialidad.trim(),
+        fotoUrl: formChef.fotoUrl.trim(),
+        biografia: formChef.biografia.trim(),
+        descripcion: formChef.descripcion.trim(),
+      }),
+    })
+      .then(leerRespuesta)
+      .then((guardado) => {
+        setPerfilChef(guardado)
+        setFormChef(aFormularioChef(guardado))
+        onAviso(editando ? 'Guardaste tu presentación' : 'Creaste tu presentación')
+      })
+      .catch((fallo) => {
+        if (fallo.status === 401) {
+          onSesionVencida()
+          return
+        }
+        setErrorChef(mensajeDe(fallo))
+      })
+      .finally(() => setGuardandoChef(false))
   }
 
   // Handler de los inputs de la contraseña.
@@ -234,6 +328,18 @@ function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
                 {guardando ? 'Guardando...' : 'Guardar cambios'}
               </button>
             </form>
+
+            {usuario.role === 'CHEF' && (
+              <ChefProfileForm
+                datos={formChef}
+                errores={erroresChef}
+                error={errorChef}
+                existe={perfilChef !== null}
+                guardando={guardandoChef}
+                onChange={handleChefChange}
+                onSubmit={handleChefSubmit}
+              />
+            )}
 
             <form className="mt-14 max-w-xl space-y-6" onSubmit={handlePasswordSubmit} noValidate>
               <h2 className="font-display text-headline-md text-primary">Cambiar la contraseña</h2>
